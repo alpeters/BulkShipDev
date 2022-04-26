@@ -7,7 +7,7 @@ import geopandas as gpd
 import numpy as np
 
 #%%
-filepath = 'data/AIS'
+filepath = 'src/data/AIS'
 plotpath = 'plots/AIS_Plots'
 
 #%%
@@ -95,7 +95,7 @@ fig = px.scatter_geo(
     title="Ports"
 )
 fig.update_layout(showlegend=False)
-fig.write_image(os.path.join(plotpath, 'WPI.png'))
+# fig.write_image(os.path.join(plotpath, 'WPI.png'))
 fig.show()
 
 ## Plot trips
@@ -119,6 +119,7 @@ for mmsi in df.mmsi.unique():
         opacity = 0.3,
         marker={'symbol': 'cross'}
     )
+    fig.write_image(os.path.join(plotpath, str(mmsi) + '_trips.png'))
     fig.show()
 
 
