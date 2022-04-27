@@ -1,0 +1,258 @@
+---
+title: "All Join"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+options(dplyr.summarise.inform = FALSE)
+# library(feather)
+```
+
+# Load data
+```{r}
+load("data/bulkers_WFR.Rda")
+load("data/containerships_WFR.Rda")
+# ais_mmsi <- read.csv("data/ais_mmsi.csv") %>%
+#   as_tibble(.name_repair = 'universal') %>% 
+#   rename(AIS.MMSI = mmsi)
+# ais_yearly_distance <- read_feather("data/AIS_yearly_distance.feather") %>% 
+#   as_tibble(.name_repair = 'universal')
+AIS_df <- read.csv("data/AIS_yearly_distance.csv") %>% 
+  as_tibble(.name_repair = 'universal') %>% 
+  rename(MMSI = mmsi)
+# load("data/ais_mmsi.Rda")
+load("data/MRV.Rda")
+```
+
+Harmonize types
+```{r}
+bulkers_df <- bulkers_df %>% 
+  mutate(IMO.Number = as.integer(IMO.Number))
+
+containerships_df <- containerships_df %>% 
+  mutate(IMO.Number = as.integer(IMO.Number))
+
+MRV_df <- MRV_df %>% 
+  mutate(imo.number = as.integer(imo.number))
+```
+
+# EIV Calculations
+## Bulkers
+```{r}
+bulkers_df <- bulkers_df %>% 
+  mutate(Main.Engine.Power.kW = str_remove_all(Main.Engine.Detail, ",") %>% 
+                             str_extract("\\b\\d*(?=mkW\\stotal)") %>% 
+                             as.integer(),
+         Auxiliary.Engine.Power.kW = str_remove_all(Auxiliary.Engine.Detail, ",") %>% 
+                             str_extract("\\b\\d*(?=mkW\\stotal)") %>% 
+                             as.integer()) %>% 
+  mutate(PAE = if_else(Main.Engine.Power.kW >= 10000, 0.025 * Main.Engine.Power.kW + 250, 0.05 * Main.Engine.Power.kW),
+         Design.Efficiency = Main.Engine.Power.kW*Main.Consumption.at.Service.Speed..tpd../(Dwt*Service.Speed..knots.),
+         EIV.Calculated = 3.1144 * (190 * 0.75 * Main.Engine.Power.kW + 215 * PAE)/(Dwt*Service.Speed..knots.),
+         EIV.Main.Calculated = 3.1144 * (190 * 0.75 * Main.Engine.Power.kW)/(Dwt*Service.Speed..knots.))
+```
+
+```{r}
+bulkers_df %>% 
+  ggplot(aes(PAE)) + 
+  geom_histogram(binwidth = 20)
+```
+
+```{r}
+bulkers_df %>% 
+  ggplot(aes(x = EIV.Calculated, fill = Size.Category)) + 
+  geom_histogram(binwidth = 0.25)
+```
+
+# Combine bulkers and container ships
+```{r}
+fleet_df <- bind_rows(bulkers_df, containerships_df)
+```
+
+## Reorganize
+```{r}
+fleet_df <- fleet_df %>% 
+  relocate(Fleet.Type, .before = CVN) %>% 
+  relocate(c(Size.Category, Dwt), .after = MMSI) %>% 
+  relocate(Type, .before = Size.Category) %>% 
+  # relocate(Dwt, .after = Size.Category) %>% 
+  relocate(c(Built.Date, Built.Year), .after = Dwt) %>% 
+  relocate(Alternative.Name, .after = Name) %>% 
+  relocate(Ex.Name, .after = Alternative.Name) %>% 
+  relocate(Owner.Size, .after = Owner) %>% 
+  relocate(Design.Efficiency, .after = Group.Owner) %>% 
+  relocate(contains("EIV"), .after = Design.Efficiency)
+```
+
+
+# WFR-AIS
+```{r}
+colnames(AIS_df) <- paste0('AIS.', colnames(AIS_df))
+```
+
+```{r}
+AIS_df <- AIS_df %>% 
+  arrange(AIS.year) %>% 
+  pivot_wider(names_from = AIS.year,
+              names_prefix = "AIS.Distance.",
+              values_from = AIS.distance,)
+```
+
+## join
+```{r}
+fleet_df <- fleet_df %>% 
+  left_join(AIS_df,
+            by = c("MMSI" = "AIS.MMSI"),
+            keep = TRUE) %>% 
+  relocate(AIS.MMSI, .after = MMSI) %>% 
+  relocate(contains("Distance"), .after = Group.Owner)
+```
+
+How many ships in WFR don't have tracking data?
+```{r}
+fleet_df %>% 
+  drop_na(MMSI) %>% 
+  group_by(is.na(AIS.MMSI)) %>% 
+  summarise(n())
+```
+
+Which ships don't have tracking data?
+```{r}
+fleet_df %>% 
+  drop_na(MMSI) %>% 
+  group_by(Fleet.Type, is.na(AIS.MMSI), Status) %>% 
+  summarise(n())
+```
+Only missing 185 in-service bulkers! There is some mislabeling or maybe transferred tracking devices, but it's in the very low tens.
+
+Which tracked ships aren't in fleet register?
+```{r}
+unmatched_ais_df <- anti_join(AIS_df, fleet_df,
+                              by = c("AIS.MMSI" = "MMSI"))
+```
+This will be empty because I used the fleet register to subset AIS data.
+
+```{r eval = FALSE}
+AIS_df %>% 
+  arrange(desc(AIS.MMSI)) %>% 
+  View()
+```
+
+
+# WFR-MRV
+```{r eval = FALSE}
+MRV_df %>% colnames()
+```
+
+
+```{r}
+MRV_wide_df <- MRV_df %>% 
+  select(IMO.Number = imo.number,
+         Ship.Name = ship.name,
+         Ship.Type = ship.type,
+         Technical.Efficiency = technical.efficiency,
+         Efficiency.Metric = efficiency.metric,
+         EEDI,
+         EIV,
+         Reporting.Period = reporting.period,
+         Total.FC = total.fc,
+         Total.CO2 = total.co2,
+         Time.At.Sea = time.at.sea,
+         Speed = speed,
+         EU.Distance = EU.distance,
+         Emission.Factor = emission.factor,
+         FC.On.Laden = fc.on.laden,
+         FC.Per.Distance = fc.per.distance,
+         FC.Per.Work.Mass = fc.per.work.mass,
+         FC.Per.Work.Mass.On.Laden.Voyages = fc.per.work.mass.on.laden.voyages,
+         FC.Per.Work.Volume.On.Laden.Voyages = fc.per.work.volume.on.laden.voyages) %>% 
+  arrange(IMO.Number, Reporting.Period) %>%
+  pivot_wider(id_cols = c(IMO.Number),
+              names_from = Reporting.Period,
+              values_from = -c(IMO.Number, Reporting.Period),
+              names_sep = ".")
+
+colnames(MRV_wide_df) <- paste0('MRV.', colnames(MRV_wide_df))
+```
+
+Can I reduce design efficiency metrics to single variable?
+How many ships report the same efficiency year on year?
+```{r}
+MRV_wide_df %>% 
+  mutate(MRV.Constant.Efficiency.Metric = 
+           MRV.Efficiency.Metric.2018 == MRV.Efficiency.Metric.2019 &
+           MRV.Efficiency.Metric.2019 == MRV.Efficiency.Metric.2020,
+         MRV.Constant.Efficiency = 
+           MRV.Technical.Efficiency.2018 - MRV.Technical.Efficiency.2019 < 1 &
+           MRV.Technical.Efficiency.2019 - MRV.Technical.Efficiency.2020 < 1,) %>% 
+  group_by(MRV.Constant.Efficiency.Metric, MRV.Constant.Efficiency) %>% 
+  # filter(constant.efficiency.metric, !constant.efficiency) %>% 
+  summarise(n())
+```
+Leave as-is for now.
+
+## join
+```{r}
+fleet_df <- fleet_df %>% 
+  left_join(MRV_wide_df,
+            by = c("IMO.Number" = "MRV.IMO.Number"),
+            keep = TRUE) %>% 
+  relocate(MRV.IMO.Number, .after = IMO.Number) %>% 
+  relocate(contains("MRV.Ship.Name."), .after = Name) %>% 
+  relocate(contains("MRV.Ship.Type."), .after = Type) %>% 
+  relocate(contains("EU.Distance"), .after = AIS.Distance.2021) %>%
+  relocate(contains("EIV"), .after = Design.Efficiency) %>% 
+  relocate(contains("EEDI"), .after = MRV.EIV.2020)
+```
+
+How many WFR ships report in MRV?
+```{r}
+fleet_df %>% 
+  select(CVN, 
+         IMO.Number, 
+         MRV.IMO.Number,
+         Name, 
+         starts_with("MRV.Ship.Name."),
+         Type, 
+         starts_with("MRV.Ship.Type.")) %>% 
+  drop_na(IMO.Number) %>%
+  group_by(is.na(MRV.IMO.Number)) %>% 
+  summarise(count = n()) %>% 
+  mutate(percentage = count / sum(count) * 100)
+```
+44% of ships report in MRV. This is quite high!
+
+```{r eval = FALSE}
+fleet_df %>% 
+  select(CVN, 
+         IMO.Number, 
+         MRV.IMO.Number,
+         Name, 
+         starts_with("MRV.Ship.Name."),
+         Type, 
+         starts_with("MRV.Ship.Type.")) %>% 
+  filter(!is.na(MRV.IMO.Number)) %>% 
+  View()
+```
+
+How does fleet type compare between WFR and MRV?
+```{r}
+fleet_df %>% 
+  group_by(Fleet.Type, MRV.Ship.Type.2020) %>% 
+  summarise(n())
+```
+Fairly good correspondence, though MRV has many missings.
+
+
+# WFR-AIS-MRV
+```{r eval = FALSE}
+fleet_df %>% 
+  group_by(Fleet.Type, is.na(AIS.MMSI), is.na(MRV.IMO.Number)) %>% 
+  summarise(n())
+```
+# Save
+```{r}
+save(fleet_df, file = "data/All_join.Rda")
+```
+

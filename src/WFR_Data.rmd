@@ -1,0 +1,280 @@
+---
+title: "WFR Data"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+# library(rio)
+library(lubridate)
+library(forcats)
+library(utils)
+```
+
+# Bulkers
+## Fleet database
+```{r}
+read_WFR_varset <- function(shiptype, varset, col_types){
+  fleet_files <- list.files("data/WFR/") %>% 
+    str_subset(paste0("WFR_", shiptype)) %>% 
+    str_subset(paste0("Vars", varset))
+
+  fleet_df <- tibble()
+  for(filename in fleet_files){
+    print(filename)
+    temp_df <- read.csv(file.path("data/WFR", filename),
+                      skip = 6,
+                      header = TRUE,
+                      colClasses = col_types,
+                      blank.lines.skip = TRUE,
+                      fill = TRUE
+                      # nrows = nrow
+                      ) %>% 
+      as_tibble(.name_repair = 'universal') %>% 
+      filter(!str_detect(.[[1]], "Clarkson Research Services"))
+      
+    fleet_df <- bind_rows(fleet_df, temp_df)
+  }
+  
+  save(fleet_df, file = paste0("data/", shiptype, "_vars", varset, ".Rda"))
+}
+```
+
+```{r}
+col_types <- rep("character", 40)
+col_types[c(2, 4, 13, 14, 16, 17, 18, 20, 23, 25, 29, 30, 31, 34, 35, 36, 37)] <- "numeric"
+read_WFR_varset("Bulkers", 1, col_types)
+```
+
+```{r}
+col_types <- rep("character", 40)
+col_types[c(2, 7, 8, 10, 12, 13, 15, 16, 17, 22, 23, 25, 27)] <- "numeric"
+read_WFR_varset("Bulkers", 2, col_types)
+```
+
+```{r}
+col_types <- rep("character", 40)
+col_types[c(2, 4, 5, 12, 13, 15, 17, 20, 21, 22, 23, 32:37)] <- "numeric"
+read_WFR_varset("Bulkers", 3, col_types)
+```
+
+```{r}
+col_types <- rep("character", 40)
+col_types[c(3, 9, 19, 20, 21, 29, 30, 34:38)] <- "numeric"
+read_WFR_varset("Bulkers", 4, col_types)
+```
+
+```{r}
+col_types <- rep("character", 40)
+col_types[c(2, 7, 13:28, 29:34, 38, 40)] <- "numeric"
+read_WFR_varset("Bulkers", 5, col_types)
+```
+
+### Merge variable sets
+```{r}
+load("data/Bulkers_vars1.Rda")
+bulkers_df <- fleet_df %>% 
+  mutate(across(c(Built.Date, Keel.Laid.Date, Contract.Date, Demo.Date), dmy),
+         IMO.Number = as.numeric(IMO.Number),
+         CVN = as.numeric(CVN)) %>% 
+  rename(MMSI = MMSI..Maritime.Mobile.Service.Identity.,
+         Demo.Price.LDT = Demo...LDT,
+         Beam.Mid..m = Beam.Mld..m.) %>% 
+  mutate(Built.Year = year(Built.Date), .after = Built.Date) %>% 
+  mutate(Size.Category = cut(Dwt,
+                             breaks = c(0, 10000, 40000, 60000, 100000, Inf),
+                             right = FALSE,
+                             labels = c("Small",
+                                        "Handysize",
+                                        "Handymax",
+                                        "Panamax",
+                                        "Capesize")),
+         .after = Dwt)
+# Categories as per Kalouptsidi (2014). Note Clarkson has cutoff at 70k rather than 60k.
+assign(paste0("bulkers_vars1_df"), bulkers_df)
+```
+
+
+```{r}
+load("data/Bulkers_vars2.Rda")
+bulkers_df <- fleet_df %>% 
+  mutate(across(c(Built.Date, Launch.Date, SOx.Scrubber.1.Retrofit.Date), dmy),
+         CVN = as.numeric(CVN)) %>% 
+  select(-c(IMO.Number, Name, Built.Date, Owner))
+
+assign(paste0("bulkers_vars2_df"), bulkers_df)
+```
+
+```{r}
+load("data/Bulkers_vars3.Rda")
+bulkers_df <- fleet_df %>% 
+  mutate(across(c(Hull.Survey.Due.Date, Last.Hull.Survey.Date), dmy),
+         CVN = as.numeric(CVN))
+
+assign(paste0("bulkers_vars3_df"), bulkers_df)
+```
+
+```{r}
+load("data/Bulkers_vars4.Rda")
+bulkers_df <- fleet_df %>% 
+  mutate(across(c(Vessel.Name.Date, BWMS.1.Retrofit.Date, BWMS.2.Retrofit.Date), dmy),
+         CVN = as.numeric(CVN)) %>% 
+  select(-Propulsor.Detail)
+
+assign(paste0("bulkers_vars4_df"), bulkers_df)
+```
+
+```{r}
+load("data/Bulkers_vars5.Rda")
+bulkers_df <- fleet_df %>% 
+  mutate(CVN = as.numeric(CVN))
+
+assign(paste0("bulkers_vars5_df"), bulkers_df)
+```
+
+```{r}
+bulkers_df <- bulkers_vars1_df %>% 
+  full_join(bulkers_vars2_df, by = "CVN") %>% 
+  full_join(bulkers_vars3_df, by = "CVN") %>% 
+  full_join(bulkers_vars4_df, by = "CVN") %>% 
+  full_join(bulkers_vars5_df, by = "CVN")
+```
+
+
+### Tidy 
+```{r}
+bulkers_df <- bulkers_df %>% 
+  mutate(Owner.Size = trimws(Owner.Size),
+         Owner.Size = replace(Owner.Size,
+                              Owner.Size == "Very Large(51-100)",
+                              "Very Large (51-100)"))
+```
+
+```{r}
+save(bulkers_df, file = "data/bulkers_WFR.Rda")
+```
+
+
+# Containerships
+## Fleet database
+```{r}
+col_types <- rep("character", 40)
+col_types[c(2, 4, 13, 14, 16, 17, 18, 20, 23, 25, 29, 30, 31, 34, 35, 36, 37)] <- "numeric"
+read_WFR_varset("Containerships", "C1", col_types)
+```
+
+####### Note: quotations within Registered.Owner.Company had to be fixed manually before reading
+####### Replaced open and closing quotations with " as well as ' with ", then fixing ones that should have remaind '
+```{r}
+col_types <- rep("character", 37)
+col_types[c(3, 4, 6, 7, 8, 10, 11, 12, 15, 16, 18, 20, 33, 35)] <- "numeric"
+read_WFR_varset("Containerships", "C2", col_types)
+```
+
+```{r eval = FALSE}
+# for(nrow in seq(from = 4280, to = 5000, by = 1)){
+#   print(nrow)
+#   read_WFR_varset("Containerships", "C22", col_types, nrow)
+# }
+```
+
+
+```{r}
+col_types <- rep("character", 40)
+col_types[c(2, 8, 9, 11, 13, 16:19, 27:32)] <- "numeric"
+read_WFR_varset("Containerships", "C3", col_types)
+```
+
+```{r}
+col_types <- rep("character", 40)
+col_types[c(3, 8, 12:14, 24:27, 30:32, 37, 38)] <- "numeric"
+read_WFR_varset("Containerships", "C4", col_types)
+```
+
+```{r}
+col_types <- rep("character", 37)
+col_types[c(8:28, 30, 32, 34:36)] <- "numeric"
+read_WFR_varset("Containerships", "C5", col_types)
+```
+
+### Merge variable sets
+```{r}
+load("data/Containerships_varsC1.Rda")
+containerships_df <- fleet_df %>% 
+  mutate(across(contains("Date"), dmy),
+         IMO.Number = as.numeric(IMO.Number),
+         CVN = as.numeric(CVN)) %>% 
+  rename(MMSI = MMSI..Maritime.Mobile.Service.Identity.,
+         Demo.Price.LDT = Demo...LDT,
+         Beam.Mid..m = Beam.Mld..m.) %>% 
+  mutate(Built.Year = year(Built.Date), .after = Built.Date)
+
+assign(paste0("containerships_vars1_df"), containerships_df)
+```
+
+
+```{r}
+load("data/Containerships_varsC2.Rda")
+containerships_df <- fleet_df %>% 
+  mutate(across(contains("Date"), dmy),
+         CVN = as.numeric(CVN)) %>% 
+  mutate(Size.Category = cut(TEU,
+                             breaks = c(0, 3000, 8000, 17000, Inf),
+                             right = FALSE,
+                             labels = c("Feeder",
+                                        "Intermediate",
+                                        "Neopanamax",
+                                        "Postpanamax")),
+         .after = TEU)
+# Size categories based on SIN fleet download categories
+assign(paste0("containerships_vars2_df"), containerships_df)
+```
+
+```{r}
+load("data/Containerships_varsC3.Rda")
+containerships_df <- fleet_df %>%
+  mutate(across(contains("Date"), dmy),
+         CVN = as.numeric(CVN))
+
+assign(paste0("containerships_vars3_df"), containerships_df)
+```
+
+```{r}
+load("data/Containerships_varsC4.Rda")
+containerships_df <- fleet_df %>%
+  mutate(across(contains("Date") & !contains("Ind"), dmy),
+         CVN = as.numeric(CVN))
+
+assign(paste0("containerships_vars4_df"), containerships_df)
+```
+
+```{r}
+load("data/Containerships_varsC5.Rda")
+containerships_df <- fleet_df %>%
+  mutate(across(contains("Date"), dmy),
+         CVN = as.numeric(CVN))
+ 
+assign(paste0("containerships_vars5_df"), containerships_df)
+```
+
+```{r}
+containerships_df <- containerships_vars1_df %>%
+  full_join(containerships_vars2_df, by = "CVN") %>%
+  full_join(containerships_vars3_df, by = "CVN") %>%
+  full_join(containerships_vars4_df, by = "CVN") %>%
+  full_join(containerships_vars5_df, by = "CVN")
+```
+
+
+### Tidy 
+```{r}
+containerships_df <- containerships_df %>% 
+  mutate(Owner.Size = trimws(Owner.Size),
+         Owner.Size = replace(Owner.Size,
+                              Owner.Size == "Very Large(51-100)",
+                              "Very Large (51-100)"))
+```
+
+```{r}
+save(containerships_df, file = "data/containerships_WFR.Rda")
+```

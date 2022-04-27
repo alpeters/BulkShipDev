@@ -1,0 +1,627 @@
+---
+title: "MRV-WFR Exploration"
+output: html_document
+---
+```{r}
+library(tidyverse)
+options(dplyr.summarise.inform = FALSE)
+library(stargazer)
+```
+
+
+```{r}
+load("data/All_join.Rda")
+
+fleet_df$Owner.Size <- factor(fleet_df$Owner.Size,
+                                c("Very Small (1-5)",
+                                    "Small (6-10)",
+                                    "Medium (11-20)",
+                                    "Large (21-50)",
+                                    "Very Large (51-100)",
+                                    "Extra Large (100+)"))
+
+```
+
+## MRV coverage
+How many report in MRV?
+```{r}
+fleet_df %>% 
+  drop_na(IMO.Number) %>%
+  group_by(is.na(MRV.IMO.Number)) %>% 
+  summarise(count = n()) %>% 
+  mutate(percentage = count / sum(count) * 100)
+```
+
+```{r}
+fleet_df %>% 
+  drop_na(IMO.Number) %>%
+  group_by(is.na(MRV.Total.FC.2019)) %>% 
+  summarise(count = n()) %>% 
+  mutate(percentage = count / sum(count) * 100)
+```
+
+By year...
+```{r}
+fleet_df %>% 
+  select(CVN, IMO.Number, MRV.IMO.Number, contains("Total.FC")) %>% 
+  drop_na(IMO.Number) %>%
+  mutate(across(contains("Total.FC."), ~ !is.na(.x), .names = "Reporting.{.col}")) %>% 
+  pivot_longer(starts_with("Reporting.MRV.Total.FC."),
+               values_to = "Reporting",
+               names_to = "Reporting.Year",
+               names_prefix = "Reporting.MRV.Total.FC.") %>% 
+  group_by(Reporting.Year, Reporting) %>% 
+  summarise(count = n()) %>% 
+  mutate(Reporting.Percentage = count/sum(count) * 100)
+```
+About 30% of all bulker ships report in the MRV each year.
+
+## Fuel consumption and efficiency
+```{r}
+fleet_df %>% 
+  select(CVN, contains("total.fc"), Built.Date, Size.Category) %>% 
+  pivot_longer(contains("total.fc"),
+               values_to = "total.fc",
+               names_to = "reporting.period") %>% 
+  ggplot(aes(y = total.fc, 
+             x = Built.Date,
+             color = reporting.period)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  facet_wrap(~Size.Category) +
+  coord_cartesian(ylim = c(0, 13000))
+```
+
+```{r}
+fleet_df %>% 
+  select(CVN, contains("fc.per.distance"), Built.Date, Size.Category) %>% 
+  pivot_longer(contains("fc.per.distance"),
+               values_to = "fc.per.distance",
+               names_to = "reporting.period") %>% 
+  ggplot(aes(fc.per.distance)) +
+  geom_histogram(binwidth = 10) +
+  xlim(0, 1000)
+```
+
+```{r}
+fleet_df %>% 
+  select(CVN, contains("fc.per.work.mass"), Built.Date, Size.Category) %>% 
+  pivot_longer(contains("fc.per.work.mass"),
+               values_to = "fc.per.work.mass",
+               names_to = "reporting.period") %>% 
+  ggplot(aes(fc.per.work.mass)) +
+  geom_histogram(binwidth = 0.5) +
+  xlim(0, 30)
+```
+
+### Distance vs Work measure
+```{r}
+fleet_df %>% 
+  select(-contains("MRV.fc.per.work.mass.on")) %>% 
+  select(CVN, Built.Date, Size.Category, contains("fc.per.distance"), contains("fc.per.work.mass")) %>% 
+  pivot_longer(c("MRV.FC.Per.Distance.2018", "MRV.FC.Per.Distance.2019", "MRV.FC.Per.Distance.2020",
+                 "MRV.FC.Per.Work.Mass.2018", "MRV.FC.Per.Work.Mass.2019", "MRV.FC.Per.Work.Mass.2020")) %>% 
+  separate(name, c("name", "reporting.period"), sep = ".20", ) %>% 
+  mutate(reporting.period = 2000 + as.integer(reporting.period)) %>% 
+  pivot_wider(names_from = name,
+              values_from = value) %>% 
+  # group_by(is.na(fc.per.distance), is.na(fc.per.work.mass)) %>% 
+  # summarise(n())
+  ggplot(aes(y = MRV.FC.Per.Work.Mass, 
+             x = MRV.FC.Per.Distance,
+             color = Size.Category)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  ylim(0, 30) +
+  xlim(0, 250)
+```
+
+```{r}
+regression_df <- fleet_df %>% 
+  select(-contains("fc.per.work.mass.on")) %>% 
+  select(CVN, Dwt, contains("fc.per.distance"), contains("fc.per.work.mass")) %>% 
+  pivot_longer(c("MRV.FC.Per.Distance.2018", "MRV.FC.Per.Distance.2019", "MRV.FC.Per.Distance.2020",
+                 "MRV.FC.Per.Work.Mass.2018", "MRV.FC.Per.Work.Mass.2019", "MRV.FC.Per.Work.Mass.2020")) %>% 
+  separate(name, c("name", "reporting.period"), sep = ".20", ) %>% 
+  mutate(reporting.period = 2000 + as.integer(reporting.period)) %>% 
+  pivot_wider(names_from = name,
+              values_from = value) %>% 
+  drop_na(MRV.FC.Per.Distance, MRV.FC.Per.Work.Mass)
+
+lm_fc_1 <- lm(MRV.FC.Per.Work.Mass ~ MRV.FC.Per.Distance + Dwt, regression_df)
+lm_fc_2 <- lm(MRV.FC.Per.Work.Mass ~ MRV.FC.Per.Distance + Dwt + I(Dwt^2), regression_df)
+lm_fc_3 <- lm(MRV.FC.Per.Work.Mass ~ MRV.FC.Per.Distance*Dwt, regression_df)
+stargazer(lm_fc_1, lm_fc_2, lm_fc_3, type = "text")
+```
+
+
+
+### vs. Age
+```{r}
+fleet_df %>% 
+  select(CVN, contains("fc.per.distance"), Built.Date, Size.Category) %>% 
+  pivot_longer(contains("fc.per.distance"),
+               values_to = "fc.per.distance",
+               names_to = "reporting.period") %>% 
+  ggplot(aes(y = fc.per.distance, 
+             x = Built.Date,
+             color = reporting.period)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  facet_wrap(~Size.Category) +
+  coord_cartesian(ylim = c(0, 1000))
+```
+
+
+
+```{r}
+fleet_df %>% 
+  select(-contains("fc.per.work.mass.on")) %>% 
+  pivot_longer(contains("fc.per.work.mass"),
+               values_to = "fc.per.work.mass",
+               names_to = "reporting.period") %>% 
+  filter(fc.per.work.mass < 750) %>% # filter outliers
+  ggplot(aes(y = fc.per.work.mass, 
+             x = Built.Date,
+             color = reporting.period)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  # coord_cartesian(ylim = c(0, 100)) +
+  ylim(0,20) +
+  facet_wrap(~Size.Category)
+```
+
+```{r}
+fleet_df %>% 
+  filter(Built.Year >= 1980) %>% 
+  ggplot(aes(y = EIV.Calculated, 
+             x = Built.Date)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  # coord_cartesian(ylim = c(0, 100)) +
+  ylim(0, 40) +
+  facet_wrap(~Size.Category)
+```
+
+##### NAMES FIXED TO HERE
+
+### Regressions
+```{r}
+regression_df <- fleet_df %>% 
+  group_by(Owner) %>% 
+  mutate(Owner.Size.fleet = n()) %>% 
+  ungroup() %>% 
+  filter(MRV.FC.Per.Work.Mass.2020 <= 20)
+
+lm_fc_1 <- lm(fc.per.work.mass.2020 ~ design.efficiency,
+              data = regression_df %>% 
+                select(fc.per.work.mass.2020,
+                       design.efficiency) %>% 
+                drop_na())
+lm_fc_2 <- lm(fc.per.work.mass.2020 ~ EIV.2020,
+              data = regression_df %>% 
+                select(fc.per.work.mass.2020,
+                       EIV.2020) %>% 
+                drop_na())
+lm_fc_3 <- lm(fc.per.work.mass.2020 ~ EIV.Calculated,
+              data = regression_df %>% 
+                select(fc.per.work.mass.2020,
+                       EIV.Calculated) %>% 
+                drop_na())
+lm_fc_3a <- lm(fc.per.work.mass.2020 ~ EIV.Calculated + I(EIV.Calculated^2),
+              data = regression_df %>% 
+                select(fc.per.work.mass.2020,
+                       EIV.Calculated) %>% 
+                drop_na())
+lm_fc_4 <- lm(fc.per.work.mass.2020 ~ Built.Year,
+              data = regression_df %>% 
+                select(fc.per.work.mass.2020,
+                       Built.Year) %>% 
+                drop_na())
+lm_fc_5 <- lm(fc.per.work.mass.2020 ~ Owner.Size.fleet,
+              data = regression_df %>% 
+                select(fc.per.work.mass.2020,
+                       Owner.Size.fleet) %>% 
+                drop_na())
+stargazer(lm_fc_1, lm_fc_2, lm_fc_3, lm_fc_3a, lm_fc_4, lm_fc_5, type = "text")
+```
+2020
+```{r}
+regression_df <- fleet_df %>% 
+  group_by(Owner) %>% 
+  mutate(Owner.Size.fleet = n(),
+         Dwt = Dwt/1000) %>% 
+  ungroup() %>% 
+  select(fc.per.work.mass.2020,
+         EIV.Calculated,
+         Built.Year,
+         Owner.Size.fleet,
+         Dwt) %>% 
+  drop_na() %>% 
+  filter(fc.per.work.mass.2020 <= 20) 
+
+# regression_df %>% 
+#   ggplot(aes(Built.Year)) +
+#   geom_histogram(binwidth = 1)
+# 
+# regression_df %>% 
+#   ggplot(aes(x = Built.Year,
+#              y = fc.per.work.mass.2020)) +
+#   geom_point() +
+#   geom_smooth(method = 'lm')
+
+EIV_lm <- lm(fc.per.work.mass.2020 ~ EIV.Calculated,
+              data = regression_df)
+Built_lm <- lm(fc.per.work.mass.2020 ~ Built.Year,
+              data = regression_df)
+Owner_size_lm <- lm(fc.per.work.mass.2020 ~ Owner.Size.fleet,
+              data = regression_df)
+Dwt_lm <- lm(fc.per.work.mass.2020 ~ Dwt,
+              data = regression_df)
+All_lm <- lm(fc.per.work.mass.2020 ~ EIV.Calculated + Built.Year + Owner.Size.fleet + Dwt,
+              data = regression_df)
+stargazer(EIV_lm, Built_lm, Owner_size_lm, Dwt_lm, All_lm, type = "text")
+```
+
+2019
+```{r}
+regression_df <- fleet_df %>% 
+  group_by(Owner) %>% 
+  mutate(Owner.Size.fleet = n(),
+         Dwt = Dwt/1000) %>% 
+  ungroup() %>% 
+  select(fc.per.work.mass.2019,
+         EIV.Calculated,
+         Built.Year,
+         Owner.Size.fleet,
+         Dwt) %>% 
+  drop_na() %>% 
+  filter(fc.per.work.mass.2019 <= 20) 
+
+# regression_df %>% 
+#   ggplot(aes(Built.Year)) +
+#   geom_histogram(binwidth = 1)
+# 
+# regression_df %>% 
+#   ggplot(aes(x = Built.Year,
+#              y = fc.per.work.mass.2019)) +
+#   geom_point() +
+#   geom_smooth(method = 'lm')
+
+EIV_lm <- lm(fc.per.work.mass.2019 ~ EIV.Calculated,
+              data = regression_df)
+Built_lm <- lm(fc.per.work.mass.2019 ~ Built.Year,
+              data = regression_df)
+Owner_size_lm <- lm(fc.per.work.mass.2019 ~ Owner.Size.fleet,
+              data = regression_df)
+Dwt_lm <- lm(fc.per.work.mass.2019 ~ Dwt,
+              data = regression_df)
+All_lm <- lm(fc.per.work.mass.2019 ~ EIV.Calculated + Built.Year + Owner.Size.fleet + Dwt,
+              data = regression_df)
+stargazer(EIV_lm, Built_lm, Owner_size_lm, Dwt_lm, All_lm, type = "text")
+```
+
+2018
+```{r}
+regression_df <- fleet_df %>% 
+  group_by(Owner) %>% 
+  mutate(Owner.Size.fleet = n(),
+         Dwt = Dwt/1000) %>% 
+  ungroup() %>% 
+  select(fc.per.work.mass.2018,
+         EIV.Calculated,
+         Built.Year,
+         Owner.Size.fleet,
+         Dwt) %>% 
+  drop_na() %>% 
+  filter(fc.per.work.mass.2018 <= 20) 
+
+# regression_df %>% 
+#   ggplot(aes(Built.Year)) +
+#   geom_histogram(binwidth = 1)
+# 
+# regression_df %>% 
+#   ggplot(aes(x = Built.Year,
+#              y = fc.per.work.mass.2018)) +
+#   geom_point() +
+#   geom_smooth(method = 'lm')
+
+EIV_lm <- lm(fc.per.work.mass.2018 ~ EIV.Calculated,
+              data = regression_df)
+Built_lm <- lm(fc.per.work.mass.2018 ~ Built.Year,
+              data = regression_df)
+Owner_size_lm <- lm(fc.per.work.mass.2018 ~ Owner.Size.fleet,
+              data = regression_df)
+Dwt_lm <- lm(fc.per.work.mass.2018 ~ Dwt,
+              data = regression_df)
+All_lm <- lm(fc.per.work.mass.2018 ~ EIV.Calculated + Built.Year + Owner.Size.fleet + Dwt,
+              data = regression_df)
+stargazer(EIV_lm, Built_lm, Owner_size_lm, Dwt_lm, All_lm, type = "text")
+```
+
+
+```{r}
+regression_df <- fleet_df %>% 
+  group_by(Owner) %>% 
+  mutate(Owner.Size.fleet = n()) %>% 
+  select(fc.per.work.mass.2020, Built.Year, Owner.Size.fleet, EIV.Calculated) %>% 
+  drop_na()
+
+lm_fc_1 <- lm(fc.per.work.mass.2020 ~ EIV.Calculated, data = regression_df)
+lm_fc_2 <- lm(fc.per.work.mass.2020 ~ Built.Year, data = regression_df)
+lm_fc_3 <- lm(fc.per.work.mass.2020 ~ Owner.Size.fleet, data = regression_df)
+lm_fc_4 <- lm(fc.per.work.mass.2020 ~ EIV.Calculated + Built.Year + Owner.Size.fleet, data = regression_df)
+stargazer(lm_fc_1, lm_fc_2, lm_fc_3, lm_fc_4, type = "text")
+```
+
+
+```{r}
+regression_df <- fleet_df %>% 
+  group_by(Owner) %>% 
+  mutate(Owner.Size.fleet = n()) %>% 
+  select(fc.per.work.mass.2020, Built.Year, Owner.Size.fleet, EEDI.2020) %>% 
+  drop_na()
+
+lm_fc_1 <- lm(fc.per.work.mass.2020 ~ EEDI.2020, data = regression_df)
+lm_fc_2 <- lm(fc.per.work.mass.2020 ~ Built.Year, data = regression_df)
+lm_fc_3 <- lm(fc.per.work.mass.2020 ~ Owner.Size.fleet, data = regression_df)
+lm_fc_4 <- lm(fc.per.work.mass.2020 ~ EEDI.2020 + Built.Year + Owner.Size.fleet, data = regression_df)
+stargazer(lm_fc_1, lm_fc_2, lm_fc_3, lm_fc_4, type = "text")
+```
+
+## Efficiency metric vs. fuel consumption
+```{r}
+fleet_df %>% 
+  filter(Fleet.Type == "Bulkers") %>% 
+  drop_na(Efficiency.Metric.2020) %>% 
+  ggplot(aes(y = FC.Per.Distance.2020,
+             x = Technical.Efficiency.2020)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  facet_wrap(~Efficiency.Metric.2020) +
+  ylim(0, 250) +
+  xlim(0,40)
+```
+
+```{r}
+fleet_df %>% 
+  drop_na(efficiency.metric.2020) %>% 
+  ggplot(aes(y = fc.per.work.mass.2020,
+             x = technical.efficiency.2020)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  facet_wrap(~efficiency.metric.2020) +
+  ylim(0, 250) +
+  xlim(0,54)
+```
+
+```{r}
+fleet_df %>% 
+  drop_na(efficiency.metric.2020) %>% 
+  ggplot(aes(y = total.fc.2020,
+             x = technical.efficiency.2020)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  facet_wrap(~efficiency.metric.2020) +
+  # ylim(0, 250) +
+  xlim(0,40)
+```
+
+## Design efficiency
+```{r}
+fleet_df %>% 
+  ggplot(aes(x = Main.Engine.Power.kW, fill = Size.Category)) +
+  geom_histogram(binwidth = 500)
+```
+
+```{r}
+fleet_df %>% 
+  drop_na(design.efficiency) %>% 
+  ggplot(aes(x = Dwt,
+             y = design.efficiency,
+             shape = Size.Category,
+             group = Size.Category,
+             color = Built.Date)) +
+  geom_point() +
+  # xlim(2, 10) +
+  ylim(0, 1.5) +
+  geom_smooth(method = 'lm', color = 'black')
+```
+
+```{r}
+fleet_df %>% 
+  pivot_longer(contains("EEDI.2"),
+               values_to = "EEDI",
+               names_to = "reporting.period",
+               names_prefix = "EEDI.") %>% 
+  drop_na(EEDI) %>% 
+  group_by(CVN) %>% 
+  summarise(EEDI = min(EEDI, na.rm = TRUE),
+            Dwt = first(Dwt),
+            Size.Category = first(Size.Category),
+            Built.Date = first(Built.Date)) %>% 
+  ggplot(aes(x = Dwt,
+             y = EEDI,
+             shape = Size.Category,
+             group = Size.Category,
+             color = Built.Date)) +
+  geom_point() +
+  # xlim(2, 10) +
+  ylim(0, 20) +
+  geom_smooth(method = 'lm', color = 'black')
+```
+
+```{r}
+fleet_df %>% 
+  # filter(Size.Category == "Panamax") %>% 
+  pivot_longer(contains("EIV.2"),
+               values_to = "EIV",
+               names_to = "reporting.period",
+               names_prefix = "EIV.") %>% 
+  drop_na(EIV) %>% 
+  group_by(CVN) %>% 
+  summarise(EIV = min(EIV, na.rm = TRUE),
+            Dwt = first(Dwt),
+            Size.Category = first(Size.Category),
+            Built.Date = first(Built.Date)) %>% 
+  ggplot(aes(x = Dwt,
+             y = EIV,
+             shape = Size.Category,
+             group = Size.Category,
+             color = Built.Date)) +
+  geom_point() +
+  # xlim(0, 110E3) +
+  ylim(0, 10) +
+  geom_smooth(method = 'lm', color = 'black')
+```
+
+```{r}
+fleet_df %>% 
+  ggplot(aes(x = Dwt,
+             y = EIV.Calculated,
+             shape = Size.Category,
+             group = Size.Category,
+             color = Built.Date)) +
+  geom_point() +
+  # xlim(0, 110E3) +
+  ylim(0, 10) +
+  geom_smooth(method = 'lm', color = 'black')
+```
+
+```{r}
+fleet_df %>% 
+  select(-contains("fc.per.work.mass.o")) %>% 
+  pivot_longer(contains("fc.per.work.mass."),
+               values_to = "fc.per.work.mass",
+               names_to = "reporting.period",
+               names_prefix = "fc.per.work.mass.") %>% 
+  drop_na(fc.per.work.mass) %>%
+  group_by(CVN) %>%
+  summarise(fc.per.work.mass = mean(fc.per.work.mass, na.rm = TRUE),
+            Dwt = first(Dwt),
+            Size.Category = first(Size.Category),
+            Built.Date = first(Built.Date)) %>%
+  ggplot(aes(x = Dwt,
+             y = fc.per.work.mass,
+             shape = Size.Category,
+             group = Size.Category,
+             color = Built.Date)) +
+  geom_point() +
+  # xlim(2, 10) +
+  ylim(0, 1.5) +
+  geom_smooth(method = 'lm', color = 'black')
+```
+
+```{r}
+fleet_df %>% 
+  pivot_longer(contains("EEDI.2"),
+               values_to = "EEDI",
+               names_to = "reporting.period",
+               names_prefix = "EEDI.") %>% 
+  drop_na(EEDI, design.efficiency) %>% 
+  group_by(CVN) %>% 
+  summarise(EEDI = min(EEDI, na.rm = TRUE),
+            design.efficiency = min(design.efficiency, na.rm = TRUE),
+            Size.Category = first(Size.Category)) %>% 
+  ggplot(aes(x = EEDI,
+             y = design.efficiency,
+             color = Size.Category)) +
+  geom_point() +
+  xlim(2, 10) +
+  ylim(0, 1) +
+  geom_smooth(method = 'lm') +
+  facet_wrap(~Size.Category)
+```
+These don't fall along the regression line as well as I would have hoped.
+
+```{r}
+fleet_df %>% 
+  pivot_longer(contains("EIV.2"),
+               values_to = "EIV",
+               names_to = "reporting.period",
+               names_prefix = "EIV.") %>% 
+  drop_na(EIV, design.efficiency) %>% 
+  group_by(CVN) %>% 
+  summarise(EIV = min(EIV, na.rm = TRUE),
+            design.efficiency = min(design.efficiency, na.rm = TRUE),
+            Size.Category = first(Size.Category)) %>% 
+  ggplot(aes(x = EIV,
+             y = design.efficiency,
+             color = Size.Category)) +
+  geom_point() +
+  xlim(2, 10) +
+  ylim(0, 1) +
+  geom_smooth(method = 'lm') +
+  facet_wrap(~Size.Category)
+```
+This is better. Need to check definition of EIV.
+
+
+### EIV Calculated
+```{r}
+fleet_df %>% 
+  pivot_longer(contains("EIV.2"),
+               values_to = "EIV",
+               names_to = "reporting.period",
+               names_prefix = "EIV.") %>% 
+  drop_na(EIV, EIV.Calculated) %>% 
+  group_by(CVN) %>% 
+  summarise(EIV = min(EIV, na.rm = TRUE),
+            EIV.Calculated = first(EIV.Calculated),
+            Size.Category = first(Size.Category)) %>% 
+  ggplot(aes(x = EIV,
+             y = EIV.Calculated,
+             color = Size.Category)) +
+  geom_point() +
+  xlim(0, 30) +
+  ylim(0, 30) +
+  geom_smooth(method = 'lm') +
+  facet_wrap(~Size.Category)
+```
+
+```{r}
+fleet_df %>% 
+  pivot_longer(contains("EIV.2"),
+               values_to = "EIV",
+               names_to = "reporting.period",
+               names_prefix = "EIV.") %>% 
+  drop_na(EIV, EIV.Main.Calculated) %>% 
+  group_by(CVN) %>% 
+  summarise(EIV = min(EIV, na.rm = TRUE),
+            EIV.Main.Calculated = first(EIV.Main.Calculated),
+            Size.Category = first(Size.Category)) %>% 
+  ggplot(aes(x = EIV,
+             y = EIV.Main.Calculated,
+             color = Size.Category)) +
+  geom_point() +
+  xlim(0, 30) +
+  ylim(0, 30) +
+  geom_smooth(method = 'lm') +
+  facet_wrap(~Size.Category)
+```
+
+```{r}
+fleet_df %>% 
+  ggplot(aes(x = Built.Date,
+             y = design.efficiency,
+             color = Size.Category)) +
+  geom_point() +
+  facet_wrap(~Size.Category, nrow = 1)
+```
+
+# Size
+```{r}
+fleet_df %>% 
+  pivot_longer(c(Beam.Mid..m,
+                 Beam.Ext..m.,
+                 Draught..m.,
+                 Depth.Moulded..m.,
+                 Air.Draft.From.Keel,
+                 Air.Draft.From.Water.Line..m.)) %>% 
+  ggplot(aes(x = value,
+             fill = Size.Category)) +
+  geom_histogram(position = 'identity', 
+                 alpha = 0.6, 
+                 binwidth = 1) +
+  facet_wrap(~name, scales = 'free')
+```

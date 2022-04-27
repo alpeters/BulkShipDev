@@ -1,0 +1,26 @@
+---
+title: "Shipping Emissions"
+output: html_document
+---
+```{r}
+library(tidyverse)
+```
+
+# Data Formatting
+Monitoring Reporting Verification EU Emissions reports
+```{r, child = 'MRV_Data.rmd', eval = TRUE}
+```
+
+World Fleet Register
+```{r, child = 'WFR_Data.rmd', eval = TRUE}
+```
+
+# Data Joining
+```{r, child = 'All_Join.rmd', eval = TRUE}
+```
+
+# Exploration of composite dataset
+```{r, child = 'MRV-WFR_Exploration.rmd', eval = FALSE}
+```
+
+# Regressions
