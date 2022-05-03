@@ -1,0 +1,134 @@
+\documentclass[11pt]{article}
+%\usepackage{refcheck} % This is useful but incompatible with hyperref
+%\documentclass[12pt]{article}
+
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{verbatim}
+\usepackage{setspace}
+\usepackage{ulem}
+\usepackage{textpos}
+\usepackage{changepage}
+\usepackage{url}
+\usepackage{subcaption}
+\usepackage{multirow}
+
+\usepackage{hyperref}
+%\usepackage{xcolor}
+\hypersetup{colorlinks, linkcolor=blue, citecolor=blue}
+
+%\renewcommand{\sout}[1]{}
+%\renewcommand{\textbf}{}
+%\renewcommand{\bf}{}
+
+\newcommand{\tsout}[1]{\text{\sout{$#1$}}}
+
+\usepackage[round]{natbib}
+
+\pdfminorversion=4
+\tolerance=5000
+
+\newtheorem{assumption}{Assumption}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{example}{Example}
+
+\def\mb{\mathbf}
+\def\iid{\mathrm{i.i.d. }}
+\def\bs{\boldsymbol}
+\def\tbf{\textbf}
+\def\t{^{\top}}
+\def\bSig{\bs{\Sigma}}
+\newcommand{\mcitet}[1]{\mbox{\citet{#1}}}
+\newcommand{\mcitep}[1]{\mbox{\citep{#1}}}
+
+\DeclareMathOperator{\vect}{vec}
+\DeclareMathOperator{\vecth}{vech}
+
+\setlength{\topmargin}{-1cm}
+\setlength{\oddsidemargin}{0.2cm}
+\setlength{\evensidemargin}{-0.2cm} \setlength{\textheight}{22.5cm}
+%\setlength{\textwidth}{16cm}
+\setlength{\textwidth}{16.5cm}
+
+\onehalfspacing
+
+%\doublespacing
+
+\begin{document}
+\bibliographystyle{asa}
+
+
+\section{Aggregate CO2 emission from international shipping and its decomposition by Hiro, May 2}
+
+\subsection{Aggregate CO2 emission from international shipping}
+ 
+Consider the aggregate CO2 emission from international shipping  by Bulk careers and Container ships as
+\begin{align}
+\text{Agg CO2}_{t} &= \sum_{s \in \mathcal{T}} \text{CO2}_{t}(s),\\
+\text{CO2}_{t}(s) &= \sum_{i\in \mathcal{I}_t(s) } w_{it} \times \left(\frac{\text{CO2}_{it}}{w_{it}}\right),
+\end{align}
+where $\mathcal{T} =\{\text{Container}, \text{B-Capesize}, \text{B-Panamax}, \text{B-Handymax}, \text{B-Handyship}\}$ is a collection of ship types, the index $i$ indicates the $i$-th ship, and $\mathcal{I}_t(s)$ is a collection of ship indices for type $s$ in year $t$ so that $i\in \mathcal{I}(s)$ means that  ship $i$  is of type $s$. Here,
+\begin{align*}
+w_{it} & = \text{Work Mass}\ (= \text{DWT} \times \text{Distance}) \ \text{of ship $i$ in year $t$}, \\
+\frac{\text{CO2}_{it}}{w_{it}}& = \text{Reported CO2 emission / Work Mass of ship $i$ in year $t$}.
+\end{align*}
+
+For each ship that stopped at EU ports in year $t$, we may compute $w_{it}$ and $\frac{\text{CO2 emission}_{it}}{w_{it}}$. By aggregating over all ships within each type of ships for each of three years (2018-2020), we compute how the aggregate CO2 emission from international shipping changed over time. 
+
+\begin{enumerate}
+\item We may compute ``Agg Fuel consumption'' in place of ``Agg CO2 emission'' by replacing CO2 emission with Fuel consumption.
+
+\item We may possibly use distance for $w_{it}$ in place of weight mass. 
+
+\item Outstanding issue is how to compute the value of $w_{it}$ and $\frac{\text{CO2 emission}_{it}}{w_{it}}$ for ships that did not stop at any of EU ports (and thus missing the data on fuel consumption and CO2 emission). For this, we need to model how $\frac{\text{CO2 emission}_{it}}{w_{it}}$ is related to ship characteristics. 
+
+\item For now, we focus on the sample of ships that stopped EU ports. This may result in possible sample selection and the aggregate number would be smaller because we miss many ships. Nonetheless, we may see the time-series patterns of a change in aggregate CO2 emission before and during COVID.
+ 
+\end{enumerate}
+ 
+
+
+\subsection{Decomposition}
+  
+  
+We may examine how each type of ship contributed to a change in aggregate CO2 emission as
+\[
+\text{Agg CO2}_{t+1} - \text{Agg CO2}_{t} = \sum_{s \in \mathcal{T}} \left( \text{CO2}_{t+1}(s)- \text{CO2}_{t}(s)\right)
+\]
+  or
+\[
+\frac{\text{Agg CO2}_{t+1} - \text{Agg CO2}_{t}} { \text{Agg CO2}_{t}}  = \sum_{s \in \mathcal{T}} \frac{\text{CO2}_t(s)}{ \text{Agg CO2}_{t}} \left( \frac{\text{CO2}_{t+1}(s)- \text{CO2}_{t}(s)}{ \text{CO2}_t(s)}\right).
+\]
+
+Reporting these numbers or generating pi charts for these numbers will display the source of CO2 emissions across different types of ships. 
+
+
+
+We may also examine how much the change in work mass or distance as opposed to an improvement/deterioration of average fuel efficiency contributed to a change in aggregate CO2 emission as follows. 
+
+Let $\bar w_t(s)= \frac{1}{| \mathcal{I}_t(s)|} \sum_{i\in \mathcal{I}_t(s)} w_{it}$ be the average value of $w_{it}$ within type $s$ ship. Then,
+\begin{align*}
+  \sum_{s \in \mathcal{T}} \left( \text{CO2}_{t+1}(s)- \text{CO2}_{t}(s)\right) & = 
+   \underbrace{ \sum_{s \in \mathcal{T}} \bar w_t(s)  \left\{  \frac{ \text{CO2}_{t+1}(s)}{\bar w_{t+1} (s)} -  \frac{ \text{CO2}_{t}(s)}{\bar w_{t} (s)}\right\}}_{\text{change in average fuel efficiency}}
+    +  \underbrace{\sum_{s \in \mathcal{T}} ( \bar w_{t+1}(s) -  \bar w_t(s) )   \frac{ \text{CO2}_{t+1}(s)}{\bar w_{t+1} (s)}}_{\text{change in average work mass / distance}}.
+ \end{align*}
+  
+  
+
+%\begin{align*}
+%\text{CO2}_{t}(s)  =  \sum_{i\in \mathcal{I}_s } w_{it} \times \left(\frac{\text{CO2 emission}_{it}}{w_{it}}\right) 
+%
+%
+%\text{Agg CO2 emission}_{t}  & = \sum_{\text{s} \in \mathcal{T}} \sum_{i\in \mathcal{I}_s } w_{it} \times \left(\frac{\text{CO2 emission}_{it}}{w_{it}}\right)\\
+%& = 
+%\end{align*}
+
+
+
+\end{document}
