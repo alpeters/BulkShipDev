@@ -1,0 +1,278 @@
+---
+title: "week3"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+options(dplyr.summarise.inform = FALSE)
+library(stargazer)
+```
+
+```{r}
+load("data/All_join.Rda")
+
+fleet_df$Owner.Size <- factor(fleet_df$Owner.Size,
+                                c("Very Small (1-5)",
+                                    "Small (6-10)",
+                                    "Medium (11-20)",
+                                    "Large (21-50)",
+                                    "Very Large (51-100)",
+                                    "Extra Large (100+)"))
+
+```
+
+#### 2020 emission factor distribution
+```{r}
+emit <- na.omit(c(fleet_df$MRV.Emission.Factor.2020
+                  #, fleet_df$MRV.Emission.Factor.2019
+                  #, fleet_df$MRV.Emission.Factor.2018
+                  ))
+upper <- quantile(x = emit,probs = .99)
+lower <- quantile(x = emit,probs = .01)
+emit_filtered <- emit[emit < upper & emit > lower]
+hist(emit_filtered, main = paste("Histogram of 2020 MRV emission factor"))
+
+
+
+```
+
+
+
+#### stacked 2020 emission factor diagram
+```{r}
+
+temp_df <- fleet_df %>% filter(MRV.Emission.Factor.2020 < quantile(x = MRV.Emission.Factor.2020,probs = .99, na.rm = TRUE) &
+                                 MRV.Emission.Factor.2020 > quantile(x = MRV.Emission.Factor.2020 ,probs = .01, na.rm = TRUE))
+
+
+temp_df %>% ggplot(aes(x = MRV.Emission.Factor.2020, fill = SOx.Scrubber.Indicator))+
+  geom_histogram()
+
+```
+
+
+
+
+
+#### fc per work mass vs co2 per work mass
+```{r}
+temp_df <- fleet_df
+
+temp_df$co2perworkmass2020 <- temp_df$MRV.FC.Per.Work.Mass.2020 * temp_df$MRV.Emission.Factor.2020
+temp_df$co2perworkmass2019 <- temp_df$MRV.FC.Per.Work.Mass.2019 * temp_df$MRV.Emission.Factor.2019
+temp_df$co2perworkmass2018 <- temp_df$MRV.FC.Per.Work.Mass.2018 * temp_df$MRV.Emission.Factor.2018
+
+temp_df %>% 
+  #select(-contains("fc.per.distance")) %>% 
+  pivot_longer(contains("co2perworkmass"), values_to = "co2perworkmass", names_to = "reporting.temp") %>%
+  pivot_longer(contains("fc.per.work.mass"), values_to = "fcperworkmass", names_to ="reporting.period") %>% 
+  filter(co2perworkmass < quantile(x = co2perworkmass, probs = 0.99, na.rm = TRUE) &
+           co2perworkmass > quantile(x = co2perworkmass, probs = 0.01, na.rm = TRUE) &
+           fcperworkmass < quantile(x = fcperworkmass, probs = 0.99, na.rm = TRUE) &
+           fcperworkmass > quantile(x = fcperworkmass, probs = 0.01, na.rm = TRUE)) %>% # filter outliers
+  ggplot(aes(y = co2perworkmass, 
+             x = fcperworkmass,
+             color = reporting.temp)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  # coord_cartesian(ylim = c(0, 100)) +
+  #ylim(0,20) +
+  facet_wrap(~Size.Category)
+
+
+
+```
+
+
+#### CO2 per work mass vs built year
+```{r}
+temp_df <- fleet_df
+
+temp_df$co2perworkmass2020 <- temp_df$MRV.FC.Per.Work.Mass.2020 * temp_df$MRV.Emission.Factor.2020
+temp_df$co2perworkmass2019 <- temp_df$MRV.FC.Per.Work.Mass.2019 * temp_df$MRV.Emission.Factor.2019
+temp_df$co2perworkmass2018 <- temp_df$MRV.FC.Per.Work.Mass.2018 * temp_df$MRV.Emission.Factor.2018
+
+temp_df %>% 
+  #select(-contains("fc.per.distance")) %>% 
+  pivot_longer(contains("co2perworkmass"), values_to = "co2perworkmass", names_to = "reporting.temp") %>%
+  pivot_longer(contains("fc.per.work.mass"), values_to = "fcperworkmass", names_to ="reporting.period") %>% 
+  filter(co2perworkmass < quantile(x = co2perworkmass, probs = 0.99, na.rm = TRUE) &
+           co2perworkmass > quantile(x = co2perworkmass, probs = 0.01, na.rm = TRUE) &
+           fcperworkmass < quantile(x = fcperworkmass, probs = 0.99, na.rm = TRUE) &
+           fcperworkmass > quantile(x = fcperworkmass, probs = 0.01, na.rm = TRUE)) %>% # filter outliers
+  ggplot(aes(y = co2perworkmass, 
+             x = Built.Year,
+             color = reporting.temp)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  # coord_cartesian(ylim = c(0, 100)) +
+  #ylim(0,20) +
+  facet_wrap(~Size.Category)
+```
+
+##### MRV dist vs AIS dist
+```{r}
+temp_df <- fleet_df
+
+temp_df %>% 
+  #select(-contains("fc.per.distance")) %>% 
+  pivot_longer(contains("mrv.eu.distance"), values_to = "mrvdist", names_to = "reporting.temp") %>%
+  pivot_longer(contains("ais.distance"), values_to = "aisdist", names_to ="reporting.period") %>% 
+  filter(mrvdist < quantile(x = mrvdist, probs = 0.99, na.rm = TRUE) &
+           mrvdist > quantile(x = mrvdist, probs = 0.01, na.rm = TRUE) &
+           aisdist < quantile(x = aisdist, probs = 0.99, na.rm = TRUE) &
+           aisdist > quantile(x = aisdist, probs = 0.01, na.rm = TRUE)) %>% # filter outliers
+  ggplot(aes(y = mrvdist, 
+             x = aisdist,
+             color = reporting.temp)) +
+  geom_point() +
+  geom_smooth(method = 'lm') +
+  # coord_cartesian(ylim = c(0, 100)) +
+  #ylim(0,20) +
+  facet_wrap(~Size.Category)
+
+
+```
+
+
+#### ratio of distance travelled in mrv vs ais
+```{r}
+temp_df <- fleet_df
+
+temp_df$ratio2020 <- temp_df$AIS.Distance.2020 / temp_df$MRV.EU.Distance.2020 
+temp_df$ratio2019 <- temp_df$AIS.Distance.2019 / temp_df$MRV.EU.Distance.2019
+
+ratio <- na.omit(c(temp_df$ratio2020, temp_df$ratio2019))
+
+upper <- quantile(x = ratio,probs = .99)
+lower <- quantile(x = ratio,probs = .01)
+ratio_filtered <- ratio[ratio < upper & ratio > lower]
+
+hist(ratio_filtered, breaks = 40, main = paste("Histogram of AIS dist / MRV dist for 2019, 2020"))
+
+
+```
+
+
+```{r}
+temp_df <- fleet_df
+
+temp_df$ratio2020 <- temp_df$AIS.Distance.2020 / temp_df$MRV.EU.Distance.2020 
+temp_df$ratio2019 <- temp_df$AIS.Distance.2019 / temp_df$MRV.EU.Distance.2019
+
+temp_df$ratiochange <- temp_df$ratio2020 - temp_df$ratio2019
+
+ratio <- na.omit(c(temp_df$ratiochange))
+
+upper <- quantile(x = ratio,probs = .99)
+lower <- quantile(x = ratio,probs = .01)
+ratio_change <- ratio[ratio < upper & ratio > lower]
+
+hist(ratio_change, breaks = 40, main = paste("Histogram of change of AIS dist / MRV dist from 2019 to 2020"))
+
+
+```
+
+
+##### total co2 scatter
+```{r}
+temp_df <- fleet_df
+
+c2018 <- sum(temp_df$MRV.Total.CO2.2018, na.rm = TRUE)
+
+c2019 <- sum(temp_df$MRV.Total.CO2.2019, na.rm = TRUE)
+
+c2020 <- sum(temp_df$MRV.Total.CO2.2020, na.rm = TRUE)
+
+plot(y = c(c2018,c2019,c2020), x = c(0,1,2))
+
+
+
+
+```
+
+##### total dist scatter
+```{r}
+temp_df <- fleet_df
+
+c2018 <- sum(temp_df$MRV.EU.Distance.2018, na.rm = TRUE)
+
+c2019 <- sum(temp_df$MRV.EU.Distance.2019, na.rm = TRUE)
+
+c2020 <- sum(temp_df$MRV.EU.Distance.2020, na.rm = TRUE)
+
+plot(y = c(c2018,c2019,c2020), x = c(0,1,2))
+
+
+
+
+```
+##### total dist scatter filtered by scrubber
+```{r}
+temp_df <- fleet_df %>% filter(SOx.Scrubber.Indicator == "Y")
+
+c2018 <- sum(temp_df$MRV.EU.Distance.2018, na.rm = TRUE)
+
+c2019 <- sum(temp_df$MRV.EU.Distance.2019, na.rm = TRUE)
+
+c2020 <- sum(temp_df$MRV.EU.Distance.2020, na.rm = TRUE)
+
+plot(y = c(c2018,c2019,c2020), x = c(0,1,2))
+
+
+
+
+```
+
+
+##### total dist scatter filtered by scrubber
+```{r}
+temp_df <- fleet_df %>% filter(SOx.Scrubber.Indicator == "Y")
+
+c2018 <- sum(temp_df$MRV.Total.CO2.2018, na.rm = TRUE)
+
+c2019 <- sum(temp_df$MRV.Total.CO2.2019, na.rm = TRUE)
+
+c2020 <- sum(temp_df$MRV.Total.CO2.2020, na.rm = TRUE)
+
+plot(y = c(c2018,c2019,c2020), x = c(0,1,2))
+
+
+
+
+```
+##### total dist scatter filtered by no scrubber
+```{r}
+temp_df <- fleet_df %>% filter(SOx.Scrubber.Indicator != "Y")
+
+c2018 <- sum(temp_df$MRV.EU.Distance.2018, na.rm = TRUE)
+
+c2019 <- sum(temp_df$MRV.EU.Distance.2019, na.rm = TRUE)
+
+c2020 <- sum(temp_df$MRV.EU.Distance.2020, na.rm = TRUE)
+
+plot(y = c(c2018,c2019,c2020), x = c(0,1,2))
+
+
+
+
+```
+
+
+##### total dist scatter filtered by no scrubber
+```{r}
+temp_df <- fleet_df %>% filter(SOx.Scrubber.Indicator != "Y")
+
+c2018 <- sum(temp_df$MRV.Total.CO2.2018, na.rm = TRUE)
+
+c2019 <- sum(temp_df$MRV.Total.CO2.2019, na.rm = TRUE)
+
+c2020 <- sum(temp_df$MRV.Total.CO2.2020, na.rm = TRUE)
+
+plot(y = c(c2018,c2019,c2020), x = c(0,1,2))
+
+
+
+
+```
