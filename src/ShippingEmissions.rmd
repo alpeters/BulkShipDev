@@ -4,6 +4,8 @@ output: html_document
 ---
 ```{r}
 library(tidyverse)
+library(reticulate)
+use_python("/usr/bin/python3")
 ```
 
 # Data Formatting
@@ -13,6 +15,11 @@ Monitoring Reporting Verification EU Emissions reports
 
 World Fleet Register
 ```{r, child = 'WFR_Data.rmd', eval = TRUE}
+```
+
+# AIS Calculations
+```{r, eval = TRUE}
+py_run_file('AIS_Calculations.py')
 ```
 
 # Data Joining

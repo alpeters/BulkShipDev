@@ -1,0 +1,35 @@
+---
+title: "AIS Calculations Verify"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+# Dataset
+```{r}
+AIS_df <- read_csv("data/AIS_yearly_stats.csv") %>%
+  as_tibble(.name_repair = 'universal')
+colnames(AIS_df) <- colnames(AIS_df) %>%
+  str_replace_all('_', ' ') %>%
+  str_to_title() %>%
+  str_replace_all(' ', '.')
+AIS_df <- AIS_df %>% 
+  rename('MMSI' = 'Mmsi')
+```
+
+
+# Plots
+```{r}
+AIS_df %>% 
+  ggplot(aes(x = Timestamp.Count, fill = factor(Year))) +
+  geom_histogram(position = 'identity',
+                 alpha = 0.5)
+```
+```{r}
+AIS_df %>% 
+  ggplot(aes(x = Timestamp.Min, fill = factor(Year))) +
+  geom_histogram(position = 'identity',
+                 alpha = 0.5)
+```
+
