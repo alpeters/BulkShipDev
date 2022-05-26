@@ -18,9 +18,14 @@ load("data/containerships_WFR.Rda")
 #   rename(AIS.MMSI = mmsi)
 # ais_yearly_distance <- read_feather("data/AIS_yearly_distance.feather") %>% 
 #   as_tibble(.name_repair = 'universal')
-AIS_df <- read.csv("data/AIS_yearly_distance.csv") %>% 
-  as_tibble(.name_repair = 'universal') %>% 
-  rename(MMSI = mmsi)
+
+AIS_df <- read.csv("data/AIS_yearly_stats.csv") %>%
+  as_tibble(.name_repair = 'universal')
+colnames(AIS_df) <- colnames(AIS_df) %>%
+  str_replace_all('_', ' ') %>%
+  str_to_title() %>%
+  str_replace_all(' ', '.')
+
 # load("data/ais_mmsi.Rda")
 load("data/MRV.Rda")
 ```
@@ -88,15 +93,30 @@ fleet_df <- fleet_df %>%
 
 # WFR-AIS
 ```{r}
-colnames(AIS_df) <- paste0('AIS.', colnames(AIS_df))
+AIS_df <- AIS_df %>% 
+  rename(MMSI = Mmsi) %>% 
+  arrange(Year) %>% 
+  pivot_wider(names_from = Year,
+              names_sep = ".",
+              values_from = -c('MMSI', 'Year'))
 ```
 
 ```{r}
-AIS_df <- AIS_df %>% 
-  arrange(AIS.year) %>% 
-  pivot_wider(names_from = AIS.year,
-              names_prefix = "AIS.Distance.",
-              values_from = AIS.distance,)
+# AIS_EU_df <- AIS_EU_df %>%
+#   arrange(year) %>% 
+#   pivot_longer(cols = -c(MMSI, year)) %>% 
+#   pivot_wider(names_from = c(name, year),
+#               names_prefix = 'EU.',
+#               names_sep = '.',
+#               values_from = value)
+```
+
+```{r}
+# AIS_df <- AIS_df %>% 
+#   left_join(AIS_EU_df, on = "MMSI")
+
+colnames(AIS_df) <- str_replace(colnames(AIS_df), 'Distance.Sum', 'Distance.Total')
+colnames(AIS_df) <- paste0('AIS.', colnames(AIS_df))
 ```
 
 ## join
@@ -201,7 +221,7 @@ fleet_df <- fleet_df %>%
   relocate(MRV.IMO.Number, .after = IMO.Number) %>% 
   relocate(contains("MRV.Ship.Name."), .after = Name) %>% 
   relocate(contains("MRV.Ship.Type."), .after = Type) %>% 
-  relocate(contains("EU.Distance"), .after = AIS.Distance.2021) %>%
+  relocate(contains("EU.Distance"), .after = AIS.Distance.Total.2021) %>%
   relocate(contains("EIV"), .after = Design.Efficiency) %>% 
   relocate(contains("EEDI"), .after = MRV.EIV.2020)
 ```
