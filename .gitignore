@@ -2,6 +2,10 @@
 /src/data
 /src/data/AIS
 
+# R
+.RData
+.Rhistory
+
 # VSCode
 *.code-workspace
 
