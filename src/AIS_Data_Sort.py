@@ -1,19 +1,23 @@
-# Sort each partition by mmsi, timestamp
+"""
+Sort each partition by mmsi, timestamp
+Input(s): ais_bulkers_indexed.parquet
+Output(s): ais_bulkers_indexed_sorted.parquet
+"""
 
 import dask.dataframe as dd
 import os, time
 
 start = time.time()
 filepath = 'src/data/AIS'
-ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_mmsi'))
+ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_indexed'))
 
 ais_bulkers.map_partitions(
-    lambda df : df.sort_values(['mmsi', 'timestamp']),
+    lambda df : df.sort_values(['mmsi', 'created_at']),
     transform_divisions = False,
     align_dataframes = False,
     meta = ais_bulkers
 ).to_parquet(
-    os.path.join(filepath, 'ais_bulkers_mmsi_timestamp'), 
+    os.path.join(filepath, 'ais_bulkers_indexed_sorted'), 
     append = False, 
     overwrite = True)
 end = time.time()
