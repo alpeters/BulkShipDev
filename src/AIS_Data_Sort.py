@@ -8,7 +8,7 @@ import dask.dataframe as dd
 import os, time
 
 start = time.time()
-filepath = 'src/data/AIS'
+filepath = './data/AIS'
 ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_indexed'))
 
 ais_bulkers.map_partitions(
