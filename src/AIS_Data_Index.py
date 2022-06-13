@@ -1,4 +1,12 @@
-# Set index by mmsi so future operations can be partition-wise
+"""
+Set index by mmsi so future operations can be partition-wise
+Input(s): ais_bulkers.parquet
+Output(s): ais_bulkers_indexed.parquet
+Runtime: 
+	Local: 495s with minimum variables, just barely works with 15GB RAM + 25GB Swap
+	CC: 16m45 with full variables
+"""
+
 import dask.dataframe as dd
 import pandas as pd
 import numpy as np
@@ -8,9 +16,7 @@ import os, time
 # cluster = LocalCluster(n_workers=1)
 
 filepath = '/scratch/petersal/ShippingEmissions/src/data/AIS'
-# ais = pd.read_parquet(os.path.join(filepath, 'aisparquet/part.0.parquet'))
 ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers'))
-# dd.compute(ais_bulkers.shape)
 unique_mmsi = ais_bulkers['mmsi'].unique().compute()
 unique_mmsi.sort_values(inplace = True, ignore_index = True)
 breakpoints = list(np.linspace(unique_mmsi[0], unique_mmsi.iat[-1], 40).astype('int32'))
@@ -26,7 +32,6 @@ print("Starting at: ", start)
 outpath = os.path.join(filepath, 'ais_bulkers_indexed')
 if not os.path.exists(outpath):
 	os.mkdir(outpath)
-#ais_bulkers.head().to_csv(os.path.join(outpath, 'test.csv'))
 (
 	ais_bulkers.set_index('mmsi', shuffle = 'disk', divisions = breakpoints)
 	.to_parquet(os.path.join(filepath, 'ais_bulkers_indexed'),
@@ -35,4 +40,3 @@ if not os.path.exists(outpath):
 )
 end = time.time()
 print(f"Elapsed time: {(end - start)}")
-# 495s, just barely worked with 15GB RAM + 25GB Swap
