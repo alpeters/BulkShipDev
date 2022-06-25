@@ -1,0 +1,126 @@
+---
+title: "Top 500/200 countries and related bilateral trade value"
+output: html_document
+---
+
+## Note: Used Oliver's latest dataset "bilateral_trade_value_data.csv"
+```{r}
+bilateral_trade_value_data<-read.csv('bilateral_trade_value_data.csv')
+bilateral_trade_value_data_new<-bilateral_trade_value_data[order(-bilateral_trade_value_data[,3],-bilateral_trade_value_data[,4],-bilateral_trade_value_data[,5]),]
+
+## Top 500 Interquartile range of percentage change in trade values:
+```
+
+
+```{r}
+bilateral_trade_value_data<-read.csv('/Users/bessie/Desktop/bilateral_trade_value_data.csv')
+bilateral_trade_value_data_new<-bilateral_trade_value_data[order(-bilateral_trade_value_data[,3],-bilateral_trade_value_data[,4],-bilateral_trade_value_data[,5]),]
+BT_PN_t500_original<-bilateral_trade_value_data_new %>% 
+  slice(1:500)
+colnames(BT_PN_t500_original)<-c('X','Bilateral_Pairs','V2018','V2019','V2020') 
+
+BT_PN_t500_original<- BT_PN_t500_original %>%
+  group_by(Bilateral_Pairs) %>%
+ mutate(change_1920_500 = log(V2020)-log(V2019)) %>%
+ mutate(change_1819_500 = log(V2019)-log(V2018)) %>%
+  arrange(change_1920_500) %>%
+  arrange(change_1819_500)
+  
+test2<-select(BT_PN_t500_original,c(Bilateral_Pairs,change_1920_500,change_1819_500))
+
+test2<-pivot_longer(test2,
+  cols = change_1819_500:change_1920_500,
+  names_to = "Year",
+  values_to = "Change") 
+
+
+plot_test2<-ggplot(test2, aes(x = factor(Year), y = Change, fill = factor(Year))) + 
+  geom_boxplot() +
+  stat_summary(
+    aes(label = round(stat(y), 1)),
+    geom = "text", 
+    fun = function(y) { o <- boxplot.stats(y)$out; if(length(o) == 0) NA else o },
+    hjust = -1
+  )
+
+plot_test2
+
+```
+
+
+## Many outliers, decided to select only top 200 countries. 
+
+## Top 200 
+```{r}
+## Top 200
+BT_PN_t200_original<-bilateral_trade_value_data_new %>% 
+  slice(1:200)
+BT_PN_t200_original
+
+BT_PN_t200<-pivot_longer(BT_PN_t200_original,
+  cols = V2020:V2018,
+  names_to = "Year", #data differed by year
+  values_to = "Trade_Value") 
+
+colnames(BT_PN_t200)<-c('Rows','Bilateral_Pairs','Year','Trade_Value')
+
+BT_PN_t200
+
+
+## Top 10 countries with the most percentage change in trade values (2018to2019)
+Percen_Change18to19 <- filter(BT_PN_t200, Year != "V2020") %>%
+ group_by(Bilateral_Pairs) %>%
+ summarize(Percen_change = (log(first(Trade_Value))-log(last(Trade_Value)))) %>%
+ arrange(Percen_change) 
+
+head(Percen_Change18to19,n=10)
+
+## Top 10 countries with the most percentage change in trade values (2019to2020)
+Percen_Change19to20 <- filter(BT_PN_t200, Year != "V2018") %>%
+ group_by(Bilateral_Pairs) %>%
+ summarize(Percen_change = (log(first(Trade_Value))-log(last(Trade_Value)))) %>%
+ arrange(Percen_change) 
+  
+head(Percen_Change19to20,n=10)
+
+
+
+# Plot y~x
+bilateral_trade_value_data_new<-bilateral_trade_value_data[order(-bilateral_trade_value_data[,3],-bilateral_trade_value_data[,4],-bilateral_trade_value_data[,5]),]
+BT_PN_t200_original<-bilateral_trade_value_data_new %>% 
+  slice(1:200)
+BT_PN_t200_original
+colnames(BT_PN_t200_original)<-c('X','Bilateral_Pairs','V2018','V2019','V2020') 
+
+BT_PN_t200_original<- BT_PN_t200_original %>%
+  group_by(Bilateral_Pairs) %>%
+ mutate(change_1920 = log(V2020)-log(V2019)) %>%
+ mutate(change_1819 = log(V2019)-log(V2018)) %>%
+  arrange(change_1920) %>%
+  arrange(change_1819)
+  
+test<-select(BT_PN_t200_original,c(Bilateral_Pairs,change_1920,change_1819))
+
+test<-pivot_longer(test,
+  cols = change_1819:change_1920,
+  names_to = "Year",
+  values_to = "Change") 
+
+
+plot_test<-ggplot(test, aes(x = factor(Year), y = Change, fill = factor(Year))) + 
+  geom_boxplot() +
+  stat_summary(
+    aes(label = round(stat(y), 1)),
+    geom = "text", 
+    fun = function(y) { o <- boxplot.stats(y)$out; if(length(o) == 0) NA else o },
+    hjust = -1
+  )
+
+plot_test
+
+```
+
+
+
+
+
