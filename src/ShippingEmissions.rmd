@@ -75,3 +75,6 @@ py_run_file('AIS_Calculations_TripStats.py')
 ```
 
 # Regressions
+```{r, child = 'Efficiency_Regression.rmd'}
+```
+
