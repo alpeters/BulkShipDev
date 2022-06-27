@@ -30,7 +30,7 @@ kable_titles <- function(df, format = "simple"){
 # Import
 ```{r}
 read_MRV <- function(file) {
-  col_types = rep("guess", 62)
+  col_types = rep("guess", 61)
   col_types = replace(col_types, c(21,48,61), "text")
   df <- import(file,
                skip = 2,
@@ -45,14 +45,17 @@ read_MRV <- function(file) {
 
 
 ```{r}
-MRV_df <- read_MRV("data/MRV/2018-v249-13052021-EU MRV Publication of information.xlsx")
+# MRV_df <- read_MRV("data/MRV/2018-v249-13052021-EU MRV Publication of information.xlsx")
+MRV_df <- read_MRV("data/MRV/2018-v265-30042022-EU MRV Publication of information.xlsx")
 
-temp_df <- read_MRV("data/MRV/2019-v163-20052021-EU MRV Publication of information.xlsx")
+# temp_df <- read_MRV("data/MRV/2019-v163-20052021-EU MRV Publication of information.xlsx")
+temp_df <- read_MRV("data/MRV/2019-v204-19052022-EU MRV Publication of information.xlsx")
 
 MRV_df <- MRV_df %>% 
   bind_rows(temp_df)
 
-temp_df <- read_MRV("data/MRV/2020-v63-05102021-EU MRV Publication of information.xlsx")
+# temp_df <- read_MRV("data/MRV/2020-v63-05102021-EU MRV Publication of information.xlsx")
+temp_df <- read_MRV("data/MRV/2020-v150-19052022-EU MRV Publication of information.xlsx")
 
 temp_df <- temp_df %>% 
   rename("Annual total time spent at sea [hours]" = "Annual time spent at sea [hours]",
@@ -159,18 +162,19 @@ MRV_df <-MRV_df %>%
   rename(technical.efficiency = efficiency.value)
 ```
 
-Distance travelled, speed, emission factor
+Distance traveled, speed, emission factor, transport work
 ```{r}
 MRV_df <- MRV_df %>% 
-  mutate(EU.distance = total.fc / fc.per.distance * 1E3) %>% 
-  mutate(speed = EU.distance / time.at.sea) %>% 
-  mutate(emission.factor = total.co2 / total.fc)
+  mutate(EU.distance = total.fc / fc.per.distance * 1E3) %>%  # [nm] = [kg]/[kg/nm] = [t]/[kg/nm] * 1E3
+  mutate(speed = EU.distance / time.at.sea) %>% # [kt] = [nm]/[h]
+  mutate(emission.factor = total.co2 / total.fc) %>%  # [.] = [t]/[t]
+  mutate(work.mass = total.fc / fc.per.work.mass) %>% # [mt.nm] = 1E6 * [t.nm] = [t^2.nm]/[g] = [t]/[g/t.nm]
+  mutate(load = work.mass / EU.distance * 1E3) # [kt] = [mt.nm]/[nm] * 1E3
 ```
 
 ```{r}
 save(MRV_df, file = "data/MRV.Rda")
 ```
-
 
 ## Inspect
 ```{r eval = FALSE}
