@@ -11,13 +11,13 @@ options(dplyr.summarise.inform = FALSE)
 
 # Load data
 ```{r}
+callvariant = 'speed' #'heading'
+EUvariant = '_EEZ' #''
+
+
 load("data/bulkers_WFR.Rda")
 load("data/containerships_WFR.Rda")
-# ais_mmsi <- read.csv("data/ais_mmsi.csv") %>%
-#   as_tibble(.name_repair = 'universal') %>% 
-#   rename(AIS.MMSI = mmsi)
-# ais_yearly_distance <- read_feather("data/AIS_yearly_distance.feather") %>% 
-#   as_tibble(.name_repair = 'universal')
+load("data/oiltankers_WFR.Rda")
 
 AIS_df <- read.csv("data/AIS_yearly_stats.csv") %>%
   as_tibble(.name_repair = 'universal')
@@ -26,7 +26,15 @@ colnames(AIS_df) <- colnames(AIS_df) %>%
   str_to_title() %>%
   str_replace_all(' ', '.')
 
-# load("data/ais_mmsi.Rda")
+AIS_EU_df <- read_csv(paste0("data/AIS_", callvariant, EUvariant, "_EU_yearly_stats.csv")) %>% 
+  as_tibble(.name_repair = 'universal') %>%
+  rename(MMSI = mmsi,
+         Distance = distance_sum,
+         Work = work_sum,
+         Trips = trip_nunique
+         # InvalidSpeed = invalid_speed
+         )
+
 load("data/MRV.Rda")
 ```
 
@@ -36,6 +44,9 @@ bulkers_df <- bulkers_df %>%
   mutate(IMO.Number = as.integer(IMO.Number))
 
 containerships_df <- containerships_df %>% 
+  mutate(IMO.Number = as.integer(IMO.Number))
+
+oiltankers_df <- oiltankers_df %>% 
   mutate(IMO.Number = as.integer(IMO.Number))
 
 MRV_df <- MRV_df %>% 
@@ -70,9 +81,9 @@ bulkers_df %>%
   geom_histogram(binwidth = 0.25)
 ```
 
-# Combine bulkers and container ships
+# Combine ship types
 ```{r}
-fleet_df <- bind_rows(bulkers_df, containerships_df)
+fleet_df <- bind_rows(bulkers_df, containerships_df, oiltankers_df)
 ```
 
 ## Reorganize
@@ -102,18 +113,18 @@ AIS_df <- AIS_df %>%
 ```
 
 ```{r}
-# AIS_EU_df <- AIS_EU_df %>%
-#   arrange(year) %>% 
-#   pivot_longer(cols = -c(MMSI, year)) %>% 
-#   pivot_wider(names_from = c(name, year),
-#               names_prefix = 'EU.',
-#               names_sep = '.',
-#               values_from = value)
+AIS_EU_df <- AIS_EU_df %>%
+  arrange(year) %>% 
+  pivot_longer(cols = -c(MMSI, year)) %>% 
+  pivot_wider(names_from = c(name, year),
+              names_prefix = 'EU.',
+              names_sep = '.',
+              values_from = value)
 ```
 
 ```{r}
-# AIS_df <- AIS_df %>% 
-#   left_join(AIS_EU_df, on = "MMSI")
+AIS_df <- AIS_df %>% 
+  left_join(AIS_EU_df, on = "MMSI")
 
 colnames(AIS_df) <- str_replace(colnames(AIS_df), 'Distance.Sum', 'Distance.Total')
 colnames(AIS_df) <- paste0('AIS.', colnames(AIS_df))
@@ -133,8 +144,17 @@ How many ships in WFR don't have tracking data?
 ```{r}
 fleet_df %>% 
   drop_na(MMSI) %>% 
-  group_by(is.na(AIS.MMSI)) %>% 
+  group_by(Fleet.Type, is.na(AIS.MMSI)) %>% 
   summarise(n())
+```
+How many AIS.MMSI aren't unique?
+```{r}
+fleet_df %>% 
+  drop_na(AIS.MMSI) %>% 
+  group_by(AIS.MMSI) %>% 
+  mutate(count = n()) %>% 
+  filter(count > 1) %>% 
+  arrange(AIS.MMSI)
 ```
 
 Which ships don't have tracking data?
@@ -182,6 +202,7 @@ MRV_wide_df <- MRV_df %>%
          Speed = speed,
          EU.Distance = EU.distance,
          Emission.Factor = emission.factor,
+         Load = load,
          FC.On.Laden = fc.on.laden,
          FC.Per.Distance = fc.per.distance,
          FC.Per.Work.Mass = fc.per.work.mass,
