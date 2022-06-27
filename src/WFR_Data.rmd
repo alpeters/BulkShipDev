@@ -205,8 +205,7 @@ containerships_df <- fleet_df %>%
          IMO.Number = as.numeric(IMO.Number),
          CVN = as.numeric(CVN)) %>% 
   rename(MMSI = MMSI..Maritime.Mobile.Service.Identity.,
-         Demo.Price.LDT = Demo...LDT,
-         Beam.Mid..m = Beam.Mld..m.) %>% 
+         Demo.Price.LDT = Demo...LDT) %>% 
   mutate(Built.Year = year(Built.Date), .after = Built.Date)
 
 assign(paste0("containerships_vars1_df"), containerships_df)
