@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --account=def-kasahara-ab
-#SBATCH --mem=80G
+#SBATCH --mem=125G
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --time=1:00:0    
