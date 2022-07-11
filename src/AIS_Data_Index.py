@@ -12,8 +12,8 @@ import pandas as pd
 import numpy as np
 import os, time
 
-from dask.distributed import Client, LocalCluster
-cluster = LocalCluster(n_workers=1)
+# from dask.distributed import Client, LocalCluster
+# cluster = LocalCluster(n_workers=1)
 
 filepath = '/scratch/petersal/ShippingEmissions/src/data/AIS'
 ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers'))
