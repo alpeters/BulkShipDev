@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --account=def-kasahara-ab
-#SBATCH --mem=120G
+#SBATCH --mem=80G
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=2
-#SBATCH --time=0:45:0    
+#SBATCH --ntasks-per-node=1
+#SBATCH --time=0:15:0    
 #SBATCH --mail-user=apeters@protonmail.com
 #SBATCH --mail-type=ALL
 

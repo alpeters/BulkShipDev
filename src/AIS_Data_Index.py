@@ -21,7 +21,7 @@ unique_mmsi = ais_bulkers['mmsi'].unique().compute()
 unique_mmsi.sort_values(inplace = True, ignore_index = True)
 breakpoints = list(np.linspace(unique_mmsi[0], unique_mmsi.iat[-1], 40).astype('int32'))
 # Need to set divisions because automatic algorithm seems to give floats
-breaks_to_keep = [0, 2, 4, 8, 9, 11, 12, 15, 18, 19, 24, 30, 39]
+breaks_to_keep = [0, 2, 4, 6, 8, 9, 10, 11, 12, 14, 15, 17, 18, 19, 21, 22, 24, 26, 28, 30, 39]
 breakpoints = [breakpoints[i] for i in breaks_to_keep]
 
 
