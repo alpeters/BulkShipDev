@@ -31,6 +31,7 @@ AIS_EU_df <- read_csv(paste0("data/AIS_", callvariant, EUvariant, "_EU_yearly_st
   rename(MMSI = mmsi,
          Distance = distance_sum,
          Work = work_sum,
+         Work.IS = work_IS_sum,
          Trips = trip_nunique
          # InvalidSpeed = invalid_speed
          )
@@ -124,7 +125,7 @@ AIS_EU_df <- AIS_EU_df %>%
 
 ```{r}
 AIS_df <- AIS_df %>% 
-  left_join(AIS_EU_df, on = "MMSI")
+  left_join(AIS_EU_df, by = "MMSI")
 
 colnames(AIS_df) <- str_replace(colnames(AIS_df), 'Distance.Sum', 'Distance.Total')
 colnames(AIS_df) <- paste0('AIS.', colnames(AIS_df))
@@ -233,6 +234,19 @@ MRV_wide_df %>%
 ```
 Leave as-is for now.
 
+Are all MRV reporting bulkers in WFR?
+```{r}
+anti_join(MRV_wide_df, fleet_df, by = c("MRV.IMO.Number" = "IMO.Number")) %>% 
+  group_by(MRV.Ship.Type.2018, MRV.Ship.Type.2019, MRV.Ship.Type.2020) %>% 
+    filter(MRV.Ship.Type.2018 == 'Bulk carrier' | 
+         MRV.Ship.Type.2018 == 'Bulk carrier' | 
+         MRV.Ship.Type.2018 == 'Bulk carrier' |
+         (is.na(MRV.Ship.Type.2018) & is.na(MRV.Ship.Type.2019) & is.na(MRV.Ship.Type.2020))) %>% 
+  summarise(n())
+```
+Not many bulkers getting lost!    
+
+
 ## join
 ```{r}
 fleet_df <- fleet_df %>% 
@@ -292,6 +306,8 @@ fleet_df %>%
   group_by(Fleet.Type, is.na(AIS.MMSI), is.na(MRV.IMO.Number)) %>% 
   summarise(n())
 ```
+
+
 # Save
 ```{r}
 save(fleet_df, file = "data/All_join.Rda")
