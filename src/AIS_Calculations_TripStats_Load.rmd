@@ -1,0 +1,246 @@
+---
+title: "AIS Calculations TripStats Load"
+output: html_document
+---
+
+# START
+```{r}
+library(tidyverse)
+library(Metrics)
+library(fixest)
+library(knitr)
+options(dplyr.summarise.inform = FALSE)
+```
+
+# Load data
+```{r}
+tripstats_df <- read_csv('data/AIS_trip_stats.csv',
+                         show_col_types = FALSE) %>% 
+  as_tibble()
+
+colnames(tripstats_df) <- str_replace_all(colnames(tripstats_df), '_', ' ') %>% 
+  str_to_title() %>% 
+  str_replace_all(' ', '.')
+
+tripstats_df <- tripstats_df %>% 
+  rename(MMSI = Mmsi,
+         EU = Eu.Max,
+         IS.Distance.Sum = Is.Distance.Sum,
+         Weighted.IS.Mean = Weighted.Is.Mean)
+```
+
+```{r}
+draught_quantiles_df <- read_csv('data/draught_quantiles.csv',
+                                 show_col_types = FALSE)
+
+colnames(draught_quantiles_df) <-  str_replace_all(colnames(draught_quantiles_df), '_', ' ') %>% 
+  str_to_title() %>% 
+  str_replace_all(' ', '.')
+
+draught_quantiles_df <- draught_quantiles_df %>% 
+  rename(MMSI = Mmsi) %>% 
+  pivot_wider(id_cols = MMSI,
+              names_from = Quantile,
+              names_prefix = 'Q',
+              values_from = Draught)
+```
+
+```{r}
+load('data/All_join.Rda')
+```
+
+# Join
+```{r}
+draught_load_df <- fleet_df %>% 
+  select(MMSI, Draught..m., Dwt, NT, TPC, Beam.Mld..m., LOA..m., LBP..m.,
+         CVN, Built.Year, AIS.Distance.Total.2019, AIS.Distance.Total.2020, AIS.Distance.Total.2021) %>% 
+  right_join(draught_quantiles_df, by = 'MMSI')
+```
+
+```{r}
+draught_load_df %>% 
+  group_by(is.na(TPC)) %>% 
+  summarise(n())
+```
+
+```{r}
+fleet_df %>% select(LDT, Dwt) %>% summary()
+```
+
+
+# Compare Draught to max observed
+```{r}
+draught_load_df %>% 
+  rowwise() %>% 
+  mutate(AIS.Distance.Total = sum(AIS.Distance.Total.2019, AIS.Distance.Total.2020, AIS.Distance.Total.2021, na.rm = TRUE)) %>% 
+  ggplot(aes(y = Q0.95/Draught..m.,
+             x = AIS.Distance.Total)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1) +
+  xlim(0, NA) +
+  ylim(0, NA)
+```
+
+```{r}
+draught_load_df %>% 
+  pivot_longer(starts_with('Q'),
+               names_to = 'Quantile',
+               values_to = 'Draught.Reported') %>% 
+  filter(!(Quantile %in% c('Q1', 'Q0.99', 'Q0'))) %>% 
+  ggplot(aes(x = Draught..m.,
+             y = Draught.Reported,
+             color = Quantile)) +
+  geom_point() +
+  xlim(0, NA) +
+  ylim(0, NA)
+```
+
+
+# TPC Prediction for Bulkers
+```{r}
+tpc_df <- fleet_df %>% 
+  filter(Fleet.Type == 'Bulkers') %>% 
+  select(CVN, Built.Year, Dwt, Draught..m., Beam.Mld..m., LOA..m., LBP..m., TPC) %>% 
+  drop_na()
+```
+
+```{r}
+evaluate_model <- function(df, model, frac, n, y_transform = identity){
+  rmse <- list()
+  sigma <- list()
+  r.squared <- list()
+  adj.r.squared <- list()
+
+  for(i in 1:n){
+    train_df <- df %>%
+    sample_frac(frac)
+  
+    test_df <- df %>% 
+      anti_join(train_df, by = 'CVN')
+    
+    lm <- lm(formula(model),
+             data = train_df)
+    summary <- summary(lm)
+    sigma[i] <- summary$sigma
+    r.squared[i] <- summary$r.squared
+    adj.r.squared[i] <- summary$adj.r.squared
+    test_df$Predicted = sapply(predict(lm, test_df), y_transform)
+    rmse[i] <- rmse(test_df$TPC, test_df$Predicted)
+  }
+  
+  return(prediction_df <- tibble(i = 1:n,
+                                 sigma = unlist(sigma),
+                                 r.squared = unlist(r.squared),
+                                 adj.r.squared = unlist(adj.r.squared),
+                                 rmse = unlist(rmse)) %>% 
+           summarise(across(-i, c(mean = mean, sd = sd))))
+}
+```
+
+```{r}
+evaluate_tpc_model <- function(model, y_transform) {
+  return(evaluate_model(tpc_df, model, 0.8, 80, y_transform))
+}
+
+model_params <- tribble(
+  ~model, ~y_transform,
+  'TPC ~ Dwt + Draught..m. + Beam.Mld..m. + LOA..m. + LBP..m.', identity,
+  'TPC ~ Dwt + Draught..m. + Beam.Mld..m. + LOA..m.', identity,
+  'TPC ~ Dwt*Draught..m.*Beam.Mld..m.*LOA..m.*LBP..m.', identity,
+  'TPC ~ Dwt*Draught..m.*Beam.Mld..m.*I(LOA..m.-LBP..m.)*LBP..m.', identity,
+  'TPC ~ Dwt*Draught..m.*Beam.Mld..m.*LOA..m.', identity,
+  # 'TPC ~ log(Dwt) + log(Draught..m.) + log(Beam.Mld..m.) + log(LOA..m.) + log(LBP..m.)', identity,
+  # 'TPC ~ log(Dwt)*log(Draught..m.)*log(Beam.Mld..m.)*log(LOA..m.)*log(LBP..m.)', identity,
+  # 'TPC ~ log(Dwt)*log(Draught..m.)*log(Beam.Mld..m.)*log(LOA..m.)', identity,
+  'log(TPC) ~ log(Dwt) + log(Draught..m.) + log(Beam.Mld..m.) + log(LOA..m.) + log(LBP..m.)', exp,
+  'log(TPC) ~ log(Dwt)*log(Draught..m.)*log(Beam.Mld..m.)*log(LOA..m.) + log(LBP..m.)', exp)
+
+model_params
+```
+
+```{r}
+model_performance <- mapply(evaluate_tpc_model, model_params$model, model_params$y_transform, USE.NAMES = FALSE)
+model_performance
+```
+
+```{r}
+tpc_df %>% 
+  ggplot(aes(TPC)) +
+  geom_histogram()
+```
+
+```{r}
+tpc_model <- lm(formula(models[[3]]), tpc_df)
+# tpc_model <- lm(formula(TPC ~ I(LBP..m.^2)*LBP..m.), tpc_df)
+summary(tpc_model)
+tpc_df$TPC.Predicted = predict(tpc_model, tpc_df)
+```
+
+
+```{r}
+tpc_df %>% 
+  ggplot(aes(x = TPC, y = TPC.Predicted, color = Built.Year)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1)
+```
+# Predict TPCs
+```{r}
+draught_load_df$TPC.Predicted = predict(tpc_model, draught_load_df)
+
+draught_load_df <- draught_load_df %>% 
+  rowwise() %>% 
+  mutate(TPC.Calc = replace_na(TPC, TPC.Predicted))
+```
+
+# Calcs
+```{r}
+draught_load_df %>% 
+  group_by(is.na(LBP..m.)) %>% 
+  summarise(n())
+```
+Don't have LBP for 54 ships :(
+
+```{r}
+draught_load_df <- draught_load_df %>% 
+  mutate(Min.Draught.Calc = Draught..m. - Dwt/TPC.Calc/100,
+         Load.Range.Calc = (Draught..m. - Q0.05)*100*TPC.Calc,
+         Load.Range.Frac.Calc = Load.Range.Calc/Dwt,
+         Min.Max = Q0.01/Q0.99)
+```
+
+```{r}
+draught_load_df %>% 
+  ggplot(aes(y = Load.Range.Calc, x = Dwt)) +
+  geom_point()
+```
+```{r}
+draught_load_df %>% 
+  ggplot(aes(y = Load.Range.Frac.Calc, x = Q0.05)) +
+  geom_point()
+```
+```{r}
+draught_load_df %>% 
+  ggplot(aes(Load.Range.Frac.Calc)) +
+  geom_histogram(binwidth = 0.01) +
+  geom_vline(aes(xintercept = mean(draught_load_df$Load.Range.Frac.Calc, na.rm = TRUE)))
+```
+```{r}
+draught_load_df %>% 
+  ggplot(aes(y = Load.Range.Frac.Calc, x = Min.Max)) +
+  geom_point()
+```
+
+
+```{r}
+draught_load_df %>% 
+  ggplot(aes(y = Draught..m., x = Q0.05, color = Dwt)) +
+  geom_point()
+```
+
+# K means cluster with 2 on each ship then regress
+
+# END
+```{r}
+
+```
+
