@@ -1,3 +1,3 @@
 # ShippingEmissions
 
-Repo for collaborative work with shipping emissions data.
+Repo for collaborative work with shipping emissions data
