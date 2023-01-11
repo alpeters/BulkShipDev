@@ -1,0 +1,166 @@
+\documentclass[12pt,letterpaper]{article}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{amsmath}
+%\usepackage{graphicx,fancyheadings}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\usepackage{graphics}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage{setspace}
+\usepackage{ulem} 
+
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{verbatim}
+\usepackage{setspace}
+\usepackage{ulem}
+\usepackage{textpos}
+\usepackage{changepage}
+\usepackage{url}
+
+\usepackage{color}
+
+
+%\renewcommand{\sout}[1]{}
+%\renewcommand{\bf}{}
+
+\usepackage[round]{natbib}
+% \usepackage[backend=biber,style=apa,autocite=inline]{biblatex} \DeclareLanguageMapping{english}{english-apa}
+% \addbibresource{./sshrc2023shipping.bib}
+
+
+%\lhead{} \chead{} \cfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\renewcommand{\baselinestretch}{1.1}
+%\textheight 8in \textwidth 6in \oddsidemargin 0.15in
+%\evensidemargin 0in \headheight 14.5pt \headwidth 6in \parskip 4pt
+
+\pagestyle {empty}
+
+\setlength{\topmargin}{0.0cm} \setlength{\headheight}{0cm}
+\setlength{\headsep}{0.3cm} \setlength{\topskip}{0cm}
+\setlength{\textheight}{22.5cm} \setlength{\textwidth}{16.6cm}
+\setlength{\oddsidemargin}{0cm} \setlength{\evensidemargin}{0cm}
+\setlength{\footskip}{0.5cm}
+\newcommand{\indep}{\perp \!\!\! \perp}
+
+
+\newcommand{\Red}{\color{red}}
+\newcommand{\Blue}{\color{blue}}
+\newcommand{\ve}{\varepsilon}
+
+\def\bs{\boldsymbol}
+
+%\setlength{\topmargin}{-0.2cm} \setlength{\headheight}{0cm}
+%\setlength{\headsep}{0.3cm} \setlength{\topskip}{0cm}
+%\setlength{\textheight}{22cm} \setlength{\textwidth}{16.2cm}
+%\setlength{\oddsidemargin}{0cm} \setlength{\evensidemargin}{0cm}
+%\setlength{\footskip}{1cm}
+
+\usepackage[letterpaper]{geometry}
+
+ \rhead{Hiroyuki Kasahara \hspace{-1.7cm} }
+ %\lfoot{}
+ \cfoot{\thepage \hspace{-2cm}}
+
+
+
+%\setcounter{page}{10}
+
+\begin{document}
+\bibliographystyle{asa}
+
+% Challenge—The aim and importance of the endeavour (40\%):
+% \begin{itemize}
+%   \item originality, significance and expected contribution to knowledge;
+%   \item appropriateness of the literature review;
+%   \item appropriateness of the theoretical approach or framework;
+%   \item appropriateness of the methods/approach;
+%   \item quality of training and mentoring to be provided to students, emerging scholars and other highly qualified personnel, and opportunities for them to contribute; and
+%   \item potential for the project results to have influence and impact within and/or beyond the social sciences and humanities research community.
+% \end{itemize}
+    
+% Feasibility—The plan to achieve excellence (20\%):
+% \begin{itemize}
+%   \item appropriateness of the proposed timeline, and probability that the objectives will be met;
+% \end{itemize}
+
+\begin{center}
+\textbf{Detailed Description of Proposed Research: }\vspace{-0.25cm}
+\end{center}
+
+\noindent \textbf{Project: High frequency prediction of disaggregated marine shipping CO$_2$ emissions} 
+\smallskip 
+
+\noindent \textbf{Objective:} 
+
+To develop a 
+\smallskip 
+
+\noindent \textbf{Context:}  
+
+Marine shipping is vital to global trade, carrying over 80\% of the volume of all traded goods and around 70\% of their value \citep{unctad2017review}. The industry's importance has become particularly apparent in recent years as disruptions ranging from the blockage of the Suez Canal to widespread COVID-related port slowdowns have snarled supply chains world-wide. At the same time, shipping contributes roughly 3\% of global CO$_2$ emissions, placing it roughly on par with the total emissions of Germany \citep*{faber2020fourth}. These emissions lie outside the scope of national emissions tallies, and fall instead under the jurisdiction the International Maritime Organization, which has set a target of a 50\% reduction by 2050. As an incremental step toward this target, efficiency standards are set to be implemented beginning in 2023, however the effects of these regulations are uncertain and widely debated. I aim to help inform this debate by constructing and estimating a model of entry, exit, and operational speed in dry bulk shipping in order to analyze the potential effects and effectiveness of emissions regulations.
+
+Literature:
+\begin{itemize}
+  \item \citet{uge2020estimation}: 
+  \begin{itemize}
+    \item \href{https://research.fleetmon.com/projects/emissionsea-extrapolation-of-emissions-from-ships/}{EmissionSEA project}
+    \item "validate reported emissions"
+    \item "The aim is to develop a methodology for the quantitative determination of CO2 emissions from shipping."
+  \end{itemize}
+  \item \href{https://www.ucl.ac.uk/bartlett/energy/news/2016/apr/co2-emissions-every-ship-every-hour-now-thats-big-data}{UCL Energy Institute and methodology developed for the Third IMO GHG Study 2014}  
+  \item \citet{johansson2017global}
+  \item \citet{jalkanen2009modelling}
+  \item \citet{van2018spatially}
+  \item \citet[2.2]{faber2020fourth} IMO GHG report methodology
+\end{itemize}
+
+
+Contribution:
+\begin{itemize}
+  \item first to use actual emissions rather than theoretical
+  \item research tool
+  \item inform policy makers, especially with incoming regulations
+\end{itemize}
+
+\smallskip 
+
+\noindent \textbf{Methodology:}  
+
+% In order to quantitatively match firm behaviour, I gather a rich set of data encompassing emissions, ship activity, fleet characteristics, and market activity. First, I detect voyages from hourly ship tracking data spanning three years and encompassing essentially all dry bulk ships worldwide and match it to ship characteristics from a global fleet register. This type of data has previously been used to model shipping emissions based on nominal ship efficiencies \parencite{jalkanen2009modelling, johansson2017global, van2018spatially}, however I go one step further and match it to reported annual fuel consumption data for voyages into and out of the European Union. In this way I am able to compare the relative effects of ship size and age/vintage on \textit{actual} fuel consumption.\footnote{The effect of ageing such as engine wear is not separately identifiable from vintage-related technology improvements in this analysis.} I find that efficiency after controlling for size is surprisingly flat until roughly 2013 when new ship efficiency regulations were implemented.
+
+% I will calculate emissions by joining the tracking data to a comprehensive register of the world fleet, which includes detailed information on the design efficiency of each ship. This strategy is reminiscent of \textcite{johansson2017global, jalkanen2009modelling, van2018spatially}. The last of these obtains a detailed estimate of commodity-specific emissions for Brazil. I am interested in a less granular level of emissions (for bulkers versus container ships, for instance), but for a wider range of countries.
+
+% Data
+% The World Fleet Register from Clarksons Research is a virtually complete listing of all large merchant ships (roughly 100 thousand), of which around 12,500 are bulkers. It includes variables such as owner, build year, ship type, and importantly for our purposes, detailed data on the technical characteristics of each ship such as dimensions, fuel type, engine type, and often even make and model of the engine. We will use the technical characteristics to calculate the design efficiency of each ship  based on the formula used by the IMO in its design efficiency regulation.
+% \autoref{fig:shipinvestment}, taken from \textcite{greenwood2015waves}, uses this data and gives a sense of ship investment over time in the dry bulk market, demonstrating the cyclicality discussed previously. The data also includes sales since roughly 2005, and purchases prices where available for new \textit{and} used ships. Detailed data on scrapped ships begins in 2017. We will also obtain data on freight contract values Clarksons Research. The exactAIS Archive consists of satellite tracking data that contains granular information on ship movements every few minutes. This includes speed, location, and even draft, which can indicate whether it is carrying cargo or not. Reliable data is available from roughly 2010, and is more comprehensive from 2016 onwards. However, it is quite expensive so we expect to obtain at most two years worth of data. We will use this to construct detailed travel histories of each ship, including route, distance travelled and speed. Finally, publicly available data collected through the European Union's Monitoring, Reporting, and Verification (MRV) regulation provides annual fuel consumption and emissions, beginning in 2018. Tracking data will be chosen to match this time frame so that these data sets can be matched at the ship-level using individual ship identifiers.
+
+\begin{itemize}
+  \item data
+  \item figures
+  \begin{itemize}
+    \item fleet distribution
+    \item efficiency changes
+  \end{itemize}
+  \item linear model - demonstrate progress for feasibility
+  \item machine learning predictive model
+  \item training?
+\end{itemize}
+
+
+
+
+ \pagebreak
+  
+% \printbibliography[heading = subbibliography]
+\singlespace{
+\bibliography{sshrc2023shipping}
+}
+
+ 
+
+\end{document}

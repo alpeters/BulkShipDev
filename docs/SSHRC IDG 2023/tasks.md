@@ -1,0 +1,9 @@
+-   Data description
+-   specification
+-   method
+-   figures (size of ship, fuel consumption, ...)
+    - size distribution over time
+    - voyage identification
+-   budget
+    - my salary
+    - data access
