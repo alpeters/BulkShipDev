@@ -94,10 +94,10 @@
 \textbf{Detailed Description of Proposed Research: }\vspace{-0.25cm}
 \end{center}
 
-\noindent \textbf{Project: Quantifying the response of maritime shipping CO$_2$ emissions to demand shocks} 
+\noindent \textbf{Project: Quantifying the response of maritime shipping CO$_2$ emissions to economic shocks} 
 \smallskip 
 
-\noindent \textbf{Objective:} To estimate the elasticity of CO$_2$ emissions from maritime shipping with respect to international trade using the COVID pandemic demand shock as a source of significant variation.
+\noindent \textbf{Objective:} There are two objectives. First, we estimate the elasticity of CO$_2$ emissions from maritime shipping with respect to international trade using the COVID pandemic demand shock as a source of significant variation. Second, we quantify a change in the worldwide CO$_2$ emissions from maritime shipping before and during/after the COVID pandemic.
 \smallskip 
 
 \noindent \textbf{Context:} 
@@ -106,7 +106,7 @@ Global trade is intricately linked with maritime shipping, which carries over 80
 % The importance of the shipping industry has become particularly apparent in recent years as disruptions ranging from the blockage of the Suez Canal to widespread COVID-related port slowdowns have snarled supply chains world-wide.
 At the same time, maritime ships contribute roughly 3\% of global CO$_2$ emissions, roughly equal to the total emissions of Germany \citep*{faber2020fourth}. These emissions lie outside the scope of national emissions tallies, and fall instead under the jurisdiction the International Maritime Organization (IMO), which has set a target of a 50\% reduction by 2050.
 \textcolor{blue}{mention difficulty of decarbonization?}
-The stringency of abatement actions required to meet this goal clearly depends on the how trade will evolve over the coming decades. A continuation of the trend of increasing trade would make this goal much more difficult to hit, while a reversion to more protectionist policies would ease the challenge. Faced with this uncertainty, the IMO and its consituent countries are nevertheless developing and implementing policies to reduce shipping emissions, with new efficiency regulations being phased in this year. We aim to provide new quantitative evidence of the relationship between international trade and maritime shipping emissions in order to better inform policy makers. To do so, we will exploit the large variation in demand for shipping that resulted from the COVID pandemic.
+The stringency of abatement actions required to meet this goal clearly depends on how trade will evolve over the coming decades. A continuation of the trend of increasing trade would make this goal much more difficult to hit. Faced with this uncertainty, the IMO and its consituent countries are developing and implementing policies to reduce shipping emissions, with new efficiency regulations being phased in this year. We aim to provide new quantitative evidence of the relationship between international trade and maritime shipping emissions in order to better inform policy makers. To do so, we will exploit the large variation in demand for shipping that resulted from the COVID pandemic; according to \cite{oecd21}, world merchandise trade decreased by more than 10 percent during the first three months of COVID pandemic.
 
 The three largest sectors of maritime shipping, jointly accounting for over half of maritime emissions, are containerships, bulk carriers, and tankers. These ships transport, respectively,  containerized goods (often manufactured goods), dry bulk goods (e.g. coal, ores, grains), and bulk liquids (primarily oil). As such, they contribute to diverse links of the overall supply chain and are impacted differently by fluctuations in trade. Furthermore, each sector has distinct market characteristics. For example, containerships typically operate with fixed routes and schedules, while bulk carriers tend to operate much more flexibly. Ownership structures reflect these differences as well, with the containership sector being highly concentrated and the bulk carrier sector highly \textit{un}concentrated.
 
@@ -146,12 +146,12 @@ Because the MRV data encompasses only trips in and out of the EU, in order to es
 A limitation of this approach is that the fuel consumption data is annual and there may be significant error in calculating the travel work over such a long time period. Furthermore, as described above, this does not incorporate the effects of laden status or weather. We can augment the travel work calculation to include the draft level and possibly wind and wave speeds using detailed weather data like that used by \citet{brancaccio2020geography}, however this requires more assumptions regarding hull shape. The advantage of this approach over that used by \citet{faber2020fourth} is that it relies less on theoretical assumptions. As noted by \citet{olmer2017greenhouse}, details such as the engine power curve (how fuel consumption varies away from design speed), hull-roughening, and hull-fouling are hard to predict or attribute. Our estimates would incorporate these effects at the average level of observed ships.
 
 To date, we have estimated efficiencies using this procedure for bulk carriers. We have further constructed a simple linear predictive model for efficiency extrapolation, regressing fuel efficiency on a set of ship characteristics (using logs of all variables) as well as built-year fixed effects. 
-% \begin{equation}
-% \log\left(
-%     \frac{fuel~consumption}{Dwt \cdot \sum_{x \in X}  \cdot s_x^2 \cdot x}
-% \right)_{it}    
-%         = \delta age_{it} + \boldsymbol{\beta}log(Z_i) + \varepsilon_{it}
-% \end{equation}
+ \begin{equation}
+ \log\left(
+     \frac{fuel~consumption}{Dwt \cdot \sum_{x \in X}  \cdot s_x^2 \cdot x}
+ \right)_{it}    
+         = \delta age_{it} + \boldsymbol{\beta}log(Z_i) + \varepsilon_{it}
+ \end{equation}
 The coefficients for the built-year fixed effects are plotted in \autoref{fig:efficiency} and indicate that efficiency after controlling for size is surprisingly flat for ships built before roughly 2013, after which efficiency improved. This agrees qualitatively with the analysis of evolution of new ship efficiency from \citet{faber2015historical} (see Figure 15).
 
 \begin{figure}[h]
