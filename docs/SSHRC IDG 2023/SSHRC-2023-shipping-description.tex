@@ -99,7 +99,7 @@
 \textbf{Detailed Description of Proposed Research: }\vspace{-0.25cm}
 \end{center}
 
-\noindent \textbf{Project: Quantifying the response of maritime shipping CO$_2$ emissions to economic shocks and policy regulations}
+\noindent \textbf{Project: Quantifying the response of maritime shipping CO$_2$ emissions to trade shocks and policy regulations}
 \smallskip
 
 \noindent \textbf{Objective:} First, we quantify monthly, fleet-level CO$_2$ emissions from worldwide maritime shipping activity before and during the COVID pandemic.
@@ -120,23 +120,37 @@ The stringency of abatement actions required to meet this goal clearly depends o
 %Trade volumes fluctuated substantially during the COVID pandemic:
 While trade volumes typically vary slowly, the COVID pandemic induced substantial variation over a short period:
 World merchandise trade decreased by more than 10 percent in the first three months of the pandemic before recovering over the following two years \citep{oecd21}. %Furthermore, the extent to which trade decreased differ across countries and industries.  
-We first measure the change in shipping emissions before and during this period using high-frequency data of ships' movements, which we then relate to the change in bilateral trade volumes between country pairs. By exploiting the large variation in shipping, we estimate the short- to medium-run elasticity of CO$_2$ emissions from maritime shipping with respect to international trade. In doing so, we provide an
+We first measure the change in shipping emissions before and during this period using high-frequency data of ships' movements, which we then relate to the change in bilateral trade volumes between country pairs. By exploiting the large variation in shipping, we estimate the short- to medium-run elasticity of CO$_2$ emissions from maritime shipping with respect to international trade. %In doing so, we provide an
 % a quantitative analysis of how a change in trade volumes affects CO$_2$ emissions from maritime shipping, providing 
-important quantitative analysis to inform policymakers in assessing the effectiveness of emissions regulations.  %We then use the estimated elasticities to compute how a change in trade volumes before and during/after the COVID pandemic led to a change in CO$_2$ emission from maritime shipping across different country pairs, as well as, by aggregate, in the entire world. 
+%important quantitative analysis to inform policymakers in assessing the effectiveness of emissions regulations.  %We then use the estimated elasticities to compute how a change in trade volumes before and during/after the COVID pandemic led to a change in CO$_2$ emission from maritime shipping across different country pairs, as well as, by aggregate, in the entire world. 
 
 %TOPIC: Dynamic, more causal relation for counterfactuals
 % How much did the CO$_2$ emission from maritime shipping decline due to the contraction of world trade in the midst of the COVID pandemic? Quantifying the elasticity of CO$_2$ emissions with respect to trade volumes is important for predicting how an increase in international trade affects CO$_2$ emissions in future. 
-Quantifying the elasticity of shipping emissions to trade is challenging for a number of reasons. A ship's fuel consumption depends on many factors, including its size and age, with newer and larger ships typically more efficient. The existing fleet is extremely heterogeneous: \autoref{fig:distribution} illustrates the large variation across both dimensions in just a subset of ships, namely small to medium bulk carriers (This excludes the largest class up to 400'000 deadweight tonnes (DWT)). Furthermore, new ships have become larger over time. Ship size is related to the volume of trade, the type of products shipped, and port and canal infrastructure. As such, different bilateral trade relationships involve different sizes of ships and hence different fuel efficiency, leading to heterogenous emissions--trade elasticities across country pairs. In addition, the presence of trade imbalances means ships often travel without cargo on certain routes. Finally, fuel consumption depends roughly cubicly on speed, meaning that the short-run elasticity of emissions to shipping demand may be quite large and may fluctuate over time with the price of fuel. 
+Quantifying the elasticity of shipping emissions to trade is challenging for a number of reasons. A ship's fuel consumption depends on many factors, including its size and age, with newer and larger ships typically more efficient. The existing fleet is extremely heterogeneous: Figure 1 illustrates the large variation across both dimensions in just a subset of ships, namely small to medium bulk carriers (This excludes the largest class up to 400'000 deadweight tonnes (DWT)). Furthermore, new ships have become larger over time. Ship size is related to the volume of trade, the type of products shipped, and port and canal infrastructure. As such, different bilateral trade relationships involve different sizes of ships and hence different fuel efficiency, leading to heterogenous emissions--trade elasticities across country pairs. In addition, the presence of trade imbalances means ships often travel without cargo on certain routes. Finally, fuel consumption depends roughly cubicly on speed, meaning that the short-run elasticity of emissions to shipping demand may be quite large and may fluctuate over time with the price of fuel. 
 % making it complicated to estimate the relationship between fuel consumption and trade volumes from the data on ship movements.
 % As such, ships adapt differently and which ships change speed or idle is important for determining overall emissions.  
 
-\begin{figure}[h]
-  \centering
-  \includegraphics[width = 0.6\textwidth]{WFR_Bulkers_Exploration_Size_Built_horizontalridges.png}
-  \caption{Existing fleet of bulk carriers by size and built-year.}
-  \label{fig:distribution}
-\end{figure} 
-%We use  the detailed high-frequency satellite data of ships' movements merged with the data on ship characteristics as well as the data on annual fuel consumption for EU ships to estimate how fuel efficiency depends on age, speed, size, the draft (which measures the capacity utilizations), and other ship characteristics. 
+%\begin{figure}[h]
+%  \centering
+%  \includegraphics[width = 0.6\textwidth]{WFR_Bulkers_Exploration_Size_Built_horizontalridges.png}
+%  \caption{Existing fleet of bulk carriers by size and built-year.}
+%  \label{fig:distribution}
+%\end{figure} 
+%We use  the detailed high-frequency satellite data of ships' movements merged with the data on ship characteristics as well as the data on annual fuel consumption for EU ships to estimate how fuel efficiency depends on age, speed, size, the draft (which measures the capacity utilizations), and other ship characteristics.  
+\begin{figure}[t] 
+  \begin{minipage}{\linewidth}
+    \centering
+   % \medskip 
+    \begin{tabular}{cc}
+%     \multicolumn{2}{c}{\textbf{Cases}}     \multicolumn{2}{c}{\textbf{Deaths}}
+ %  \\
+ \hspace{-1cm}    \includegraphics[width = 0.55\textwidth]{WFR_Bulkers_Exploration_Size_Built_horizontalridges.png}
+  & \hspace{-0.7cm}    \includegraphics[width=0.55\textwidth]{Efficiency_Regression_Size_Built_coefs_1and3_ggplot.png}\\
+\hspace{-1cm}     \footnotesize{ Figure 1: Existing fleet of bulk carriers }&\hspace{-0.7cm}  \footnotesize{Figure 2: Built-year fixed effects from} \\
+  \hspace{-1cm}        &\hspace{-0.7cm} \footnotesize{efficiency regression (\ref{eq1}) with 95\% CI}
+    \end{tabular} \vspace{-0.4cm}
+  \end{minipage}
+\end{figure}
 
  
  
@@ -148,30 +162,36 @@ Quantifying the elasticity of shipping emissions to trade is challenging for a n
 %The IMO has introduced three separate emissions regulations. The first, implemented in 2013, is a minimum efficiency requirement for new ships, with stringency increasing over time and future levels yet to be determined. As of the beginning of 2023, a similar regulation now applies to all existing ships and an additional regulation has be added that requires operational efficiency of each ship to be continuously improved moving forward. %Uncertainty surrounding these regulations, as well as future technological developments has led to reduced new ship building activity in the past years. With a diminished extrinsic margin for adjustment in addition to the already slow natural fleet development, this places further importance on quantifying the intrinsic margin for predicting the path of shipping emissions.
 
 %TOPIC: Relation to emissions estimates in lit.
-The most extensive existing literature quantifying shipping emissions comes from the IMO itself, in cooperation with a handful of related organizations: The Fourth IMO GHG Study 2020 \citep{faber2020fourth} details both bottom-up and top-down methodologies for calculating emissions. Their bottom-up approach employs data collected from ships' automatic identification systems (AIS) which transmit the location and speed of each ship every few minutes. This approach has been developed by various authors, including \citet{jalkanen2009modelling}, \citet{olmer2017greenhouse}, and \citet{johansson2017global}. In order to estimate CO$_2$ emissions, they combine AIS data with ship fuel consumption ratings and aggregate. Our approach is similar, but leverages actual emissions reports to estimate fuel efficiencies.
+%The most extensive existing literature quantifying shipping emissions comes from the IMO itself, in cooperation with a handful of related organizations: 
+
+The Fourth IMO GHG Study 2020 \citep{faber2020fourth} details both bottom-up and top-down methodologies for calculating emissions. Their bottom-up approach employs data collected from ships' automatic identification systems (AIS) which transmit the location and speed of each ship every few minutes \citep[c.f.,][]{jalkanen2009modelling,olmer2017greenhouse,johansson2017global}.
+%%. This approach has been developed by various authors, including \citet{jalkanen2009modelling}, \citet{olmer2017greenhouse}, and \citet{johansson2017global}. 
+In order to estimate CO$_2$ emissions, they combine AIS data with ship fuel consumption ratings and aggregate. Our approach is similar, but leverages actual emissions reports to estimate fuel efficiencies.
 
 %TOPIC: Relation to trade/shipping lit.
-A small number of authors have explored the relation between trade and shipping. \citet{cristea2013trade} and \citet{shapiro2016trade} take macroeconomic approaches to look broadly at emissions from all transportation modes involved in trade. Focusing on maritime shipping, \citet{van2018spatially} and \citet{liu2019emissions} link AIS data with granular indicators of trade volumes to create region-specific estimates. Most closely related to our work, \citet{wang2021trade} calculate bilateral seaborne trade volumes and link them with shipping emissions estimated from AIS data. They provide a snapshot of values for the year 2018 and develop a model based on nominal efficiencies for exploring counterfactuals. With a more empirical approach, \citet{brancaccio2018impact} explore the elasticity of trade with respect to ship fuel costs. Our work will be among the first to seriously explore the relationship in the opposite direction --- from trade to emissions --- on a global scale. We borrow from the methods of \citet{wang2021trade}, but we propose a novel empirical method to estimate efficiencies using reported fuel consumption from the European Union's (EU) Monitoring, Reporting, and Verification (MRV) program. Furthermore, we leverage COVID-related variations to calibrate and validate our model. The use of actual reported emissions allows us to capture more of the previously discussed adjustment channels, and the large cross-sectional/time-series variation in shipping activity during the COVID pandemic aids identification. %We hope to provide important quantitative estimates to help inform policy makers in assessing the effectiveness of emissions regulations and setting their stringency levels going forward. 
+A small number of authors have explored the relation between trade and shipping. \citet{cristea2013trade} and \citet{shapiro2016trade} take macroeconomic approaches to look broadly at emissions from all transportation modes involved in trade. Focusing on maritime shipping, \citet{van2018spatially} and \citet{liu2019emissions} link AIS data with granular indicators of trade volumes to create region-specific estimates. Most closely related to our work, \citet{wang2021trade} calculate bilateral seaborne trade volumes and link them with shipping emissions estimated from AIS data. They provide a snapshot of values for the year 2018 and develop a model based on nominal efficiencies for exploring counterfactuals. With a more empirical approach, \citet{brancaccio2018impact} explore the elasticity of trade with respect to ship fuel costs. Our work will be among the first to seriously explore the relationship in the opposite direction --- from trade to emissions --- on a global scale. We propose a novel empirical method to estimate efficiencies using reported fuel consumption from the European Union's (EU) Monitoring, Reporting, and Verification (MRV) program. Furthermore, we leverage COVID-related variations to calibrate and validate our model. The use of actual reported emissions allows us to capture more of the previously discussed adjustment channels, and the large cross-sectional/time-series variation in shipping activity during the COVID pandemic aids identification. %We hope to provide important quantitative estimates to help inform policy makers in assessing the effectiveness of emissions regulations and setting their stringency levels going forward. 
 
  \smallskip
 
 %TOPIC: Overview
-\noindent \textbf{Methodology:}  We first estimate how a ship's fuel consumption efficiency, accounting for its speed and draft, is determined by its observed technical characteristics. Then we compute high-frequency emissions estimates for each ship's voyages between ports. This first stage relies on three key datasets that we have obtained: (i) AIS tracking data, (ii) the World Fleet Register, and (iii) the MRV data.
+\noindent \textbf{Methodology:}  We first estimate how a ship's fuel consumption efficiency, accounting for its speed and draft, is determined by its observed technical characteristics. Then we compute high-frequency emissions estimates for each ship's trips between ports. This first stage relies on three key datasets that we have obtained: (i) AIS tracking data, (ii) the World Fleet Register, and (iii) the MRV data.
 
 %TOPIC: Shipping data description
-We have obtained hourly AIS tracking data for the entire fleets of bulk carriers and containerships from the beginning of 2019 to the end of 2021. This includes information on speed, location, and draft (the vertical distance between the waterline and the bottom of the hull), which can be used to determine whether a ship is carrying cargo or not. We match this data to the World Fleet Register from Clarksons Research, which is a virtually complete listing of all large merchant ships that includes basic  information on each ship, including built year, size, and type, and for many ships includes highly detailed technical characteristics such as hull dimensions, engine power, propeller details, etcetera. Finally, we further link this to publicly available data from the EU's MRV regulation, which provides annual fuel consumption and emissions for trips into and out of the EU (``EU trips,'' hereafter). This data begins in 2018 and naturally includes only ships with port calls in the EU.
+%We have obtained hourly AIS tracking data for the entire fleets of bulk carriers and containerships from the beginning of 2019 to the end of 2021. This 
+
+Hourly AIS tracking data for the entire registered fleets in the world includes information on speed, location, and draft (the vertical distance between the waterline and the bottom of the hull), which can be used to determine whether a ship is carrying cargo or not. We match this data to the World Fleet Register from Clarksons Research that includes basic  information on each ship, including built year, size, and type as well as other detailed technical characteristics such as hull dimensions, engine power, propeller details, etcetera. Finally, we further link this to publicly available data from the EU's MRV regulation, which provides annual fuel consumption and emissions for trips into and out of the EU (``EU trips,'' hereafter). % This data begins in 2018 and naturally includes only ships with port calls in the EU.
 
 %TOPIC: Detail efficiency estimation
 Our methodology for estimating fuel efficiency builds on that of the IMO as detailed in \citet{faber2020fourth}.
-% and follows closely the data cleaning and matching procedures described therein.
+% and follows closely the data cleaning and matching procedures described therein. 
 However, whereas they use theoretical fuel consumption values corresponding to rather coarse ship size- and age-bins, we empirically estimate ship-specific fuel efficiencies using actual fuel consumption data and all available ship characteristics. 
 % In particular, we use actual fuel consumption data  from the MVR data while  \citet{faber2020fourth} does not use any fuel consumption data  by themselves--- rather, fuel consumption is computed using pre-determined formula based on theoretical assumption on specific types of ships. By using actual fuel consumption data, we hope to better estimate how fuel consumption is determined under actual operating conditions. 
-
-Our procedure is as follows. First, we identify trips from the AIS data as between two stops of a sufficient length in proximity to land, and flag EU trips as those with at least one stop within the EU. To ensure the accuracy of our data, we use data only for ship-year observations for which the total distance of detected trips to/from the EU agrees closely with the distance reported in the MRV data. %With this travel history constructed, we calculate a proxy for the travel work performed by a ship in a given year as the sum of its speed squared multiplied by the distance traveled between every pair of observations in the AIS data. The fuel efficiency is then calculated as the reported annual fuel consumption divided by the inferred annual travel work.
-Next, we estimate how fuel efficiency, accounting for the detected EU trip operating conditions (speed, draft), is determined by ship characteristics (age, size, etc.) using the fuel consumption data for EU trips from the MRV dataset. 
-Then, we extrapolate these efficiencies to non-reporting ships --- ships that did not stop at an EU port --- based on their operating conditions and ship characteristics. 
+Our procedure is as follows. First, we identify trips from the AIS data as between two stops of a sufficient length in proximity to land, and flag EU trips as those with at least one stop within the EU. 
+%To ensure the accuracy of our data, we use data only for ship-year observations for which the total distance of detected trips to/from the EU agrees closely with the distance reported in the MRV data. %With this travel history constructed, we calculate a proxy for the travel work performed by a ship in a given year as the sum of its speed squared multiplied by the distance traveled between every pair of observations in the AIS data. The fuel efficiency is then calculated as the reported annual fuel consumption divided by the inferred annual travel work.
+Next, we estimate how fuel efficiency is determined by ship characteristics (age, size, etc.) and operating conditions (speed, draft) using the fuel consumption data for EU trips from the MRV dataset. 
+Then, we extrapolate these efficiencies to non-reporting ships---ships that did not stop at an EU port--based on their ship characteristics and operating conditions.
 % Given ship efficiencies, we can calculate a monthly emission estimate for each ship. 
-These estimates can be aggregated at any desired level. To our knowledge, this will be the first work to employ the MRV data to estimate fuel efficiency. \citet{uge2020estimation} also link MRV data with AIS data, but they use it in the opposite sense---to validate reported emissions in the MRV.
+These estimates can be aggregated at any desired level. To our knowledge, this will be the first work to employ the MRV data to estimate fuel efficiency. % \citet{uge2020estimation} also link MRV data with AIS data, but they use it in the opposite sense---to validate reported emissions in the MRV.
 
 %TOPIC: Demonstrate feasibility, utility, progress
 As a preliminary investigation, we have estimated fuel efficiencies for bulk carriers, regressing fuel efficiency on a set of ship characteristics (using logs of all variables) as well as built-year fixed effects.
@@ -183,25 +203,28 @@ As a preliminary investigation, we have estimated fuel efficiencies for bulk car
  \end{equation}
  where $fuel~consumption$ is reported annual consumption, $size$ is the ship's capacity in deadweight tonnage, $x$ is the distance traveled at each speed $s_x$, $Z_i$ is a vector of ship characteristics (including $size$), and $f(\cdot)$ is an unknown function, which we use semi-parametric sieve methods using B-splines as well as machine learning tools (e.g., random forest, deep neural network) to estimate.
  
- \begin{figure}[h]
-  \centering 
-  \includegraphics[width = 0.6\textwidth]{Efficiency_Regression_Size_Built_coefs_1and3_ggplot.png}
-  \caption{Built-year fixed effects from efficiency regression (\ref{eq1}). Error bars represent 95\% confidence intervals, with errors clustered at the individual ship level.}
-  \label{fig:efficiency}
-\end{figure} 
+% \begin{figure}[h]
+%  \centering 
+%  \includegraphics[width = 0.6\textwidth]{Efficiency_Regression_Size_Built_coefs_1and3_ggplot.png}
+%  \caption{Built-year fixed effects from efficiency regression (\ref{eq1}). Error bars represent 95\% confidence intervals, with errors clustered at the individual ship level.}
+%  \label{fig:efficiency}
+%\end{figure} 
 
- \autoref{fig:efficiency} plots the built-year fixed effects for our preliminary estimation based on a log-linear specification. Efficiency is surprisingly flat for ships built before roughly 2013, after which it improved sharply. This agrees well with the analysis of evolution of new ship efficiency from \citet[][Figure 15]{faber2015historical}. The current specification does not include the effects of laden status or weather but we plan to include the draft in the AIS data as well as wind/wave speeds using detailed weather data. % like that used by \citet{brancaccio2020geography}.  %As noted by \citet{olmer2017greenhouse}, details such as the engine power curve (how fuel consumption varies away from design speed), hull-roughening, and hull-fouling are hard to predict or attribute. 
+Figure 2 plots the built-year fixed effects for our preliminary estimation based on a log-linear specification. Efficiency is surprisingly flat for ships built before roughly 2013, after which it improved sharply. This agrees well with the analysis of evolution of new ship efficiency from \citet[][Figure 15]{faber2015historical}. The current specification does not include the effects of laden status or weather but we plan to include the draft in the AIS data as well as wind/wave speeds using detailed weather data. % like that used by \citet{brancaccio2020geography}.  %As noted by \citet{olmer2017greenhouse}, details such as the engine power curve (how fuel consumption varies away from design speed), hull-roughening, and hull-fouling are hard to predict or attribute. 
 
 
 
 %TOPIC: Why do differently?
-A limitation of our proposed approach is that the fuel consumption data is annual and there may be significant error in calculating the travel work over such a long time period. We partially mitigate this by using only observations for which reported distance traveled closely matches the distance from tracking data. On the other hand, the advantage with regards to the approach of \citet{faber2020fourth} is that it relies less on theoretical assumptions. \autoref{fig:efficiency} provides a preliminary indication of the difference between using nominal versus actual fuel efficiencies. For CO$_2$ emissions estimates, we plan to compare our estimate with that of \citet{faber2020fourth}. %Our estimates would incorporate these effects at the average level of observed ships
+A limitation of our proposed approach is that the fuel consumption data is annual and there may be significant error in calculating the travel work over such a long time period. We partially mitigate this by using only observations for which reported distance traveled closely matches the distance from tracking data. On the other hand, the advantage with regards to the approach of \citet{faber2020fourth} is that it relies less on theoretical assumptions. Figure 2 provides a preliminary indication of the difference between using nominal versus actual fuel efficiencies. For CO$_2$ emissions estimates, we plan to compare our estimate with that of \citet{faber2020fourth}. %Our estimates would incorporate these effects at the average level of observed ships
 
 %TOPIC: Port to port level aggregation
-Using the estimated fuel efficiency for each ship and its travel history, it is straightforward to compute the worldwide CO$_2$ emissions within each month of the years from 2017 to 2022 by aggregating fuel consumptions across all ships. This allows us to identify fuel consumption for each origin--destination port pair
+Using the estimated fuel efficiency for each ship and its travel history, it is straightforward to compute the worldwide CO$_2$ emissions within each month of the years from 2017 to 2022 by aggregating fuel consumptions across all ships. Fuel consumption for each origin--destination port pair
 % --- the fuel consumption associated with maritime shipping from port A to port B --- 
-by aggregating all trips taken from the origin port to the destination port in each month. Further aggregating all ports within each country, we estimate the monthly CO$_2$ emissions associated with maritime shipping from each origin country to each destination country.
-This allows us to analyze the source of a change in the worldwide CO$_2$ emission by decomposing it as the sum of a change in directional bilateral trade flows across different countries and directions. We emphasize the importance of directionality --- around 42\% of bulk carriers travel without cargo due to trade imbalances \citep{brancaccio2020geography} --- and account for it by identifying ship loading and unloading at each port using the draft from AIS data. For validation, we use monthly  product-level bilateral trade data from UN Comtrade, Eurostat, and the US census to examine how the directional trade volumes estimated using AIS data correspond to the reported monthly bilateral trade volumes between country pairs, where the proportion of seaborne trade is taken into account. 
+is estimated by aggregating all trips taken from the origin port to the destination port. Aggregating at each country pair gives an estimate of the monthly CO$_2$ emissions associated with maritime shipping for each origin-destination country pair.
+We analyze the source of a change in the worldwide CO$_2$ emission by decomposing it as the sum of a change in directional bilateral trade flows across different countries and directions. Directionality is important---around 42\% of bulk carriers travel without cargo due to trade imbalances \citep{brancaccio2020geography}---and we account for it by identifying ship loading and unloading at each port using the draft from AIS data while using monthly  product-level bilateral trade data from UN Comtrade, Eurostat, and the US census as supplementary information.
+
+
+%to examine how the directional trade volumes estimated using AIS data correspond to the reported monthly bilateral trade volumes between country pairs, where the proportion of seaborne trade is taken into account. 
 
 %To date, we have estimated efficiencies using this procedure for bulk carriers. We have further constructed a simple linear predictive model for efficiency extrapolation, regressing fuel efficiency on a set of ship characteristics (using logs of all variables) as well as built-year fixed effects.
 % \begin{equation}
@@ -213,7 +236,7 @@ This allows us to analyze the source of a change in the worldwide CO$_2$ emissio
 %The coefficients for the built-year fixed effects are plotted in \autoref{fig:efficiency} and indicate that efficiency after controlling for size is surprisingly flat for ships built before roughly 2013, after which efficiency improved. This agrees qualitatively with the analysis of evolution of new ship efficiency from \citet{faber2015historical} (see Figure 15).
 
 %TOPIC: Describe dynamic aspect (elasticity)
-Finally, we model the elasticity of CO$_2$ emissions from maritime shipping with respect to the trade volume from origin country to destination country for any country pair that involves maritime shipping. The idea is that we estimate  the elasticity of CO$_2$ emissions specific to each ship category and origin-destination pair and then compute the elasticity of CO$_2$ emissions with respect to trade volume from each origin country to each destination country by aggregating the elasticities across different ship categories using their  observed empirical shipping weights.
+Finally, we model the elasticity of CO$_2$ emissions from maritime shipping with respect to the trade volume from origin to destination for any country pair. The idea is that we estimate  the elasticity of CO$_2$ emissions specific to each ship category and origin-destination pair and compute the elasticity of CO$_2$ emissions with respect to trade volume for each origin-destination country pair by aggregating the elasticities across different ship categories using their  observed empirical shipping weights.
 
 %TOPIC: Trade data and use
 %\textcolor{blue}{Are we using actual trade data or implied trade volumes from AIS? If former, describe trade data, seaborne trade calculation as per \citet{wang2021trade}, and use}
