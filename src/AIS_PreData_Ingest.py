@@ -4,7 +4,7 @@ Input(s): Spire_Cargos_AIS_01012019_31122021_hourlydownsampled_0*.csv
 Output(s): ais_raw.parquet
 Runtime: ~30m
 '''
-#%%
+
 import dask.dataframe as dd
 import glob, os, time
 
@@ -13,7 +13,6 @@ cluster = LocalCluster(n_workers=8)
 client = Client(cluster)
 print(client.dashboard_link)
 
-#%%
 def convert_csv_parquet(files, outdir = os.getcwd() + "parquetdata", usecols = None, dtypes = None, datetime_col = None, append = True):
     """Convert csv files to parquet"""
     df = dd.read_csv(
@@ -37,18 +36,21 @@ def convert_csv_parquet(files, outdir = os.getcwd() + "parquetdata", usecols = N
     )
 
 # Parsing details
-usecols = ['timestamp', 'mmsi', 'msg_type', 'latitude', 'longitude', 'speed', 'heading', 'draught', 'imo', 'name']
+usecols = ['timestamp', 'mmsi', 'msg_type', 'latitude', 'longitude', 'speed', 'heading', 'course', 'draught', 'imo', 'name', 'length', 'collection_type']
 dtypes = {
     'timestamp': 'str',
     'mmsi' : 'int32',
     'msg_type' : 'int8',
     'latitude' : 'float32',
     'longitude' : 'float32',
-    'speed' : 'float16', # can probably reduce size using float16
+    'speed' : 'float16',
     'heading' : 'float16',
+    'course' : 'float16',
     'draught' : 'float16',
     'imo': 'float64',
-    'name': 'str'
+    'name': 'str',
+    'length': 'float16',
+    'collection_type' : 'str'
 }
 datetime_col = 'timestamp'
 
@@ -59,7 +61,6 @@ filekeystring = "Spire_Cargos_AIS_01012019_31122021_hourlydownsampled_0"
 files = glob.glob(os.path.join(filepath,'*' + filekeystring + '*'))
 # files = files[0:2]
 
-#%%
 # Convert
 print(f"Converting {len(files)} files from {filepath}:")
 for file in list(map(lambda x : os.path.split(x)[1], files)):
