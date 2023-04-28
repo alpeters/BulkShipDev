@@ -20,6 +20,8 @@ ais_bulkers.head()
 # ais_bulkers = ais_bulkers.partitions[0]
 #%%
 ais_bulkers['IS_distance'] = ais_bulkers['implied_speed'] * ais_bulkers['distance']
+ais_bulkers['speed_distance'] = ais_bulkers['speed'] * ais_bulkers['distance']
+
 
 #%% https://docs.dask.org/en/latest/dataframe-groupby.html#aggregate
 nunique = dd.Aggregation(
@@ -39,6 +41,7 @@ trip_stats = (
         'speed': ['mean'],
         'implied_speed': ['mean', 'max'],
         'IS_distance': ['sum'],
+        'speed_distance': ['sum'],
         'origin': ['first'],
         'EU': ['max']
         }))
@@ -70,8 +73,8 @@ draught_mode = (
 
 #%%
 with LocalCluster(
-    n_workers=1,
-    threads_per_worker=4
+    n_workers=2,
+    threads_per_worker=3
 ) as cluster, Client(cluster) as client:
     trip_stats = trip_stats.compute()
     draught_mode = draught_mode.compute()
@@ -87,8 +90,9 @@ trip_stats_flat = trip_stats_flat.merge(
     left_on = ['mmsi', 'trip'],
     right_on = ['mmsi', 'trip'])
 
-#%% Distance weighted average speed
-trip_stats_flat['weighted_speed_mean'] = trip_stats_flat['IS_distance_sum'] / trip_stats_flat['distance_sum']
+#%% Distance weighted average implied speed
+trip_stats_flat['weighted_IS_mean'] = trip_stats_flat['IS_distance_sum'] / trip_stats_flat['distance_sum']
+trip_stats_flat['weighted_speed_mean'] = trip_stats_flat['speed_distance_sum'] / trip_stats_flat['distance_sum']
 
 #%% Destination using lead
 trip_stats_flat = trip_stats_flat.rename(columns = {'origin_first': 'origin'})
