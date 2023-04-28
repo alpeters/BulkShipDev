@@ -63,6 +63,15 @@ temp_df <- temp_df %>%
 
 MRV_df <- MRV_df %>% 
   bind_rows(temp_df)
+
+temp_df <- read_MRV("data/MRV/2021-v41-25082022-EU MRV Publication of information.xlsx")
+
+temp_df <- temp_df %>% 
+  rename("Annual total time spent at sea [hours]" = "Annual time spent at sea [hours]",
+         "Total time spent at sea [hours]" = "Time spent at sea [hours]")
+
+MRV_df <- MRV_df %>% 
+  bind_rows(temp_df)
 ```
 
 Clean column names
