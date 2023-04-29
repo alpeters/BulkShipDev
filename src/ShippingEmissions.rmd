@@ -74,6 +74,11 @@ py_run_file('EEZ_EU.py')
 ```{r, eval = FALSE}
 py_run_file('AIS_Calculations.py')
 ```
+Files useful for troubleshooting and verifying AIS_calculations:
+- AIS_Calculations_Troubleshooting.py
+- AIS_Calculations_JumpTesting.py
+- EU_portcall_verification.qgz (on OneDrive data/AIS)
+
 
 ```{r, eval = FALSE}
 py_run_file('AIS_Calculations_PotentialPortcalls.py')
