@@ -14,7 +14,7 @@ Monitoring Reporting Verification EU Emissions reports
 ```
 
 World Fleet Register
-```{r, child = 'WFR_Data.rmd', eval = TRUE}
+```{r, child = 'WFR_Data.rmd', eval = FALSE}
 ```
 
 ## AIS
@@ -23,7 +23,7 @@ py_run_file('AIS_PreData_Ingest.py')
 ```
 
 MMSI lists by ship type for subsetting AIS data:
-```{r}
+```{r eval = FALSE}
 load("data/bulkers_WFR.Rda")
 bulkers_mmsi <- bulkers_df %>% 
   distinct(MMSI) %>% 
@@ -52,20 +52,46 @@ py_run_file('AIS_Data_Sort.py')
 ```
 
 ```{r, eval = FALSE}
+py_run_file('AIS_Data_IDs.py')
+```
+
+```{r, child = 'AIS_Data_IDs.rmd', eval = FALSE}
+```
+
+```{r}
+py_run_file('AIS_Data_Static.py')
+```
+
+```{r, eval = FALSE}
 py_run_file('AIS_Data_Combine.py')
 ```
 
-# Calculations
-```{r, eval = TRUE}
+# AIS Calculations
+```{r, eval = FALSE}
+py_run_file('EEZ_EU.py')
+```
+
+```{r, eval = FALSE}
 py_run_file('AIS_Calculations.py')
 ```
 
-...files missing...
+```{r, eval = FALSE}
+py_run_file('AIS_Calculations_PotentialPortcalls.py')
+```
 
+```{r, eval = FALSE}
+py_run_file('AIS_Calculations_PP_Coast_EU.py')
+```
+
+```{r, eval = FALSE}
+py_run_file('AIS_Calculations_EU.py')
+```
 ```{r, eval = FALSE}
 py_run_file('AIS_Calculations_TripStats.py')
 ```
 
+```{r, child = 'AIS_Calculations_TripStats_Load.rmd', eval = FALSE}
+```
 # Data Joining
 ```{r, child = 'All_Join.rmd', eval = TRUE}
 ```
