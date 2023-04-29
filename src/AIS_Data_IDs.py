@@ -1,6 +1,6 @@
 """
 Select unique IDs in AIS data for cleaning out incorrect ones.
-Input(s): ais_bulkers_mmsi_timestamp.parquet
+Input(s): ais_bulkers_indexed_sorted.parquet
 Output(s): ais_ids.csv
 Runtime: 
 """
