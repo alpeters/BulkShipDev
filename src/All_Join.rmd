@@ -224,10 +224,12 @@ How many ships report the same efficiency year on year?
 MRV_wide_df %>% 
   mutate(MRV.Constant.Efficiency.Metric = 
            MRV.Efficiency.Metric.2018 == MRV.Efficiency.Metric.2019 &
-           MRV.Efficiency.Metric.2019 == MRV.Efficiency.Metric.2020,
+           MRV.Efficiency.Metric.2019 == MRV.Efficiency.Metric.2020 &
+           MRV.Efficiency.Metric.2020 == MRV.Efficiency.Metric.2021,
          MRV.Constant.Efficiency = 
            MRV.Technical.Efficiency.2018 - MRV.Technical.Efficiency.2019 < 1 &
-           MRV.Technical.Efficiency.2019 - MRV.Technical.Efficiency.2020 < 1,) %>% 
+           MRV.Technical.Efficiency.2019 - MRV.Technical.Efficiency.2020 < 1 &
+           MRV.Technical.Efficiency.2020 - MRV.Technical.Efficiency.2021 < 1) %>% 
   group_by(MRV.Constant.Efficiency.Metric, MRV.Constant.Efficiency) %>% 
   # filter(constant.efficiency.metric, !constant.efficiency) %>% 
   summarise(n())
@@ -237,11 +239,11 @@ Leave as-is for now.
 Are all MRV reporting bulkers in WFR?
 ```{r}
 anti_join(MRV_wide_df, fleet_df, by = c("MRV.IMO.Number" = "IMO.Number")) %>% 
-  group_by(MRV.Ship.Type.2018, MRV.Ship.Type.2019, MRV.Ship.Type.2020) %>% 
+  group_by(MRV.Ship.Type.2018, MRV.Ship.Type.2019, MRV.Ship.Type.2020, MRV.Ship.Type.2021) %>% 
     filter(MRV.Ship.Type.2018 == 'Bulk carrier' | 
          MRV.Ship.Type.2018 == 'Bulk carrier' | 
          MRV.Ship.Type.2018 == 'Bulk carrier' |
-         (is.na(MRV.Ship.Type.2018) & is.na(MRV.Ship.Type.2019) & is.na(MRV.Ship.Type.2020))) %>% 
+         (is.na(MRV.Ship.Type.2018) & is.na(MRV.Ship.Type.2019) & is.na(MRV.Ship.Type.2020) & is.na(MRV.Ship.Type.2021))) %>% 
   summarise(n())
 ```
 Not many bulkers getting lost!    
@@ -258,7 +260,7 @@ fleet_df <- fleet_df %>%
   relocate(contains("MRV.Ship.Type."), .after = Type) %>% 
   relocate(contains("EU.Distance"), .after = AIS.Distance.Total.2021) %>%
   relocate(contains("EIV"), .after = Design.Efficiency) %>% 
-  relocate(contains("EEDI"), .after = MRV.EIV.2020)
+  relocate(contains("EEDI"), .after = MRV.EIV.2021)
 ```
 
 How many WFR ships report in MRV?
@@ -276,7 +278,7 @@ fleet_df %>%
   summarise(count = n()) %>% 
   mutate(percentage = count / sum(count) * 100)
 ```
-44% of ships report in MRV. This is quite high!
+41% of ships report in MRV. This is quite high!
 
 ```{r eval = FALSE}
 fleet_df %>% 
