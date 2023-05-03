@@ -6,7 +6,7 @@ colnames(bulkers_df)[str_detect(colnames(bulkers_df), regex('fuel', ignore_case 
 
 # Plot frequency of engine speeds
 bulkers_df %>% 
-  mutate(RPM = str_extract(Main.Engine.Detail, '[[:digit:]]*(?=rpm|RPM)') %>% 
+  mutate(RPM = str_extract(Main.Engine.Detail, '[[:digit:]]*(?=(\\s|)(rpm|RPM))') %>% 
            as.numeric()) %>% 
   # group_by(RPM > 300) %>% 
   # summarise(n())$
