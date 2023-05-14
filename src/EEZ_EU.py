@@ -14,7 +14,7 @@ import numpy as np
 import sys, os
 from qgis.core import *
 
-datapath = './data'
+datapath = './src/data'
 
 #%%
 # Substract manually drawn waterways
