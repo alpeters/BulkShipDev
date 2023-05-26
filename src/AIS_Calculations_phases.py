@@ -9,7 +9,9 @@ Runtime:
 import dask.dataframe as dd
 import pandas as pd
 import os
+import dask_geopandas as dgd
 import geopandas as gpd
+import pyproj
 from dask.distributed import Client, LocalCluster
 
 datapath = 'src/data'
@@ -118,22 +120,40 @@ buffered_coastline = gpd.read_file(os.path.join(filepath, 'buffered_reprojected_
 # Check the crs of the shapefile
 print(buffered_coastline.crs)
 
+# Define the number of partitions
+npartitions = 10
+
+# Read the data using Dask's read_parquet function
+ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs'))
+ais_bulkers = ais_bulkers.repartition(npartitions=npartitions)
+
+# Create a function to convert longitude and latitude to points
+def create_points(longitude, latitude):
+    return gpd.points_from_xy(longitude, latitude)
+
+# Use Dask's map_partitions method to apply the create_points function to each partition
+ais_bulkers['geometry'] = ais_bulkers.map_partitions(lambda df: create_points(df.longitude, df.latitude), meta=('geometry', 'object'))
+
+# Convert the Dask DataFrame to a Dask GeoDataFrame
+gdf = dgd.from_dask_dataframe(ais_bulkers)
+
+# Set the coordinate reference system (CRS) for your GeoDataFrame
+gdf = gdf.set_crs(pyproj.CRS(buffered_coastline.crs))
+
+# Create the 'operational_phase' column
+gdf['operational_phase'] = 'sea'
+
+# Define a function to set the operational phase
 def set_operational_phase(geometry):
     return geometry.within(buffered_coastline.unary_union)
 
-ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs'))
-ais_bulkers['geometry'] = dd.from_pandas(gpd.points_from_xy(ais_bulkers.longitude, ais_bulkers.latitude), npartitions=ais_bulkers.npartitions)
-gdf = dask_geopandas.from_dask_dataframe(ais_bulkers)
-
+# Use Dask's map_partitions method to apply the set_operational_phase function to each partition
 gdf['operational_phase'] = gdf['geometry'].map_partitions(set_operational_phase, meta=('geometry', 'bool'))
+
+# Mask the operational phase column
 gdf['operational_phase'] = gdf['operational_phase'].mask(gdf['operational_phase'], 'manoeuvring').fillna('sea')
 
+# Perform the computation
+result = gdf.compute()
 
-ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs'))
-ais_bulkers['geometry'] = dd.from_pandas(gpd.points_from_xy(ais_bulkers.longitude, ais_bulkers.latitude), npartitions=ais_bulkers.npartitions)
-gdf = dask_geopandas.from_dask_dataframe(ais_bulkers)
-gdf = gdf.set_crs(buffered_coastline.crs)
-gdf['operational_phase'] = 'sea'
-gdf['operational_phase'] = gdf['geometry'].map_partitions(set_operational_phase, meta=('geometry', 'bool'))
-gdf['operational_phase'] = gdf['operational_phase'].mask(gdf['operational_phase'], 'manoeuvring').fillna('sea')
-print(gdf.compute())
+pritn(result)
