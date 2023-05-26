@@ -103,14 +103,27 @@ print(selected_df)
 # 55s
 # %%
 
+"""
+Detect trip phases from cleaned dynamic AIS data.
+Input(s): ais_bulkers_calcs.parquet
+Output(s):
+Runtime:
+"""
+
+# %%
+
 # Load the buffered reprojected shapefile (can be done by python or use QGIS directly)
-buffered_coastline = gpd.read_file('/Users/oliver/Desktop/Carbon Emission Project/buffered_reprojected_coastline.shp')
+buffered_coastline = gpd.read_file(os.path.join(filepath, 'buffered_reprojected_coastline.shp'))
 
 # Check the crs of the shapefile
 print(buffered_coastline.crs)
 
 def set_operational_phase(geometry):
     return geometry.within(buffered_coastline.unary_union)
+
+ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs'))
+ais_bulkers['geometry'] = dd.from_pandas(gpd.points_from_xy(ais_bulkers.longitude, ais_bulkers.latitude), npartitions=ais_bulkers.npartitions)
+gdf = dask_geopandas.from_dask_dataframe(ais_bulkers)
 
 gdf['operational_phase'] = gdf['geometry'].map_partitions(set_operational_phase, meta=('geometry', 'bool'))
 gdf['operational_phase'] = gdf['operational_phase'].mask(gdf['operational_phase'], 'manoeuvring').fillna('sea')
@@ -123,3 +136,4 @@ gdf = gdf.set_crs(buffered_coastline.crs)
 gdf['operational_phase'] = 'sea'
 gdf['operational_phase'] = gdf['geometry'].map_partitions(set_operational_phase, meta=('geometry', 'bool'))
 gdf['operational_phase'] = gdf['operational_phase'].mask(gdf['operational_phase'], 'manoeuvring').fillna('sea')
+print(gdf.compute())
