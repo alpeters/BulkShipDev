@@ -8,10 +8,21 @@ Runtime: 5m
 
 #%%
 import sys, os
+import geopandas as gpd
 import pandas as pd
+import pyarrow.parquet as pq
 import dask.dataframe as dd
-import numpy as np
+import dask_geopandas
+import shapely
+from shapely.wkt import loads
+from shapely.geometry import Point
 from dask.distributed import Client, LocalCluster
+from shapely.geometry import Polygon
+from shapely.ops import transform
+from functools import partial
+import pyproj
+import re
+import numpy as np
 
 datapath = 'src/data'
 callvariant = 'speed' #'heading'
@@ -130,6 +141,124 @@ ais_bulkers_EU['year'] = ais_bulkers_EU.timestamp.apply(
     lambda x: x.year,
     meta = ('x', 'int16'))
 
+# Load the buffered reprojected shapefile (can be done by python or use QGIS directly)
+# filepath should be changed
+buffered_coastline = gpd.read_file('/Users/oliver/Desktop/Carbon Emission Project/buffered_reprojected_coastline.shp')
+
+# Check the crs of the shapefile
+print(buffered_coastline.crs)
+
+def process_partition(df):
+    # Create a new GeoDataFrame
+    gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude))
+
+    # Reproject the left geometries to match the CRS of the right geometries
+    gdf = gdf.set_crs(buffered_coastline.crs)
+
+    # Determine if each point is within the buffer zone
+    gdf = gpd.sjoin(gdf, buffered_coastline, how="left", predicate='within')
+
+    # Set the phase based on whether the point is within the buffer zone
+    gdf['phase'] = 'Sea'
+    gdf.loc[(gdf['speed'] <= 3), 'phase'] = 'Anchored'
+    gdf.loc[(gdf['speed'] >= 4) & (gdf['speed'] <= 5) & (gdf.index_right.notna()), 'phase'] = 'Manoeuvring'
+    gdf.loc[(gdf['speed'] > 5), 'phase'] = 'Sea'
+
+    # Drop the unneeded columns
+    gdf = gdf[df.columns.tolist() + ['phase']]
+
+    return gdf
+
+# Create a dictionary of column data types
+meta_dict = ais_bulkers_EU.dtypes.to_dict()
+meta_dict['phase'] = 'string'
+
+# Call map_partitions with the new meta argument
+ais_bulkers_EU = ais_bulkers_EU.map_partitions(process_partition, meta=meta_dict)
+ais_bulkers_EU.dtypes
+
+# Now we have parquet files with new column called 'phase'
+# Get ready to join with wfr_bulkers_calcs to get hourly fuel consumption
+# List of columns to keep
+selected_columns = ['mmsi', 'ME_W_ref', 'W_component', 'Dwt', 'SFC_base', 'Service.Speed..knots.'] 
+
+# Read the csv file into a Dask DataFrame with only the selected columns
+# filepath to be changed
+wfr_bulkers = dd.read_csv('/Users/oliver/Desktop/Data/bulkers_WFR_calcs.csv', usecols=selected_columns)
+
+# Join the Dask DataFrames
+joined_df = ais_bulkers_EU.merge(wfr_bulkers, on='mmsi', how='inner')
+
+# drop rows where hourly speed or draught is missing 
+joined_df = joined_df.dropna(subset=['speed', 'draught'])
+
+
+def calculate_FC_ME(ME_W_ref, W_component, draught, speed, SFC_base, service_speed):
+    load = speed / service_speed
+    return ME_W_ref * W_component * draught**0.66 * speed**3 * SFC_base * (0.455 * load**2 - 0.710 * load + 1.280)
+
+def calculate_FC_AE(AE_W_ref, W_component, draught, speed, SFC_base):
+    return AE_W_ref * W_component * draught**0.66 * speed**3 * SFC_base
+
+def calculate_Boiler_AE(Boiler_W_ref, W_component, draught, speed, SFC_base):
+    return Boiler_W_ref * W_component * draught**0.66 * speed**3 * SFC_base
+
+def assign_values(df):
+    ae_values = {
+        'Anchored': [180, 180, 250, 400, 400, 400],
+        'Manoeuvring': [500, 500, 680, 1100, 1100, 1100],
+        'Sea': [190, 190, 260, 410, 410, 410]
+    }
+    
+    boiler_values = {
+        'Anchored': [70, 70, 130, 260, 260, 260],
+        'Manoeuvring': [60, 60, 120, 240, 240, 240],
+        'Sea': [0, 0, 0, 0, 0, 0]
+    }
+    
+    for phase in ['Anchored', 'Manoeuvring', 'Sea']:
+        phase_df = df[df['phase'] == phase]
+        conditions = [
+            phase_df['Dwt'] < 10000,
+            (phase_df['Dwt'] >= 10000) & (phase_df['Dwt'] < 35000),
+            (phase_df['Dwt'] >= 35000) & (phase_df['Dwt'] < 60000),
+            (phase_df['Dwt'] >= 60000) & (phase_df['Dwt'] < 100000),
+            (phase_df['Dwt'] >= 100000) & (phase_df['Dwt'] < 200000),
+            phase_df['Dwt'] >= 200000
+        ]
+        df.loc[df['phase'] == phase, 'AE_W_ref'] = np.select(conditions, ae_values[phase], default=0)
+        df.loc[df['phase'] == phase, 'Boiler_W_ref'] = np.select(conditions, boiler_values[phase], default=0)
+    
+    return df
+
+
+meta = joined_df._meta.assign(AE_W_ref=pd.Series(dtype=float), Boiler_W_ref=pd.Series(dtype=float))
+joined_df = joined_df.map_partitions(assign_values, meta=meta)
+
+joined_df['FC_ME'] = calculate_FC_ME(joined_df['ME_W_ref'], 
+                                     joined_df['W_component'], 
+                                     joined_df['draught'], 
+                                     joined_df['speed'], 
+                                     joined_df['SFC_base'], 
+                                     joined_df['Service.Speed..knots.'])
+
+
+joined_df['FC_AE'] = calculate_FC_AE(joined_df['AE_W_ref'], 
+                                     joined_df['W_component'], 
+                                     joined_df['draught'], 
+                                     joined_df['speed'], 
+                                     joined_df['SFC_base'])
+
+joined_df['FC_Boiler'] = calculate_Boiler_AE(joined_df['Boiler_W_ref'], 
+                                             joined_df['W_component'], 
+                                             joined_df['draught'], 
+                                             joined_df['speed'], 
+                                             joined_df['SFC_base'])
+
+joined_df['FC'] = joined_df['FC_ME'] + joined_df['FC_AE'] + joined_df['FC_Boiler']
+joined_df.head()
+
+
 #%% https://docs.dask.org/en/latest/dataframe-groupby.html#aggregate
 nunique = dd.Aggregation(
     name="nunique",
@@ -139,13 +268,14 @@ nunique = dd.Aggregation(
 
 #%%
 yearly_stats = (
-    ais_bulkers_EU
+    joined_df
     .groupby(['mmsi', 'year'])
     .agg({
         'distance': ['sum'],
         'work': ['sum'],
         'work_IS': ['sum'],
-        'trip': nunique
+        'trip': nunique,
+        'FC': ['sum']
         })
     .compute())
 
