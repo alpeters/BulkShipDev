@@ -66,6 +66,7 @@ def categorize_engine(row):
         'rpm': r'at ([\d,]+\.?\d*)rpm',
         'model_name': r'Diesel - (.*?) -',
         'num_stroke': r'(\d+)-stroke',
+        'mkW': r'(\d+(?:,\d+)?)mkW',
     }
     
     # Extract and format features
@@ -73,8 +74,9 @@ def categorize_engine(row):
     rpm = float(features['rpm'].group(1).replace(',', '')) if features['rpm'] else np.nan
     model_name = features['model_name'].group(1).lower() if features['model_name'] else ''
     num_stroke = int(features['num_stroke'].group(1)) if features['num_stroke'] else np.nan
+    mkW = float(features['mkW'].group(1).replace(',', '')) if features['mkW'] else np.nan
 
-    # Initialize category as NaN
+    # Initialize 'category' to np.nan
     category = np.nan
 
     # Engine categorization
@@ -94,8 +96,11 @@ def categorize_engine(row):
             category = 'MSD'
         elif rpm > 900:
             category = 'HSD'
+    
+    # Assign the extracted mkW to a new column 'ME_W_ref'
+    row['ME_W_ref'] = mkW
 
-    return pd.Series([category, rpm])
+    return pd.Series([category, rpm, mkW])
 
 
 def assign_sfc_base(row):
@@ -178,8 +183,8 @@ def assign_sfc_base(row):
 # Apply the function to create 'W_component' column
 wfr_bulkers = create_W_component(wfr_bulkers)
 
-# Apply the function to create 'Engine Category' and 'rpm' columns
-wfr_bulkers[['Engine Category', 'rpm']] = wfr_bulkers.apply(categorize_engine, axis=1)
+# Apply the function to create 'Engine Category', 'rpm' and 'ME_W_ref' columns
+wfr_bulkers[['Engine Category', 'rpm', 'ME_W_ref']] = wfr_bulkers.apply(categorize_engine, axis=1)
 
 # Apply the function to create 'SFC_base' column
 wfr_bulkers['SFC_base'] = wfr_bulkers.apply(assign_sfc_base, axis=1)
