@@ -180,84 +180,95 @@ ais_bulkers_EU.dtypes
 # Now we have parquet files with new column called 'phase'
 # Get ready to join with wfr_bulkers_calcs to get hourly fuel consumption
 # List of columns to keep
-selected_columns = ['mmsi', 'ME_W_ref', 'W_component', 'Dwt', 'SFC_base', 'Service.Speed..knots.'] 
+selected_columns = ['mmsi', 'ME_W_ref', 'W_component', 
+                    'Dwt', 'ME_SFC_base', 'AE_SFC_base',
+                    'Boiler_SFC_base', 'Service.Speed..knots.'] 
 
 # Read the csv file into a Dask DataFrame with only the selected columns
-# filepath to be changed
 wfr_bulkers = dd.read_csv('/Users/oliver/Desktop/Data/bulkers_WFR_calcs.csv', usecols=selected_columns)
 
 # Join the Dask DataFrames
-joined_df = ais_bulkers_EU.merge(wfr_bulkers, on='mmsi', how='inner')
+joined_df = ais_bulkers.merge(wfr_bulkers, on='mmsi', how='inner')
 
 # drop rows where hourly speed or draught is missing 
 joined_df = joined_df.dropna(subset=['speed', 'draught'])
 
 
-def calculate_FC_ME(ME_W_ref, W_component, draught, speed, SFC_base, service_speed):
+def calculate_FC_ME(ME_W_ref, W_component, draught, speed, ME_SFC_base, service_speed):
     load = speed / service_speed
-    return ME_W_ref * W_component * draught**0.66 * speed**3 * SFC_base * (0.455 * load**2 - 0.710 * load + 1.280)
+    return ME_W_ref * W_component * draught**0.66 * speed**3 * ME_SFC_base * (0.455 * load**2 - 0.710 * load + 1.280)
 
-def calculate_FC_AE(AE_W_ref, W_component, draught, speed, SFC_base):
-    return AE_W_ref * W_component * draught**0.66 * speed**3 * SFC_base
+def calculate_FC_AE(AE_W, AE_SFC_base):
+    return AE_W * AE_SFC_base
 
-def calculate_Boiler_AE(Boiler_W_ref, W_component, draught, speed, SFC_base):
-    return Boiler_W_ref * W_component * draught**0.66 * speed**3 * SFC_base
+def calculate_Boiler_AE(Boiler_W, Boiler_SFC_base):
+    return Boiler_W * Boiler_SFC_base
 
-def assign_values(df):
-    ae_values = {
-        'Anchored': [180, 180, 250, 400, 400, 400],
-        'Manoeuvring': [500, 500, 680, 1100, 1100, 1100],
-        'Sea': [190, 190, 260, 410, 410, 410]
-    }
+def calculate_hourly_power(df):
+    # calculate hourly main engine power
+    df['ME_W'] = df['ME_W_ref'] * df['W_component'] * (df['draught']**0.66) * (df['speed']**3)
     
-    boiler_values = {
-        'Anchored': [70, 70, 130, 260, 260, 260],
-        'Manoeuvring': [60, 60, 120, 240, 240, 240],
-        'Sea': [0, 0, 0, 0, 0, 0]
-    }
+    # set initial auxiliary engine power and boiler power to zero
+    df['AE_W'] = 0
+    df['Boiler_W'] = 0
     
-    for phase in ['Anchored', 'Manoeuvring', 'Sea']:
-        phase_df = df[df['phase'] == phase]
-        conditions = [
-            phase_df['Dwt'] < 10000,
-            (phase_df['Dwt'] >= 10000) & (phase_df['Dwt'] < 35000),
-            (phase_df['Dwt'] >= 35000) & (phase_df['Dwt'] < 60000),
-            (phase_df['Dwt'] >= 60000) & (phase_df['Dwt'] < 100000),
-            (phase_df['Dwt'] >= 100000) & (phase_df['Dwt'] < 200000),
-            phase_df['Dwt'] >= 200000
-        ]
-        df.loc[df['phase'] == phase, 'AE_W_ref'] = np.select(conditions, ae_values[phase], default=0)
-        df.loc[df['phase'] == phase, 'Boiler_W_ref'] = np.select(conditions, boiler_values[phase], default=0)
+    # conditions and power values
+    conditions = [
+        (df['Dwt'] <= 9999),
+        ((df['Dwt'] > 9999) & (df['Dwt'] <= 34999)),
+        ((df['Dwt'] > 34999) & (df['Dwt'] <= 59999)),
+        ((df['Dwt'] > 59999) & (df['Dwt'] <= 99999)),
+        ((df['Dwt'] > 99999) & (df['Dwt'] <= 199999)),
+        (df['Dwt'] >= 200000)
+    ]
     
+    # Auxiliary engine power and boiler power values for each condition
+    # Order: 'Anchored', 'Manoeuvring', 'Sea'
+    phases = ['Anchored', 'Manoeuvring', 'Sea']
+    ae_values = [(180, 500, 190), (180, 500, 190), (250, 680, 260), (400, 1100, 410), (400, 1100, 410), (400, 1100, 410)]
+    boiler_values = [(70, 60, 0), (70, 60, 0), (130, 120, 0), (260, 240, 0), (260, 240, 0), (260, 240, 0)]
+    
+    # if main engine power is between 150 and 500
+    # auxiliary engine is set to 5% of the main engine power
+    # assign the boiler power based on phase and ship size
+    df.loc[(df['ME_W'] > 150) & (df['ME_W'] <= 500), 'AE_W'] = df['ME_W'] * 0.05
+    
+    for condition, ae_value, boiler_value in zip(conditions, ae_values, boiler_values):
+        for i, phase in enumerate(phases):
+            df.loc[(df['ME_W'] > 150) & (df['ME_W'] <= 500) & condition & (df['phase'] == phase), 'Boiler_W'] = boiler_value[i]
+
+    # if main engine power > 500, assign both power values based on phase and ship size
+    for condition, ae_value, boiler_value in zip(conditions, ae_values, boiler_values):
+        for i, phase in enumerate(phases):
+            df.loc[(df['ME_W'] > 500) & condition & (df['phase'] == phase), 'AE_W'] = ae_value[i]
+            df.loc[(df['ME_W'] > 500) & condition & (df['phase'] == phase), 'Boiler_W'] = boiler_value[i]
+
     return df
 
+meta = joined_df._meta.assign(ME_W=pd.Series(dtype=float),
+                              AE_W=pd.Series(dtype=float), 
+                              Boiler_W=pd.Series(dtype=float))
 
-meta = joined_df._meta.assign(AE_W_ref=pd.Series(dtype=float), Boiler_W_ref=pd.Series(dtype=float))
-joined_df = joined_df.map_partitions(assign_values, meta=meta)
+joined_df = joined_df.map_partitions(calculate_hourly_power, meta=meta)
 
 joined_df['FC_ME'] = calculate_FC_ME(joined_df['ME_W_ref'], 
                                      joined_df['W_component'], 
                                      joined_df['draught'], 
                                      joined_df['speed'], 
-                                     joined_df['SFC_base'], 
+                                     joined_df['ME_SFC_base'], 
                                      joined_df['Service.Speed..knots.'])
 
 
-joined_df['FC_AE'] = calculate_FC_AE(joined_df['AE_W_ref'], 
-                                     joined_df['W_component'], 
-                                     joined_df['draught'], 
-                                     joined_df['speed'], 
-                                     joined_df['SFC_base'])
+joined_df['FC_AE'] = calculate_FC_AE(joined_df['AE_W'],
+                                     joined_df['AE_SFC_base'])
 
-joined_df['FC_Boiler'] = calculate_Boiler_AE(joined_df['Boiler_W_ref'], 
-                                             joined_df['W_component'], 
-                                             joined_df['draught'], 
-                                             joined_df['speed'], 
-                                             joined_df['SFC_base'])
+joined_df['FC_Boiler'] = calculate_Boiler_AE(joined_df['Boiler_W'], 
+                                             joined_df['Boiler_SFC_base'])
 
 joined_df['FC'] = joined_df['FC_ME'] + joined_df['FC_AE'] + joined_df['FC_Boiler']
-joined_df.head()
 
+# Take a look at the joined_df
+joined_df.head()
 
 #%% https://docs.dask.org/en/latest/dataframe-groupby.html#aggregate
 nunique = dd.Aggregation(
