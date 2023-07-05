@@ -11,8 +11,6 @@ import numpy as np
 import pandas as pd
 
 
-# In[66]:
-
 
 # Load the WFR dataset
 wfr_bulkers = pd.read_csv('/Users/oliver/Desktop/Carbon Emission Project/bulkers_WFR.csv',
@@ -107,78 +105,114 @@ def assign_sfc_base(row):
     engine_category = row['Engine Category']
     fuel_type = str(row['Main.Engine.Fuel.Type']).lower() if row['Main.Engine.Fuel.Type'] is not None else ''
     built_year = row['Built.Year']
-
+    
+    # ME_sfc_base
+    ME_sfc_base = None
     # SSD category
     if engine_category == 'SSD':
         if 'ifo' in fuel_type:
             if built_year < 1983:
-                return 205
+                ME_sfc_base = 205
             elif 1984 <= built_year <= 2000:
-                return 185
+                ME_sfc_base = 185
             else:
-                return 175
+                ME_sfc_base = 175
         elif 'mdo' in fuel_type or 'biofuel' in fuel_type:
             if built_year < 1983:
-                return 190
+                ME_sfc_base = 190
             elif 1984 <= built_year <= 2000:
-                return 175
+                ME_sfc_base = 175
             else:
-                return 165
+                ME_sfc_base = 165
 
     # MSD category
     elif engine_category == 'MSD':
         if 'ifo' in fuel_type:
             if built_year < 1983:
-                return 215
+                ME_sfc_base = 215
             elif 1984 <= built_year <= 2000:
-                return 195
+                ME_sfc_base = 195
             else:
-                return 185
+                ME_sfc_base = 185
         elif 'mdo' in fuel_type or 'biofuel' in fuel_type:
             if built_year < 1983:
-                return 200
+                ME_sfc_base = 200
             elif 1984 <= built_year <= 2000:
-                return 185
+                ME_sfc_base = 185
             else:
-                return 175
+                ME_sfc_base = 175
 
     # HSD category
     elif engine_category == 'HSD':
         if 'ifo' in fuel_type:
             if built_year < 1983:
-                return 225
+                ME_sfc_base = 225
             elif 1984 <= built_year <= 2000:
-                return 205
+                ME_sfc_base = 205
             else:
-                return 195
+                ME_sfc_base = 195
         elif 'mdo' in fuel_type or 'biofuel' in fuel_type:
             if built_year < 1983:
-                return 210
+                ME_sfc_base = 210
             elif 1984 <= built_year <= 2000:
-                return 190
+                ME_sfc_base = 190
             else:
-                return 185
+                ME_sfc_base = 185
 
     # LNG engines
     elif "lng" in fuel_type:
         if engine_category == 'LNG-Otto MS':
             if 1984 <= built_year <= 2000:
-                return 173
+                ME_sfc_base = 173
             else:
-                return 156
+                ME_sfc_base = 156
         elif engine_category == 'LNG-Otto SS':
             if built_year > 2000:
-                return 148.712
+                ME_sfc_base = 148.712
         elif engine_category == 'LNG-Diesel':
             if built_year > 2000:
-                return 140.3375
+                ME_sfc_base = 140.3375
+                
+    # AE_sfc_base and Boiler_sfc_base
+    AE_sfc_base = None
+    Boiler_sfc_base = None
+    
+    if 'ifo' in fuel_type:
+        if built_year < 1983:
+            AE_sfc_base = 225
+            Boiler_sfc_base = 340
+        elif 1984 <= built_year <= 2000:
+            AE_sfc_base = 205
+            Boiler_sfc_base = 340
+        else:
+            AE_sfc_base = 195
+            Boiler_sfc_base = 340
+    
+    elif 'mdo' in fuel_type or 'biofuel' in fuel_type:
+        if built_year < 1983:
+            AE_sfc_base = 210
+            Boiler_sfc_base = 320
+        elif 1984 <= built_year <= 2000:
+            AE_sfc_base = 190
+            Boiler_sfc_base = 320
+        else:
+            AE_sfc_base = 185
+            Boiler_sfc_base = 320
+    
+    elif "lng" in fuel_type:
+        if built_year < 1983:
+            AE_sfc_base = np.nan
+            Boiler_sfc_base = 285
+        elif 1984 <= built_year <= 2000:
+            AE_sfc_base = 173
+            Boiler_sfc_base = 285
+        else:
+            AE_sfc_base = 156
+            Boiler_sfc_base = 285
 
-    # Return NaN if no category matches
-    return np.nan
-
-
-# In[68]:
-
+    # Return all three base values as a tuple
+    return ME_sfc_base, AE_sfc_base, Boiler_sfc_base
+  
 
 # Apply the function to create 'W_component' column
 wfr_bulkers = create_W_component(wfr_bulkers)
@@ -186,8 +220,8 @@ wfr_bulkers = create_W_component(wfr_bulkers)
 # Apply the function to create 'Engine Category', 'rpm' and 'ME_W_ref' columns
 wfr_bulkers[['Engine Category', 'rpm', 'ME_W_ref']] = wfr_bulkers.apply(categorize_engine, axis=1)
 
-# Apply the function to create 'SFC_base' column
-wfr_bulkers['SFC_base'] = wfr_bulkers.apply(assign_sfc_base, axis=1)
+# Apply the function to create 'ME_SFC_base', 'AE_SFC_base', and 'Boiler_SFC_base' columns
+wfr_bulkers[['ME_SFC_base', 'AE_SFC_base', 'Boiler_SFC_base']] = wfr_bulkers.apply(assign_sfc_base, axis=1, result_type='expand')
 
 # Check if there are NA values
 print(wfr_bulkers['Engine Category'].unique())
@@ -219,4 +253,3 @@ print(wfr_bulkers['Engine Category'].value_counts(dropna=False))
 
 # Save
 wfr_bulkers.to_csv('/Users/oliver/Desktop/Data/bulkers_WFR_calcs.csv', index=False)
-
