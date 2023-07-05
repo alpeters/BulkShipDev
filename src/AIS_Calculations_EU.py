@@ -188,7 +188,7 @@ selected_columns = ['mmsi', 'ME_W_ref', 'W_component',
 wfr_bulkers = dd.read_csv('/Users/oliver/Desktop/Data/bulkers_WFR_calcs.csv', usecols=selected_columns)
 
 # Join the Dask DataFrames
-joined_df = ais_bulkers.merge(wfr_bulkers, on='mmsi', how='inner')
+joined_df = ais_bulkers_EU.merge(wfr_bulkers, on='mmsi', how='inner')
 
 # drop rows where hourly speed or draught is missing 
 joined_df = joined_df.dropna(subset=['speed', 'draught'])
