@@ -267,6 +267,8 @@ joined_df['FC_Boiler'] = calculate_Boiler_AE(joined_df['Boiler_W'],
 
 joined_df['FC'] = joined_df['FC_ME'] + joined_df['FC_AE'] + joined_df['FC_Boiler']
 
+joined_df['time_variant_part'] = joined_df['draught']**0.66 * joined_df['speed']**3
+
 # Take a look at the joined_df
 joined_df.head()
 
@@ -286,6 +288,9 @@ yearly_stats = (
         'work': ['sum'],
         'work_IS': ['sum'],
         'trip': nunique,
+        'W_component': ['first'],
+        'ME_W_ref': ['first'],
+        'time_variant_part': ['sum'],
         'FC': ['sum']
         })
     .compute())
