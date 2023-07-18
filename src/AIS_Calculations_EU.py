@@ -182,7 +182,8 @@ ais_bulkers_EU.dtypes
 # List of columns to keep
 selected_columns = ['mmsi', 'ME_W_ref', 'W_component', 
                     'Dwt', 'ME_SFC_base', 'AE_SFC_base',
-                    'Boiler_SFC_base', 'Service.Speed..knots.'] 
+                    'Boiler_SFC_base', 'Draught..m.', 
+                    'Service.Speed..knots.'] 
 
 # Read the csv file into a Dask DataFrame with only the selected columns
 wfr_bulkers = dd.read_csv('/Users/oliver/Desktop/Data/bulkers_WFR_calcs.csv', usecols=selected_columns)
@@ -267,7 +268,11 @@ joined_df['FC_Boiler'] = calculate_Boiler_AE(joined_df['Boiler_W'],
 
 joined_df['FC'] = joined_df['FC_ME'] + joined_df['FC_AE'] + joined_df['FC_Boiler']
 
-joined_df['time_variant_part'] = joined_df['draught']**0.66 * joined_df['speed']**3
+joined_df['t_m_times_v_n'] = joined_df['draught']**0.66 * joined_df['speed']**3
+joined_df['t_over_t_ref_with_m'] = joined_df['draught']**0.66 / joined_df['Draught..m.']**0.66
+joined_df['t_over_t_ref_without_m'] = joined_df['draught'] / joined_df['Draught..m.']
+joined_df['v_over_v_ref_with_n'] = joined_df['speed']**3 / joined_df['Service.Speed..knots.']**3
+joined_df['v_over_v_ref_without_n'] = joined_df['speed'] / joined_df['Service.Speed..knots.']
 
 # Take a look at the joined_df
 joined_df.head()
@@ -290,7 +295,11 @@ yearly_stats = (
         'trip': nunique,
         'W_component': ['first'],
         'ME_W_ref': ['first'],
-        'time_variant_part': ['sum'],
+        't_m_times_v_n': ['sum'],
+        't_over_t_ref_with_m': ['sum'],
+        't_over_t_ref_without_m': ['sum'],
+        'v_over_v_ref_with_n': ['sum'],
+        'v_over_v_ref_without_n': ['sum'],
         'FC': ['sum']
         })
     .compute())
