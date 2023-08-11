@@ -21,6 +21,9 @@ wfr_bulkers = wfr_bulkers.dropna(subset=['MMSI', 'Dwt', 'Main.Engine.Detail',
                                          'Draught..m.', 'Main.Engine.Fuel.Type',
                                          'Built.Year','Service.Speed..knots.']) 
 
+# derive maximum speed from service speed(service speed is 92% of maximum speed)
+wfr_bulkers['Service.Speed..knots.'] = wfr_bulkers['Service.Speed..knots.'] / 0.92
+
 # Rename 'MMSI' column to 'mmsi'
 wfr_bulkers = wfr_bulkers.rename(columns={'MMSI': 'mmsi'})
 wfr_bulkers['mmsi'] = wfr_bulkers['mmsi'].astype('int')
