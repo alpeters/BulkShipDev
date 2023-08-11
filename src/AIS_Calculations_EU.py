@@ -7,12 +7,12 @@ Runtime: 5m
 """
 
 #%%
-import sys, os
 import geopandas as gpd
 import pandas as pd
 import pyarrow.parquet as pq
 import dask.dataframe as dd
 import dask_geopandas
+import os, time
 import shapely
 from shapely.wkt import loads
 from shapely.geometry import Point
@@ -23,6 +23,11 @@ from functools import partial
 import pyproj
 import re
 import numpy as np
+import folium
+from scipy.spatial.transform import Rotation as R, Slerp
+from datetime import timedelta
+from dask import delayed, compute
+from math import sin, cos, asin, atan2, sqrt, radians, degrees
 
 datapath = 'src/data'
 callvariant = 'speed' #'heading'
