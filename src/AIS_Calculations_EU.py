@@ -195,8 +195,8 @@ joined_df = ais_bulkers_EU.merge(wfr_bulkers, on='mmsi', how='inner')
 joined_df = joined_df.dropna(subset=['speed', 'draught'])
 
 
-def calculate_FC_ME(ME_W_ref, W_component, draught, speed, ME_SFC_base, service_speed):
-    load = speed / service_speed
+def calculate_FC_ME(ME_W_ref, W_component, draught, speed, ME_SFC_base):
+    load = W_component * draught**0.66 * speed**3 
     return ME_W_ref * W_component * draught**0.66 * speed**3 * ME_SFC_base * (0.455 * load**2 - 0.710 * load + 1.280)
 
 def calculate_FC_AE(AE_W, AE_SFC_base):
@@ -256,8 +256,7 @@ joined_df['FC_ME'] = calculate_FC_ME(joined_df['ME_W_ref'],
                                      joined_df['W_component'], 
                                      joined_df['draught'], 
                                      joined_df['speed'], 
-                                     joined_df['ME_SFC_base'], 
-                                     joined_df['Service.Speed..knots.'])
+                                     joined_df['ME_SFC_base'])
 
 
 joined_df['FC_AE'] = calculate_FC_AE(joined_df['AE_W'],
