@@ -148,7 +148,98 @@ buffered_coastline = gpd.read_file('/Users/oliver/Desktop/Carbon Emission Projec
 # Check the crs of the shapefile
 print(buffered_coastline.crs)
 
-def process_partition(df):
+
+# Define function to interpolate coordinates using Slerp (Spherical Linear Interpolation)
+def interpolate_coordinates_slerp(row1, row2, num_points):
+    lat1, lon1 = np.radians(row1['latitude']), np.radians(row1['longitude'])
+    lat2, lon2 = np.radians(row2['latitude']), np.radians(row2['longitude'])
+
+    x1, y1, z1 = np.cos(lon1) * np.cos(lat1), np.sin(lon1) * np.cos(lat1), np.sin(lat1)
+    x2, y2, z2 = np.cos(lon2) * np.cos(lat2), np.sin(lon2) * np.cos(lat2), np.sin(lat2)
+
+    rot1 = R.from_rotvec([x1, y1, z1])
+    rot2 = R.from_rotvec([x2, y2, z2])
+
+    slerp = Slerp([0, 1], R.from_rotvec([rot1.as_rotvec(), rot2.as_rotvec()]))
+
+    interpolated_rows = []
+    if num_points > 2:
+        for t in np.linspace(1/(num_points-1), 1-1/(num_points-1), num_points-2): # Avoid the last timestamp to be duplciated 
+            rot = slerp(t)
+            x, y, z = rot.as_rotvec()
+
+            lon, lat = np.degrees(np.arctan2(y, x)), np.degrees(np.arctan2(z, np.sqrt(x**2 + y**2)))
+
+            new_row = row1.copy()
+            new_row['latitude'] = lat
+            new_row['longitude'] = lon
+            new_row['timestamp'] += timedelta(hours=t*(row2['timestamp'] - row1['timestamp']).total_seconds()/3600)
+            new_row['speed'] = row2['implied_speed']
+            new_row['interpolated'] = True  # indicate this row is interpolated
+            interpolated_rows.append(new_row)
+
+    return interpolated_rows
+
+
+def interpolate_missing_hours_slerp(df):
+    
+    if df.empty:
+        print("DataFrame is empty")
+        print("Index values:", df.index.values) # Print index values for further inspection
+        return df
+
+    df = df.assign(timestamp=pd.to_datetime(df['timestamp']))
+    df = df.assign(interpolated=False)  # Set 'interpolated' to False for all original rows
+
+    df_interpolated = [df.iloc[0].copy()]  # add the first row as is
+
+    for i in range(len(df)-1):  # start from the first row
+        row1, row2 = df.iloc[i].copy(), df.iloc[i+1].copy()
+        time_interval_hours = int(round(row2['time_interval']))  # use the 'time_interval' from the second row
+
+        # Skip interpolation if time_interval is less than or equal to 1 hour
+        if time_interval_hours <= 1:
+            df_interpolated.append(row2)
+        else:
+            interpolated_rows = interpolate_coordinates_slerp(row1, row2, time_interval_hours)
+            df_interpolated.extend(interpolated_rows)  # add the interpolated rows
+            df_interpolated.append(row2)  # add the 'end' timestamp here
+
+    return pd.DataFrame(df_interpolated)
+
+
+def pd_diff_haversine(df):
+    df_lag = df.shift(1)
+    timediff = (df.timestamp - df_lag.timestamp)/np.timedelta64(1, 'h')
+    lat = np.radians(df.latitude)
+    lng = np.radians(df.longitude)
+    lat_lag = np.radians(df_lag.latitude)
+    lng_lag = np.radians(df_lag.longitude)
+    lat_diff = lat - lat_lag
+    lng_diff = lng - lng_lag  
+    d = (np.sin(lat_diff * 0.5) ** 2
+         + np.cos(lat_lag) * np.cos(lat) * np.sin(lng_diff * 0.5) ** 2)
+    dist = 2 * 6371.0088 * 0.539956803 * np.arcsin(np.sqrt(d))
+
+    return df.assign(distance = dist,
+                     time_interval = timediff) 
+
+
+def infill_draught_partition(df):
+    if df['draught'].isna().iloc[0]: # if the first value is NaN, apply backward fill
+        df['draught'] = df['draught'].bfill()
+    else:
+        df['draught'] = df['draught'].ffill()
+    return df
+
+
+def process_group(group):
+    group = interpolate_missing_hours_slerp(group)
+    group = infill_draught_partition(group)
+    group = pd_diff_haversine(group)
+    return group
+    
+def process_partition_geo(df):
     # Create a new GeoDataFrame
     gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude))
 
@@ -158,24 +249,39 @@ def process_partition(df):
     # Determine if each point is within the buffer zone
     gdf = gpd.sjoin(gdf, buffered_coastline, how="left", predicate='within')
 
-    # Set the phase based on whether the point is within the buffer zone
+    # Set the phase based on whether the point is within the buffer zone and interpolated status
     gdf['phase'] = 'Sea'
-    gdf.loc[(gdf['speed'] <= 3), 'phase'] = 'Anchored'
-    gdf.loc[(gdf['speed'] >= 4) & (gdf['speed'] <= 5) & (gdf.index_right.notna()), 'phase'] = 'Manoeuvring'
-    gdf.loc[(gdf['speed'] > 5), 'phase'] = 'Sea'
-
+    
+    # For interpolated rows, use speed to determine phase
+    gdf.loc[(gdf['interpolated'] == True) & (gdf['speed'] <= 3), 'phase'] = 'Anchored'
+    gdf.loc[(gdf['interpolated'] == True) & (gdf['speed'] >= 4) & (gdf['speed'] <= 5), 'phase'] = 'Manoeuvring'
+    gdf.loc[(gdf['interpolated'] == True) & (gdf['speed'] > 5), 'phase'] = 'Sea'
+    
+    # For non-interpolated rows, use geographical criteria
+    gdf.loc[(gdf['interpolated'] == False) & (gdf['speed'] <= 3), 'phase'] = 'Anchored'
+    gdf.loc[(gdf['interpolated'] == False) & (gdf['speed'] >= 4) & (gdf['speed'] <= 5) & (gdf.index_right.notna()), 'phase'] = 'Manoeuvring'
+    gdf.loc[(gdf['interpolated'] == False) & (gdf['speed'] > 5), 'phase'] = 'Sea'
+    
     # Drop the unneeded columns
     gdf = gdf[df.columns.tolist() + ['phase']]
 
     return gdf
 
-# Create a dictionary of column data types
-meta_dict = ais_bulkers_EU.dtypes.to_dict()
-meta_dict['phase'] = 'string'
+def process_partition(df):
+    result_list = []
+    for _, group in df.groupby(df.index):
+        processed_group = process_group(group)
+        result_list.append(processed_group)
+    processed_partition = pd.concat(result_list)
+    return process_partition_geo(processed_partition)  # Apply geo function here
 
-# Call map_partitions with the new meta argument
-ais_bulkers_EU = ais_bulkers_EU.map_partitions(process_partition, meta=meta_dict)
-ais_bulkers_EU.dtypes
+meta_dict = ais_bulkers.dtypes.to_dict()
+# Include the new columns' data type
+meta_dict['interpolated'] = 'bool'
+meta_dict['phase'] = 'string' 
+
+ais_bulkers = ais_bulkers.map_partitions(process_partition, meta=meta_dict)
+ais_bulkers.dtypes
 
 # Now we have parquet files with new column called 'phase'
 # Get ready to join with wfr_bulkers_calcs to get hourly fuel consumption
