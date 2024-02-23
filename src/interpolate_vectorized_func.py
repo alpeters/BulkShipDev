@@ -24,7 +24,7 @@ def interpolate_missing_hours(group):
     col1 = np.cos(long_rad) * np.cos(lat_rad)
     col2 = np.sin(long_rad) * np.cos(lat_rad)
     col3 = np.sin(lat_rad)
-    rotation = Rotation.from_rotvec(np.column_stack([col1,col2,col3]))
+    rotation = R.from_rotvec(np.column_stack([col1,col2,col3]))
     slerp = Slerp(np.arange(0, len(rotation)), rotation)
 
     # Create row number column of type int
@@ -43,12 +43,12 @@ def interpolate_missing_hours(group):
     group.mmsi.ffill(inplace=True)
     group.reset_index(inplace=True)
     group.set_index('mmsi', inplace=True)
+    group.index = group.index.astype(int)
     group.timestamp.ffill(inplace=True)
     group.time_interval.bfill(inplace=True)
     group.interp_step.ffill(inplace=True)
     group['interp_steps'] = group.interp_steps.bfill().astype(int)
     group['path'] = group.path.astype(bool)
-
     # Interpolate timestamps
     group['interp_counter'] = (np.ceil((group.timestamp_hour - group.timestamp).dt.total_seconds() / 3600).astype(int))
     group['timestamp'] = group.timestamp + pd.to_timedelta(group.interp_step*group.interp_counter, unit='H')
@@ -61,7 +61,8 @@ def interpolate_missing_hours(group):
             slerp_vec[:, 2],
             np.sqrt(slerp_vec[:, 0]**2 + slerp_vec[:, 1]**2)))
     group['longitude'] = np.degrees(np.arctan2(slerp_vec[:, 1], slerp_vec[:, 0]))
-    group = group.drop(columns=['data_counter', 'timestamp_hour', 'interp_steps', 'interp_step', 'interp_counter', 'interp_coord_index']) 
+    group['interpolated'] = group.data_counter.isna()
+    group = group.drop(columns=['data_counter', 'timestamp_hour', 'interp_steps', 'interp_step', 'interp_counter', 'interp_coord_index'])
     
     return group
 
@@ -90,5 +91,42 @@ gdf_interp.plot(ax=ax, color='red', markersize=1)
 gdf_data.plot(ax=ax, color='blue', markersize=0.5)
 plt.show()
 
+# %% Test on dataframe with multiple groups
+start_time = time.time()
+df_interpolated = ais_bulkers_pd.groupby('mmsi', group_keys=False).apply(interpolate_missing_hours)
+print(f"Time to interpolate: {time.time() - start_time}")
 
-# %%
+#%% Test on multiple partitions
+ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs_test'))
+
+def process_partition(df):
+    df = (
+        df
+        .groupby('mmsi', group_keys=False)
+        .apply(interpolate_missing_hours)
+    )
+    return df
+
+meta_dict = ais_bulkers.dtypes.to_dict()
+meta_dict['interpolated'] = 'bool'
+
+
+start_time = time.time()
+with LocalCluster(
+    n_workers=2,
+    # processes=True,
+    threads_per_worker=3
+    # memory_limit='2GB',
+    # ip='tcp://localhost:9895',
+) as cluster, Client(cluster) as client:
+    ais_bulkers.map_partitions(process_partition, meta=meta_dict).to_parquet(
+        os.path.join(filepath, 'ais_bulkers_interp'),
+        append=False,
+        overwrite=True,
+        engine='fastparquet'
+    )
+print(f"Time: {time.time() - start_time}")
+
+# Load ais_bulkers_interp
+ais_bulkers_interp = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_interp'))
+ais_bulkers_interp.head()
