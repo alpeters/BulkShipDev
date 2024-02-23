@@ -239,8 +239,8 @@ ais_bulkers.map_partitions(process_partition, meta=meta_dict).to_parquet(
 
 
 # Shut down the cluster
-# client.close()
-# cluster.close()
+client.close()
+cluster.close()
 
 #%% Check results
 # Load ais_bulkers_interp
