@@ -15,64 +15,6 @@ import pandas as pd
 #%% Functions
 
 # %%
-# Define function to interpolate coordinates using Slerp (Spherical Linear Interpolation)
-def interpolate_coordinates_slerp(row1, row2, num_points):
-    lat1, lon1 = np.radians(row1['latitude']), np.radians(row1['longitude'])
-    lat2, lon2 = np.radians(row2['latitude']), np.radians(row2['longitude'])
-
-    rot1 = R.from_rotvec(np.array([np.cos(lon1) * np.cos(lat1), np.sin(lon1) * np.cos(lat1), np.sin(lat1)]))
-    rot2 = R.from_rotvec(np.array([np.cos(lon2) * np.cos(lat2), np.sin(lon2) * np.cos(lat2), np.sin(lat2)]))
-
-    slerp = Slerp([0, 1], R.from_rotvec([rot1.as_rotvec(), rot2.as_rotvec()]))
-
-    if num_points <= 2:
-        return []
-
-    step = 1/(num_points-1)
-    t_values = np.linspace(step, 1-step, num_points-2)
-    rot_values = slerp(t_values)
-    rotvec_values = rot_values.as_rotvec()
-
-    lon_lat_values = np.degrees(np.column_stack((
-        np.arctan2(rotvec_values[:, 1], rotvec_values[:, 0]),
-        np.arctan2(rotvec_values[:, 2], np.sqrt(rotvec_values[:, 0]**2 + rotvec_values[:, 1]**2))
-    )))
-
-    time_diff = (row2['timestamp'] - row1['timestamp']).total_seconds() / 3600
-    timestamps = [row1['timestamp'] + timedelta(hours=t*time_diff) for t in t_values]
-
-    interpolated_rows = [{
-        'latitude': lat,
-        'longitude': lon,
-        #'year': row1['year'],
-        'timestamp': timestamp,
-        'speed': row2['implied_speed'],
-        'interpolated': True
-    } for (lon, lat), timestamp in zip(lon_lat_values, timestamps)]
-
-    return interpolated_rows
-
-
-def interpolate_missing_hours_slerp(df):
-
-    df = df.assign(timestamp=pd.to_datetime(df['timestamp']), interpolated=False)
-
-    df_interpolated = [(df.index[0], df.iloc[0])]
-    for i in range(len(df)-1):
-        row1, row2 = df.iloc[i], df.iloc[i+1]
-        time_interval_hours = int(round(row2['time_interval']))
-
-        if time_interval_hours <= 1:
-            df_interpolated.append((df.index[i+1], row2))
-        else:
-            interpolated_rows = interpolate_coordinates_slerp(row1, row2, time_interval_hours)
-            df_interpolated.extend([(df.index[i+1], pd.Series(row)) for row in interpolated_rows])
-            df_interpolated.append((df.index[i+1], row2))
-
-    return pd.DataFrame(
-        data=[item[1] for item in df_interpolated],
-        index=[item[0] for item in df_interpolated]
-    )
 
 def interpolate_missing_hours(group):
     # Calculate slerp location interpolation function
@@ -82,6 +24,8 @@ def interpolate_missing_hours(group):
     col2 = np.sin(long_rad) * np.cos(lat_rad)
     col3 = np.sin(lat_rad)
     rotation = R.from_rotvec(np.column_stack([col1,col2,col3]))
+    if len(rotation) < 2:
+        return group
     slerp = Slerp(np.arange(0, len(rotation)), rotation)
 
     # Create row number column of type int
@@ -134,6 +78,10 @@ def pd_diff_haversine(df):
 
     return df.assign(distance=dist, time_interval=timediff)
 
+def update_interpolated_speed(group):
+    speed = group['distance'] / group['time_interval']
+    group.loc[group['interpolated'], 'speed'] = speed[group['interpolated']]
+    return group
 
 def infill_draught_partition(df):
     df['draught'].bfill(inplace=True) if df['draught'].isna().iloc[0] else df['draught'].ffill(inplace=True)
@@ -158,6 +106,7 @@ def process_group(group):
     group = interpolate_missing_hours(group)
     group = infill_draught_partition(group)
     group = pd_diff_haversine(group)
+    group = update_interpolated_speed(group)
     group = process_partition_geo(group)
     return group
 
