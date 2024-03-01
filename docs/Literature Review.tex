@@ -1,0 +1,375 @@
+\documentclass{article}
+
+% Packages for formatting and styling
+\usepackage{geometry} % Adjust page margins
+
+% Package for graphics
+\usepackage{graphicx}
+% path for graphics files
+\graphicspath{{../resources/Fourth IMO Excerpts}{../resources/Images/}{../src/plots/}}
+
+% Package for hyperlinks
+\usepackage{hyperref}
+% Define base path for papers
+\newcommand{\paperpath}{../resources/}
+% Define new command for creating links with the base path
+\newcommand{\myhref}[2]{\href{run:\paperpath#1}{#2}}
+% remove boxes around links, underline links
+\hypersetup{colorlinks, linkcolor=black, citecolor=black, filecolor=black}
+
+
+% Include packages for biblatex bilbiography
+\usepackage[style=authoryear, backend=biber]{biblatex}
+\addbibresource{shippingemissionstrade.bib}
+
+% Include title as header
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\lhead{Literature Review}
+\rhead{Allen Peters}
+
+% Title and author information
+\begin{document}
+
+\section{AIS bottom-up estimation methodology}
+\subsection{\myhref{Uge 2020 - Estimation_of_worldwide_ship_emissions_using_AIS_signals.pdf}{\textcite{uge2020estimation}}}
+\subsection{\myhref{Jalkanen et al 2009 - A modelling system for the exhaust emissions of marine traffic and its application in the Baltic Sea area.pdf}{\textcite{jalkanen2009modelling}}}
+\begin{itemize}
+    \item original to use bottom up methodology?
+\end{itemize}
+\subsection{\myhref{Olmer et al 2017 - Global-shipping-GHG-emissions-2013-2015_Methodology_17102017_vF.pdf}{\textcite{olmer2017greenhouse}}}
+\begin{itemize}
+    \item basis methodology for Fourth IMO GHG study 2020
+\end{itemize}
+\subsection{*\myhref{Fourth IMO GHG Study 2020 - Full report and annexes.pdf}{\textcite{faber2020fourth}}}
+\begin{itemize}
+    \item Main Comparison
+    \item create comparisons of total emissions, missing data, distance travelled
+    \item do similar comparison to MRV validation exercise
+\end{itemize}
+\subsection{\myhref{Ventikos et al 2021 - Development of a tool for calculating ship air emissions.pdf}{\textcite{ventikosdevelopment}}}
+\begin{itemize}
+    \item basic predictive tool for emissions based on bottom-up methodology
+\end{itemize}
+\subsection{\myhref{Moreno-Gutierrez 2019 - Comparative analysis between different methods for calculating.pdf}{\textcite{moreno2019comparative}}}
+\begin{itemize}
+    \item Comparison of different bottom-up methodologies, including IMO, jalkanen, EPA, etc.
+\end{itemize}
+\subsection{\myhref{Johansson et al 2017 - Global assessment of shipping emissions in 2015 on a high spatial and temporal resolution}{\textcite{johansson2017global}}}
+\begin{itemize}
+    \item method for the collection and processing of the technical ship data, using data assimilation techniques
+    \item use for comparison of emissions estimates
+    \item inclusion of the route generation algorithm
+\end{itemize}
+\subsection{Tvete et al. (2020)}
+\begin{itemize}
+    \item VERDE model
+\end{itemize}
+
+% #################
+\section{AIS bottom-up compared to MRV}
+
+\subsection{*\myhref{Fourth IMO GHG Study 2020 - Full report and annexes.pdf}{\textcite{faber2020fourth}}}
+\begin{itemize}
+    \item Uses 2018 MRV to validate bottom-up approach
+    \item -0.5\% discrepancy on CO2 emissions
+    % include centered graphic, specifying width as function of textwdith
+    \begin{center}
+    \includegraphics[width=0.7\textwidth]{"Page 140 Figure 104 Comparison Emissions and Distance with MRV.png"}
+    \end{center}
+    \item sample includes data for over 11,000 vessels which, following basic filtering for the purposes of this study (Hours at sea $\in [0, 8760]$, EEOI $\in [0, 1000]$), was reduced to 9,739 vessels  (81.4\% of the original MRV dataset). This accounts for around 10\% of the world’s fleet or more than 30\% of the world’s fleet over 5000 gross tonnage...The reduction in dataset size is not a reflection of the MRV data quality but stems from the retention of the metrics of interest (e.g. transport expressed in t.nm)
+    \item discrepancy for bulkers by size category
+    \begin{center}
+        \includegraphics[width=0.5\textwidth]{"Page 142 Figure 106 Bulker Emissions Compared to MRV.png"}
+    \end{center}
+    \item \textbf{A detailed comparison of distance sailed at sea and sailing hours obtained from the matched MRV and bottom-up datasets is presented in Appendix P. (page 453)}
+    \item Distance sailed is systematically higher than reported in MRV, likely due to discrepancy in definition of 'sailing' status between IMO and MRV
+    \item temporal and distance carbon intensity are both consistently lower than reported in MRV (distance one is less consistent for other ship types like tankers)
+    \item they attribute lower AER to overestimating cargo
+    \item Representativeness of fleet reporting MRV:
+    \begin{itemize}
+        \item "operation and fleet coverage were highly representative of global equivalents"
+        \item compared operating speeds of ships when on EU trips vs other trips
+        \item proportion of year spent in EU routes
+    \end{itemize} 
+\end{itemize}
+\subsection{*\myhref{Marine Benchmark 2020 - Maritime CO2 Emissions.pdf}{Marine Benchmark Research Brief}}
+\begin{itemize}
+    \item They underestimate bulkers by about 3\% (in terms of kg/nm - I think just comparing reported EEDI)
+    \begin{center}
+    \includegraphics[width=0.6\textwidth]{"Marine Benchmark 2020 - MRV vs MB.png"}
+    \end{center}
+\end{itemize}
+\subsection{\myhref{Doundoulakis et al 2022 - Comparative analysis of fuel consumption and CO2 emission estimation based on.pdf}{\textcite{doundoulakis2022comparative}}}
+\begin{itemize}
+    \item for 5 ferries in Crete in 2020
+    \item 6–12\% difference bottom-up vs MRV (MRV lower)
+\end{itemize}
+\subsection{\myhref{Mannarinin et al 2020 - EU-MRV_an_analysis_of_2018s_Ro-Pax_CO2_data.pdf}{\textcite{mannarini2020eu}}}
+\begin{itemize}
+    \item Ro-Pax
+    \item clustering of efficiency on certain variables you would expect
+    \item copernicus wave height
+    \item probably not pertinent
+\end{itemize}
+\subsection{\myhref{Hensel et al 2020 - Green shipping using AIS data to assess global emissions.pdf}{\textcite{hensel2020green}}}
+\begin{itemize}
+    \item compares MRV to calcs for tiny sample
+    \item modelling efficiency from MRV
+\end{itemize}
+\subsection{\myhref{Wu et al 2023 - Evaluation of Vessel CO2 Emissions Methods using AIS Trajectories.pdf}{\textcite{wu2023evaluation}}}
+\begin{itemize}
+    \item ship technical details,AIS trajectory, and weather
+    \item MRV used as quasi-ground truth
+    \item compare different modelling techniques for estimating emissions:
+    \begin{itemize}
+        \item Baseline: $load*distance*3$
+        \item Gross-tonnage: GT, operational hours, and piece-wise function of operating mode
+        \item Speed-cubic: $power*(speed/S)^3*time*emission~factor$
+        \item IMO: what we did
+        \item STEAM: includes weather with penalty term based on waves inside cubic term
+    \end{itemize}
+    \item waves seem to have small effect on total emissions (2\% increase in emissions)
+    \item *Equation for cargo load using DWT and draught!
+    \item the three speed-based models return
+    similar results
+    \item Emission results from the three speed-based models are consistent with the MRV dataset
+    \item just uses EEDI from MRV to calculate emissions!
+\end{itemize}
+
+\section{Validity of MRV}
+\subsection{\myhref{Panagakos et al 2019 - Monitoring the Carbon Footprint of Dry Bulk Shipping in the EU An Early Assessment of the MRV Regulation.pdf}{\textcite{panagakos2019monitoring}}}
+\begin{itemize}
+    \item tiny sample size, result is mostly due to the obvious fact that the measures don't account for speed, draft, etc.
+    \item geographic coverage restrictions of the MRV Regulation introduce a significant bias, thus prohibiting their intended use (questionable, small sample - also doesn't account for speeds)
+    \item information was collected on all voyages
+    performed within 2018 by a fleet of 1041 dry bulk carriers operated by a leading Danish shipping
+    company
+    \item the point that the MRV efficiency measure (EEOI) is not very informative is probably valid
+\end{itemize}
+\subsection{\myhref{Rony 2019 - Exploring the new policy framework of environmental performance management for shipping.pdf}{\textcite{rony2019exploring}}}
+\begin{itemize}
+    \item brings up issue of intentionally misreporting to maintain ship's undeclared stock (no more details though!)
+    \item Daily fuel consumption of different types of machinery on board ships is transmitted to the head office via relevant electronic forms.
+    \item 29\% (n = 21) of the participants pointed towards intentional misreporting, including 11\% (n = 8) citing intentionally maintaining ship’s undeclared stock and 18\% (n = 13) citing
+    fraudulent entry of data
+\end{itemize}
+\subsection{\myhref{Rony 2017 - Ensuring the effective implementation of the monitoring reportin.pdf}{\textcite{rony2017ensuring}}}
+\begin{itemize}
+    \item more detail on previous survey
+\end{itemize}
+
+\subsection{\myhref{Fridell et al 2018 - Transport work and emissions in MRV.pdf}{\textcite{fridell2018transport}}}
+\begin{itemize}
+    \item Sources of measurement error in MRV reports
+    \item MRV allows four monitoring methods:
+    \begin{itemize}
+        \item bunker delivery notes: BDNs have an accuracy level of 1 to 5\%
+        \item bunker fuel tank monitoring on-board: electronic, mechanical, manual (most common) - accuracy of tank monitoring is estimated at 2-5\%
+        \item flow meters for applicable combustion processes: accuracy better than 3\%
+        \item direct emission measurements (very uncommon): CO2 stack
+        emissions can be monitored to an accuracy of +/-2\%
+    \end{itemize}
+\end{itemize}
+\subsection{\myhref{Chen et al 2022 - Research on Ship Carbon Emission Statistical Optimization Based on MRV Rules.pdf}{\textcite{chen2022research}}}
+\begin{itemize}
+    \item Reviews emissions tracking methods (e.g. fuel vs direct measurement), similar information to Fridell et al (2018)
+\end{itemize}
+
+\section{Effect of COVID on shipping emissions}
+\subsection{\myhref{Marine Benchmark 2020 - Maritime CO2 Emissions.pdf}{Marine Benchmark Research Brief}}
+\begin{itemize}
+    \item Around 4\% reduction year on year from only vessels with AIS across all types of ships
+\end{itemize}
+\subsection{\myhref{Xu et al 2023 - Impacts of the COVID-19 epidemic on carbon emissions from international shipping.pdf}{\textcite{xu2023impacts}}}
+\begin{itemize}
+    \item some GARCH model thingy
+\end{itemize}
+\subsection{\myhref{Ju et al 2021 - The impact of shipping CO2 emissions from marine traffic in Western.pdf}{\textcite{ju2021impact}}}
+\begin{itemize}
+    \item Western Singapore Straits
+\end{itemize}
+\subsection{\myhref{Mujal-Colilles 2022 - COVID-19 impact on maritime traffic and corresponding pollutant.pdf}{\textcite{mujal2022covid}}}
+\begin{itemize}
+    \item Port of Barcelona
+\end{itemize}
+\subsection{\myhref{Chen et al 2023 - Effects of COVID-19 on passenger shipping activities and emissions.pdf}{\textcite{chen2023effects}}}
+\begin{itemize}
+    \item Danish waters
+\end{itemize}
+\subsection{\myhref{Duran-Grados 2020 - Calculating a Drop in Carbon Emissions in the Strait of Gibraltar.pdf}{\textcite{duran2020calculating}}}
+\begin{itemize}
+    \item Strait of Gibraltar
+\end{itemize}
+
+\subsection{*\myhref{Millefiori 2021 - COVID-19 impact on global maritime mobility.pdf}{\textcite{millefiori2021covid}}}
+\begin{itemize}
+    \item AIS data to quantify mobility change from COVID
+    \item between +2.28 and -3.32\% for dry bulk during March-June 2020
+    \item our analysis of AIS data shows that in all highlighted areas, on average, ships reduced their speed in March–April 2020 with respect to the same months in 2019
+    \item Specifically, in the highlighted regions of the Gibraltar-Suez route, Ligurian Sea, Northern Adriatic Sea, and Aegean Sea, we report average fleet speed variations of -5.1\%, -15.3\%, -6.0\% and -9.5\%, respectively.
+    \item indicators are the (monthly) Cumulative Navigated Miles (CNM), computed for each ship journey per category, the number of active and idle (status as idle or speed below 2kts) ships and their average speed (no details)
+\end{itemize}
+\subsection{\myhref{Deng 2023 - A review on carbon emissions of global shipping.pdf}{\textcite{deng2023review}}}
+\begin{itemize}
+    \item not very pertinent
+    \item general review on bottom-up and top-down methods
+    \item only IEA (aggregate fuel consumption-based) method and EDGAR (not specific to shipping) for COVID period
+\end{itemize}
+\subsection{\myhref{Mou et al 2023 - Carbon footprints: Uncovering multilevel spatiotemporal changes of ship.pdf}{\textcite{mou2024carbon}}}
+\begin{itemize}
+    \item not particularly pertinent
+    \item spatiotemporal changes of ship emissions in U.S. EEZ
+    \item covers covid years
+\end{itemize}
+
+
+
+\section{AI/ML and Shipping Emissions}
+\subsection{*\myhref{OECD 2023 - CO2 emissions from global shipping An new experimental database.pdf}{\textcite{clarke2023co2}}}
+\begin{itemize}
+    \item predict an emissions efficiency ratio for each ship 
+    \item random forest 
+    \item emissions efficiency ratio is then multiplied by the distance
+    travelled by the ship to obtain its CO2 emissions.
+    \item Contributions: country coverage (vs AEA), frequency (monthly, updated quarterly), accuracy (bottom-up from AIS)
+    \item we take the variable average CO2 emissions per nautical mile from this dataset as the target variable to train the regression model
+    \item activity-based approach include Goldsworthy et al. (2015[8]), Olesen et al. (2010[13]), Jalkanen et al. (2017[14]), Coello et
+    al. (2015[15]), Ng et al. (2013[16]), Chen et al. (2016[4]), Johansson et al. (2017[14]), Leong et al. (2015[5])
+    \item Another common approach is a top-down approach using bunker fuel sales or consumption to estimate
+    ship emissions. This approach has been studied by Olivier et al. (1999[17]), Endresen et al. (2003[18]), and Mao et al. (2022[19]), among others
+    \item bottom-up approach that differs from the traditional activity-based bottom-up
+    approach outlined above (Equation 1) in that it exploits vessel-level information, as the traditional method does, but simplifies the modelling of ship specification and movement
+    \item This approach builds on a similar strategy used by team Blue Carbon from the Wärtsilä Corporation25 in the 2020 UN Hackathon for AIS data.
+    \item data published by on \href{https://stats.oecd.org/Index.aspx?DataSetCode=MTE}{OECD website}
+    \item Does not account for cubic relationship of fuel consumption with speed (important because of potential effects of recent regulations!)
+    \item COVID effect:
+    \begin{center}
+        % \includegraphics[width=0.4\textwidth]{"OECD 2023 - Figure 23 COVID drop.png"}
+        \includegraphics[width=0.6\textwidth]{"OECD_Emissions_Exploration_Relative_Emissions_by_Type.png"}
+    \end{center}
+    \item The assumptions underpinning this approach are that the technical specifications of a vessel stay constant in the short term, that differences in emissions efficiency during a voyage average out, and that changes in a ship’s emissions come principally from the amount of distance covered in a given time period.
+\end{itemize}
+\subsection{\myhref{Ren et al 2022 - Container Ship Carbon and Fuel Estimation in Voyages Utilizing Meteorological Data with Data Fusion and Machine Learning Techniques.pdf}{\textcite{ren2022container}}}
+\begin{itemize}
+    \item daily MRV reports from COSCO
+    \item containerships
+    \item wind and wave categories (clustering)
+    \item ridge vs ANN
+    \item very small sample of ships
+\end{itemize}
+\subsection{\myhref{Wang et al 2023 - Ship Fuel and Carbon Emission Estimation Utilizing Artificial Neural Network and Data Fusion Techniques.pdf}{\textcite{wang2023ship}}}
+\begin{itemize}
+    \item Neural Network
+    \item Include weather
+    \item For example, Du et al. [32] employed an artificial neural network (ANN) with voyage report data’s speed to predict fuel consumption and test future voyage report accuracy. Petersen J.P. et al. [23] compared the performance of ANN and Gaussian Process (GP) in estimating a ship’s propulsion efficiency. Farag YBA et al. combined ANN with polynomial regression to estimate a ship’s power and fuel consumption, enabling it to operate in real-time environments and adapt to changes in the ship’s environment
+    \item "Existing studies, including the GBMs, only tries to insert physical-based equations inside the DL models which can result in a very time consuming process."
+    \item China COSCO Shipping Corporation Limited provided MRV data for vessels from 2020-8-1 to the present. Measurement, reporting, and verification (MRV) record the total fuel consumption consumed by each vessel for each daily route and job.
+    \item 11 ships: 5 container, 3 bulk, 3 tankers
+    \item theoretical sailing speed: $speed =screw~pitch*engine~speed*60/18520000$
+    \item ANN, ridge regression and polynomial regression
+    \item Only 8 RHS variables, 3 weather, 3 loading, engine speed, speed, distance
+    \item training, test, validation, not cross-validation
+\end{itemize}
+\subsection{\myhref{Guo et al 2022 - Combined machine learning and physics-based models for estimating fuel.pdf}{\textcite{guo2022combined}}}
+\begin{itemize}
+    \item According to Yin et al. (2017), 15 of 32 papers, which adopt a bottom-up approach, apply the ‘Cubic Rule’ as one of the basic as­sumptions for main engine load factors estimation.
+    \item The power three relationship is a simplification, and it is not accurate for most ships - references Adlan 2020
+    \item ML technology is introduced to extend the application of the VERDE model to a large fleet of ships, and to increase the computational speed and reduce the computational cost at the same time
+    \item ML to calculate the added resistance due to weather, and to impute the missing propeller     diameter is described in this section.
+    \item Uses AIS tracking and NOAA weather data
+    \item Tvete et al. (2020) develop a VERDE model
+    \item added resistance due to wind: one is based on the formula given by Fujiwara et al. (2005, 2006) and another is based on Blendermann’s method (1994). The added resistance due to head wave is calculated using the method given by Liu and Papanikolaou (2016), and the effect of the wave direction is modelled with a simple penalty function, given by Jalkanen et al. (2009).
+    \item uses IHS Fairplay Ship database
+    \item EIAPP database contains SFOC curve information for different engine types and sizes
+    \item Holtrop/Mennen empirical method is used to calculate the calm water resistance: additive formula of resistance components
+    \item maximum added resistance due to fouling is about 10\% of the calm water resistance
+    \item Added resistance due to waves
+    \item Added resistance due to wind
+    \item various others: hull efficiency, propeller efficiency, rotative efficiency and shaft efficiency\dots
+    \item uses calculated wave resistance to train??
+    \item predict missing propeller diameter data based on length, etc.
+\end{itemize}
+\subsection{\href{https://www.intmaritimeengineering.org/index.php/ijme/article/view/1073}{\textcite{fletcher2018application}}}
+\begin{itemize}
+    \item No access
+    \item develop a shipping emission inventory model incorporating Machine Learning tools to estimate gaseous emissions
+\end{itemize}
+\subsection{\myhref{Ay et al 2022 - Quantifying ship-borne emissions in Istanbul Strait with bottom-up and.pdf}{\textcite{ay2022quantifying}}}
+\begin{itemize}
+    \item Basic forward prediction of emissions
+    \item limited to Istanbul Strait
+\end{itemize}
+\subsection{\myhref{Hu et al 2019 - Prediction of Fuel Consumption for Enroute Ship Based on Machine Learning.pdf}{\textcite{hu2019prediction}}}
+\begin{itemize}
+    \item Ship-level prediction of fuel consumption using neural net, real-time consumption data from a containership, weather data
+\end{itemize}
+\subsection{\myhref{Yan et al 2023 - Analysis and prediction of ship energy efficiency based on the MRV system.pdf}{\textcite{yan2023analysis}}}
+\begin{itemize}
+    \item analyzes and compares MRV records in 2018 and 2019, and then develops machine learning models for annual average fuel con­sumption prediction for each ship type combining ship features from an external database
+    \item mean absolute percentage error (MAPE) on the test set no more than 12\% and the average R-squared of all the models at 0.78
+    \item "first fuel consumption prediction models from a macro perspective using the MRV data"
+    \item one regression model for each ship type with more than 500 valid records
+    \item use the calculated annual average sailing speed from the MRV system as an input
+    \item World Register of Ships (WRS)
+    \item prediction target: annual average fuel consumption per distance (kg/nm)
+    \item gradient boosting regression tree, one for each ship type
+    \item impurity-based feature importance - directly from GBRT
+
+\end{itemize}
+\subsection{\myhref{Jebsen et al 2020 - Estimating vessel environmental performance.pdf}{\textcite{jebsen2020estimating}}}
+\begin{itemize}
+    \item operational data from 16 oil tankers from a single anonymous international shipping company
+    \item 14,098 noon reports with variables such as: report date; vessel name; departure and destination ports; longitude and
+    latitude; draft in metres; two measures of average daily speed in knots (speed over water (GPS-speed) and speed through water (LOG-speed)); fuel consumption in metric tons per day; daily distance in nautical miles; whether the vessel is ballast or laden; relative wind and swell direction and wind type; sea state and swell state
+    \item Copernicus database for wind and calculate trim (difference between forward and aft draft)
+    \item "ensemble method" with stacking, weighting based on each method's performance
+    \item p53 variable importance
+\end{itemize}
+\subsection{\myhref{Monisha et al 2023 - A STEP TOWARDS IMO GREENHOUSE GAS REDUCTION GOAL.pdf}{\textcite{monisha2023step}}}
+\begin{itemize}
+    \item ML on noon day reporting bangladesh
+\end{itemize}
+\subsection{\myhref{Yang et al 2024 - Harnessing the power of Machine learning for AIS Data-Driven.pdf}{\textcite{yang2024harnessing}}}
+\begin{itemize}
+    \item ML for improving raw AIS data?
+\end{itemize}
+
+\section{Nowcasting}
+\subsection{\href{https://play.google.com/books/reader?id=gHOVEAAAQBAJ&pg=GBS.PA2&hl=en}{\textcite{pandis2022nowcasting}}}
+\begin{itemize}
+    \item Scandinavian, across all sectors
+\end{itemize}
+\subsection{\myhref{IMF Arslanalp et al 2019 - Big Data on Vessel Traffic.pdf}{\textcite{arslanalp2019big}}}
+\subsection{\myhref{IMF Cerdeiro 2020 - World Seaborne Trade in Real Time.pdf}{\textcite{cerdeiro2020world}}}
+
+\section{Unclassified}
+
+\subsection{\myhref{van der Loeff et al 2018 - A spatially explicit data-driven approach to calculating commodity-specific shipping emissions per vessel}{\textcite{van2018spatially}}}
+\begin{itemize}
+    \item commodity-specific emissions using Brazilian bills of lading
+\end{itemize}
+
+
+
+\subsection{\myhref{Castells-Sanabra et al 2020 - Existing Emission Calculation Methods Applied to Monitoring, Reporting and Verification (MRV) on Board.pdf}{\textcite{castells2020existing}}}
+\begin{itemize}
+    \item not pertinent, discusses methods of implementing MRV
+\end{itemize}
+\subsection{\myhref{lundkvist 2023 - Can targeted disclosure regulations facilitate the environmental transition of the shipping sector    a study on the effect of the EU MRV Regulation on ship emissions.pdf}{\textcite{lundkvist2023can}}}
+\begin{itemize}
+    \item student project
+    \item does reporting reduce emissions?
+\end{itemize}
+\subsection{\myhref{Luo 2023 - After five years application of the European Union MRV mechanism Review and prospectives.pdf}{\textcite{luo2023after}}}
+\begin{itemize}
+    \item explores MRV data with graphs
+\end{itemize}
+
+
+% \subsection{\myhref{}{\textcite{}}} % template for adding new papers
+
+\newpage
+% Bibliography
+\printbibliography
+\end{document}
