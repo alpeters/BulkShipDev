@@ -66,8 +66,12 @@ py_run_file('AIS_Data_Static.py')
 py_run_file('AIS_Data_Combine.py')
 ```
 
-# AIS Calculations for Engineering Fuel Consumption Calculations
+# Engineering Estimates of Fuel Consumption
 
+# WFR Calculation Part of Engineering Estimates
+```{r, eval = FALSE}
+py_run_file('WFR Part of Engineering Estimates.py')
+```
 
 
 # AIS Calculations
@@ -85,6 +89,10 @@ Files useful for troubleshooting and verifying AIS_calculations:
 
 
 ```{r, eval = FALSE}
+py_run_file('AIS_Calculations_interp.py')
+```
+
+```{r, eval = FALSE}
 py_run_file('AIS_Calculations_PotentialPortcalls.py')
 ```
 
@@ -92,24 +100,13 @@ py_run_file('AIS_Calculations_PotentialPortcalls.py')
 py_run_file('AIS_Calculations_PP_Coast_EU.py')
 ```
 
+# Fuel Consumption & Yearly Aggregation
+
 ```{r, eval = FALSE}
-py_run_file('AIS_Calculations_EU.py')
-```
-```{r, eval = FALSE}
-py_run_file('AIS_Calculations_TripStats.py')
+py_run_file('EU_yearly_agg.py')
 ```
 
-```{r, child = 'AIS_Calculations_TripStats_Load.rmd', eval = FALSE}
-```
-# Data Joining
-```{r, child = 'All_Join.rmd', eval = TRUE}
-```
 
-# Exploration of composite dataset
-```{r, child = 'MRV-WFR_Exploration.rmd', eval = FALSE}
-```
 
-# Regressions
-```{r, child = 'Efficiency_Regression.rmd'}
-```
+
 
