@@ -17,6 +17,8 @@ import pandas as pd
 # %%
 
 def interpolate_missing_hours(group):
+    group['interpolated'] = False
+    
     # Calculate slerp location interpolation function
     lat_rad = np.radians(group['latitude'])
     long_rad = np.radians(group['longitude'])
@@ -62,7 +64,7 @@ def interpolate_missing_hours(group):
             slerp_vec[:, 2],
             np.sqrt(slerp_vec[:, 0]**2 + slerp_vec[:, 1]**2)))
     group['longitude'] = np.degrees(np.arctan2(slerp_vec[:, 1], slerp_vec[:, 0]))
-    group['interpolated'] = group.data_counter.isna()
+    group.loc[group['data_counter'].isna(), 'interpolated'] = True
     group = group.drop(columns=['data_counter', 'timestamp_hour', 'interp_steps', 'interp_step', 'interp_counter', 'interp_coord_index'])
     
     return group
@@ -78,10 +80,12 @@ def pd_diff_haversine(df):
 
     return df.assign(distance=dist, time_interval=timediff)
 
-def update_interpolated_speed(group):
-    speed = group['distance'] / group['time_interval']
-    group.loc[group['interpolated'], 'speed'] = speed[group['interpolated']]
-    return group
+
+def update_interpolated_speed(df):
+    speed = df['distance'] / df['time_interval']
+    df['speed'] = np.where(df['interpolated'], speed, df['speed'])
+    return df
+
 
 def infill_draught_partition(df):
     df['draught'].bfill(inplace=True) if df['draught'].isna().iloc[0] else df['draught'].ffill(inplace=True)
@@ -99,6 +103,7 @@ def process_partition_geo(df):
     ]
     for condition, phase in phase_conditions:
         gdf.loc[condition, 'phase'] = phase
+
     return gdf[df.columns.tolist() + ['phase']]
 
 
