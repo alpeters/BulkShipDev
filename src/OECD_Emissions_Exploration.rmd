@@ -1,0 +1,58 @@
+```{r}
+library(ggplot)
+library(tidyverse)
+library(lubridate)
+base_size <- 18
+theme_set(theme_minimal(base_size = base_size))
+imagepath = "src/plots"
+imageprefix = "OECD_Emissions_Exploration_"
+```
+
+
+```{r}
+emissions <- read_csv('src/data/OECD Monthly Emissions ML Estimates.csv',
+    name_repair = "universal") |>
+        
+    mutate(Date = my(Time))
+```
+
+```{r}
+emissions |>
+    distinct(Vessel.type)
+```
+```{r}
+emissions |>
+    filter(Vessel.type %in% c('Container', 'Bulk carrier', 'Cruise', 'All vessels')) |>
+    filter(LOCATION %in% c('OECD')) |>
+    mutate(Reference.Value = ifelse(Date == ym('2019-Jan'), Value, 0)) |>
+        
+    group_by(Vessel.type) |>
+    mutate(Reference.Value = max(Reference.Value, na.rm = TRUE),
+           Normalized.Value = Value/Reference.Value*100) |>
+    ggplot(aes(x = Date, y = Normalized.Value, color = Vessel.type)) +
+    # create shaded vertical strip for the pandemic period
+    annotate("rect",
+             xmin = ymd('2020-03-01'),
+             xmax = ymd('2020-06-01'),
+             ymin = 0,
+             ymax = Inf,
+             alpha = 0.2) +
+    geom_line() +
+    # facet_wrap(~Vessel.type) +
+    guides(legend = TRUE) +
+    ylim(0, 120) +
+    labs(y = 'Relative emissions',
+         subtitle = '(Jan 2019 = 100)',
+         color = 'Vessel Type',
+         x = NULL)
+        #  set legend title 
+
+
+ggsave(file.path(imagepath, paste0(imageprefix, "Relative_Emissions_by_Type.png")),
+    width = 7, height = 4)
+```
+
+
+```{r}
+
+```
