@@ -1,3 +1,12 @@
+"""
+Merge portcall locations (EU or not) to AIS trips 
+to identify trips into and out of EU &
+Aggregate yearly fuel consumption
+Input(s): portcalls_'callvariant'_EU.csv, ais_bulkers_potportcalls_'callvariant'.parquet
+Output(s): ais_bulkers_pottrips.parquet, ais_bulkers_trips.parquet, AIS_..._EU_yearly_stats.csv
+"""
+
+
 import sys, os
 import pandas as pd
 import dask.dataframe as dd
@@ -9,6 +18,54 @@ callvariant = 'speed' #'heading'
 EUvariant = '_EEZ' #''
 filename = 'portcalls_' + callvariant + '_EU'
 
+
+ais_bulkers = dd.read_parquet(os.path.join(datapath, 'AIS', 'ais_bulkers_potportcalls_speed'))
+ais_bulkers['timestamp'] = ais_bulkers['timestamp'].dt.tz_localize(None)
+ais_bulkers['timestamp'] = ais_bulkers['timestamp'].astype('datetime64[us]')
+ais_bulkers.head()
+
+portcalls = pd.read_csv(
+    os.path.join(datapath, 'pot' + filename + '.csv'),
+    usecols = ['mmsi', 'pot_trip', 'EU', 'ISO_3digit'],
+    dtype = {'mmsi' : 'int32',
+             'pot_trip': 'int16',
+             'EU': 'int8',
+             'ISO_3digit': 'str'}
+    )
+portcalls = (
+    portcalls
+    .set_index('mmsi')
+    .sort_values(['mmsi', 'pot_trip'])
+    )
+portcalls['pot_in_port'] = True
+
+ais_bulkers.merge(portcalls,
+                  how = 'left',
+                  on = ['mmsi', 'pot_trip', 'pot_in_port']).to_parquet(
+            os.path.join(filepath, 'ais_bulkers_pottrips'), 
+            append = False, 
+            overwrite = True)
+
+ais_bulkers = dd.read_parquet(os.path.join(datapath, 'AIS', 'ais_bulkers_pottrips'))
+ais_bulkers.head()
+
+
+ais_bulkers['in_port'] = ~ais_bulkers['EU'].isnull()
+ais_bulkers['year'] = ais_bulkers.timestamp.apply(lambda x: x.year, meta=('x', 'int16'))
+
+def update_trip(df):
+    df['trip'] = df.groupby('mmsi').in_port.cumsum()
+    return df
+
+meta_dict = ais_bulkers.dtypes.to_dict()
+meta_dict['trip'] = 'int'
+
+
+ais_bulkers.map_partitions(update_trip, meta=meta_dict).rename(columns = {'ISO_3digit': 'origin'}).to_parquet(
+    os.path.join(filepath, 'ais_bulkers_trips'),
+    append = False,
+    overwrite = True,
+    engine = 'pyarrow')
 
 ais_bulkers = dd.read_parquet(os.path.join(datapath, 'AIS', 'ais_bulkers_trips'))
 ais_bulkers.head()
