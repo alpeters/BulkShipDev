@@ -1,3 +1,12 @@
+"""
+Hourly Interpolation and detect trip phases from cleaned dynamic AIS data.
+Input(s): ais_bulkers_calcs.parquet
+Output(s): ais_bulkers_interp.parquet
+Runtime:
+"""
+
+
+
 #%%
 import os, time
 import timeit
