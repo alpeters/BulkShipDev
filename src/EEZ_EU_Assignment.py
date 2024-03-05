@@ -80,7 +80,7 @@ difference_gdf.to_file(os.path.join(datapath, outfilename + '.gpkg'), driver='GP
 
 # Identify countries subject to MRV (i.e. in European Economic Area) before Brexit (end of 2020)
 # https://ec.europa.eu/clima/eu-action/transport-emissions/reducing-emissions-shipping-sector_en#tab-0-3
-# This is valid until the end of 2020 (Brexit takes effect)
+# This includes all territories that were ever included in the MRV regulation
 #%%
 EU_territory = [
     'Belgium',
@@ -132,7 +132,7 @@ country_correct('Martinique')
 if len(EU_df[EU_df.name != EU_df.name_pycountry]) > 0:
     print(EU_df[EU_df.name != EU_df.name_pycountry])
     print('Some names do not match perfectly. Verify visually!')
-# Only differences should be minor name differences or assignment of some territories to their parent countries, e.g. Canrias to Spain
+# Only differences should be minor name differences or assignment of some territories to their parent countries, e.g. Canarias to Spain
 
 #%% Add EU territory indicator
 EEZ_gdf = gpd.read_file(os.path.join(datapath, outfilename + '.gpkg'))
@@ -145,8 +145,14 @@ if len(missing_codes) != 0:
 else:
     print("All EU country codes were found in the EEZ map")
 
-#%%
-EEZ_gdf['EU'] = EEZ_gdf['ISO_3digit'].isin(EU_df['country_code'])
+#%% Pre-Brexit includes UK
+EEZ_gdf['EU_preBrexit'] = EEZ_gdf['ISO_3digit'].isin(EU_df['country_code'])
+#%% Post-Brexit excludes UK
+EU_postBrexit_df = EU_df[EU_df.name != 'United Kingdom']
+EEZ_gdf['EU_postBrexit'] = EEZ_gdf['ISO_3digit'].isin(EU_postBrexit_df['country_code'])
+
+#%% TEMPORARY to ensure compatibility until subsequent code is updated
+EEZ_gdf['EU'] = EEZ_gdf['EU_preBrexit']
 
 #%% Save to shapefile
 filename = 'EEZ_exclusion_EU'
