@@ -74,7 +74,7 @@ py_run_file('WFR Calculations_Fixed_Power.py')
 
 # AIS Calculations
 ```{r, eval = FALSE}
-py_run_file('EEZ_EU.py')
+py_run_file('EEZ_EU_Assignment.py')
 ```
 
 ```{r, eval = FALSE}
