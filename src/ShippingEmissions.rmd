@@ -66,11 +66,9 @@ py_run_file('AIS_Data_Static.py')
 py_run_file('AIS_Data_Combine.py')
 ```
 
-# Engineering Estimates of Fuel Consumption
-
-# WFR Calculation Part of Engineering Estimates
+# Fixed ship component of power consumption
 ```{r, eval = FALSE}
-py_run_file('WFR Part of Engineering Estimates.py')
+py_run_file('WFR Calculations_Fixed_Power.py')
 ```
 
 
