@@ -1,0 +1,324 @@
+---
+title: "AIS Calculations Interp Stats Explore"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+```
+
+Plotting defaults
+```{r}
+imagepath = "plots"
+imageprefix = "AIS_Calculations_Interp_Stats_Explore_"
+# update_geom_defaults("text", list(size = 20))
+base_size <- 18
+theme_set(theme_minimal(base_size = base_size))
+theme_pres <- function(base_size){
+  theme_get() %+replace%
+    theme(axis.ticks = element_line(colour = "grey70", linewidth = rel(0.5)),
+          panel.grid = element_blank(),
+          panel.grid.major.y = element_line(colour = 'grey90', linewidth = rel(0.5)),
+          # panel.border = element_rect(fill = NA, colour = "grey30", linewidth = rel(0.8)),
+          strip.text = element_text(size=1.03*base_size),
+          legend.text = element_text(size=1.1*base_size))
+}
+pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a")
+```
+
+
+```{r}
+stats <- read_csv('data/AIS/ais_bulkers_interp_stats.csv')
+stats
+```
+# Further aggregation and calcs
+Create version aggregated over phase
+```{r}
+stats_shipyearinterp <- stats |> 
+  group_by(mmsi, year, interpolated) |> 
+  summarise(across(-phase, sum), .groups = 'drop')
+stats_shipyearinterp
+
+stats_shipyear_observed <- stats_shipyearinterp |> 
+  filter(!interpolated)
+```
+
+Create version aggregated over interpolated
+```{r}
+stats_shipyearphase <- stats |> 
+  group_by(mmsi, year, phase) |> 
+  summarise(across(-interpolated, sum), .groups = 'drop')
+stats_shipyearphase
+```
+
+
+Create version aggregated over interpolated and phase
+```{r}
+stats_shipyear <- stats |> 
+  group_by(mmsi, year) |> 
+  summarise(across(-c(phase, interpolated), sum), .groups = 'drop') |> 
+  mutate(observations = timestamp_size - interpolated_sum)
+stats_shipyear
+```
+
+Check I understand pandas size function correctly
+```{r}
+stats |> 
+  mutate(across(contains('_size'),
+                \(x) timestamp_size == x),
+                .keep = 'none') |> 
+  summarise(across(everything(), all))
+```
+These should all be true
+
+# Check missing
+Check no NAs in variables
+```{r}
+stats |> 
+  mutate(across(contains('_count'),
+                \(x) timestamp_size == x),
+                .keep = 'none') |> 
+  summarise(across(everything(), all))
+```
+TRUE if no na observations
+
+Expect NAs in distance and time interval because of first observation
+```{r}
+stats_shipyear |> 
+  group_by(mmsi) |> 
+  summarise(across(-year, sum), .groups = 'drop') |> 
+  mutate(distance.missing = timestamp_size - distance_count,
+         time.interval.missing = timestamp_size - time_interval_count) |> 
+  select(mmsi, contains('missing')) |> 
+  pivot_longer(contains('missing')) |> 
+  ggplot(aes(x = value, fill = name)) +
+  geom_histogram(position = 'dodge',
+                 alpha = 0.5) +
+  theme_minimal()
+```
+Some have more than one. Not sure why, but it isn't many.
+
+```{r}
+stats_shipyear |> 
+  group_by(mmsi,year) |> 
+  summarise(across(everything(), sum), .groups = 'drop') |> 
+  mutate(distance.missing = timestamp_size - distance_count,
+         time.interval.missing = timestamp_size - time_interval_count) |> 
+  select(mmsi, year, contains('missing')) |> 
+  pivot_longer(contains('missing')) |> 
+  ggplot(aes(x = value, fill = name)) +
+  geom_histogram(position = 'dodge',
+                 alpha = 0.5) +
+  facet_wrap(~year) +
+  theme_minimal()
+```
+
+# Completeness
+## Number of obs
+How many mmsi observed?
+```{r}
+stats |> 
+  distinct(mmsi) |> 
+  nrow()
+```
+
+Per year
+```{r}
+stats |> 
+  group_by(year) |> 
+  distinct(mmsi) |> 
+  count()
+```
+
+Check two methods of calculating number of observed (vs. interpolated) rows give the same
+```{r}
+stats_shipyear_observed |>  
+  select(mmsi, year, timestamp_count) |> 
+  left_join(stats_shipyear |> 
+              select(mmsi, year, observations),
+            by = c('mmsi', 'year')) |> 
+  mutate(equal = timestamp_count == observations) |> 
+  summarise(all(equal))
+```
+
+Number of observations per ship-year
+```{r}
+stats_shipyear_observed |> 
+  ggplot(aes(x = timestamp_count, fill = factor(year))) +
+  geom_histogram(position = 'identity', alpha = 0.6) +
+  theme_minimal()
+```
+
+Which are very low?
+```{r}
+stats_shipyear_observed |> 
+  filter(timestamp_count < 10) # One of 3 IMO4 criteria for discarding mmsi
+```
+
+
+## Non-interpolated fraction
+Amount observed within first obs to last obs
+```{r}
+stats_shipyearinterp |> 
+  group_by(mmsi, year) |> 
+  mutate(rows.fraction.pct = timestamp_count/sum(timestamp_count)*100, .after = 'interpolated') |> 
+  filter(!interpolated) |> 
+  ggplot(aes(x = rows.fraction.pct, fill = factor(year))) +
+  geom_histogram(position = 'identity', 
+                 alpha = 0.6,
+                 binwidth = 5) +
+  theme_minimal()
+```
+
+## Coverage (hours observed vs total hours per year)
+```{r}
+stats_shipyear_observed |> 
+  mutate(coverage.pct = timestamp_count/8760*100) |> 
+  ggplot(aes(x = coverage.pct, fill = factor(year))) +
+  geom_histogram(position = 'identity',
+                 alpha = 0.6,
+                 binwidth = 5) +
+  theme_minimal()
+```
+
+## By Time
+Very similar, except time interval should be smaller for more-than-hourly one, so shouldn't be over 100
+```{r}
+stats_shipyear_observed |> 
+  mutate(time.observed.pct = time_interval_sum/8760*100) |> 
+  ggplot(aes(x = time.observed.pct, fill = factor(year))) +
+  geom_histogram(position = 'identity',
+                 alpha = 0.5) +
+  theme_minimal()
+```
+# TODO: Look into why still have over 100%
+
+# Check Data Validity
+## Time Intervals
+```{r}
+stats |> 
+  group_by(mmsi, year) |> 
+  summarise(max.time.interval = max(time_interval_max)) |> 
+  ggplot(aes(x = max.time.interval, fill = factor(year))) + 
+  geom_histogram(position = 'identity',
+                 alpha = 0.5)
+```
+
+Mean time interval for anchored
+```{r}
+stats |> 
+  filter(phase == 'Anchored') |> 
+  ggplot(aes(x = time_interval_mean, fill = factor(year))) +
+  geom_histogram(position = 'identity', alpha = 0.5) +
+  facet_wrap(~interpolated)
+```
+
+Mean time interval for sea
+```{r}
+stats |> 
+  filter(phase == 'Sea') |> 
+  ggplot(aes(x = time_interval_mean, fill = factor(year))) +
+  geom_histogram(position = 'identity', alpha = 0.5) +
+  facet_wrap(~interpolated)
+```
+
+
+## Distance intervals
+max
+```{r}
+stats |> 
+  ggplot(aes(x = distance_max, fill = factor(year))) +
+  geom_histogram(position = 'identity',
+                 alpha = 0.5) +
+  facet_wrap(c(~interpolated, ~phase), scales = 'free')
+```
+High ones somewhere, where?
+```{r}
+stats |> 
+  select(mmsi, year, interpolated, phase, distance_max) |> 
+  filter(distance_max > 20) |> 
+  arrange(desc(distance_max))
+```
+
+```{r}
+stats |> 
+  select(mmsi, year, interpolated, phase, distance_max) |> 
+  filter(distance_max > 20) |> 
+  group_by(year, interpolated, phase) |> 
+  count()
+```
+
+
+## Speed
+max
+```{r}
+stats |> 
+  ggplot(aes(x = speed_max, fill = factor(year))) +
+  geom_histogram(position = 'identity',
+                 alpha = 0.5) +
+  facet_wrap(c(~interpolated, ~phase), scales = 'free')
+```
+High ones somewhere, where?
+```{r}
+stats |> 
+  select(mmsi, year, interpolated, phase, speed_max) |> 
+  filter(speed_max > 20) |> 
+  arrange(desc(speed_max))
+```
+
+```{r}
+stats |> 
+  select(mmsi, year, interpolated, phase, speed_max) |> 
+  filter(speed_max > 20) |> 
+  group_by(year, interpolated, phase) |> 
+  count()
+```
+
+
+# Phase share
+By time 
+```{r}
+stats_shipyearphase |> 
+  group_by(mmsi, year) |> 
+  mutate(phase.time.pct = time_interval_sum/sum(time_interval_sum)*100,
+         .after = 'phase') |> 
+  ggplot(aes(x = phase.time.pct, fill = factor(year))) +
+  geom_histogram(position = 'identity', alpha = 0.5) +
+  facet_wrap(~phase)
+  
+```
+
+```{r}
+stats_shipyearphase |> 
+  group_by(mmsi, year) |> 
+  mutate(phase.time.pct = time_interval_sum/sum(time_interval_sum)*100,
+         .after = 'phase') |> 
+  group_by(year, phase) |> 
+  summarise(mean.phase.time.pct = mean(phase.time.pct, na.rm = TRUE)) |> 
+  pivot_wider(names_from = year, values_from = mean.phase.time.pct)
+```
+
+
+
+# Distance
+Total distance per year
+```{r}
+stats_shipyear |> 
+  ggplot(aes(x = distance_sum, fill = factor(year))) +
+  geom_histogram(position = 'identity',
+                 alpha = 0.5)
+```
+
+```{r}
+stats_shipyear |> 
+  group_by(year) |> 
+  mutate(distance.share = distance_sum/sum(distance_sum)) |> 
+  ggplot(aes(x = distance.share, fill = factor(year))) +
+  geom_histogram(position = 'identity',
+                 alpha = 0.5)
+```
+Distribution of distances fairly different between years.
+Is this related to poorer data quality in 2019? i.e. more missing observations for certain ships?
+
+
