@@ -30,8 +30,21 @@ client = Client(cluster)
 #%%
 # ais_bulkers = dd.read_parquet(os.path.join(datapath, 'ais_bulkers_interp')).get_partition(0)
 ais_bulkers = dd.read_parquet(os.path.join(datapath, 'ais_bulkers_interp'))
-ais_bulkers.head()
+# ais_bulkers.get_partition(1).loc[205125000, ['timestamp', 'distance']].compute()
+# ais_bulkers.get_partition(1).loc[205125000].compute()
 ais_bulkers.columns
+
+#%% Check if improbably high distances are due to a path change from previous row
+# print(ais_bulkers.loc[205125000].head())
+# ais_bulkers['path_change'] = ais_bulkers.path.astype(int).diff()
+# ais_bulkers = ais_bulkers.loc[ais_bulkers['distance'] > 30]
+# high_dist = ais_bulkers.loc[:, ['timestamp', 'distance', 'path', 'path_change']]
+# ais_bulkers.path_change.value_counts().compute()
+# No, almost all do not change path
+
+#%% Count the number of each value of path
+ais_bulkers['path'].value_counts().compute()
+
 #%%
 ais_bulkers['year'] = ais_bulkers.timestamp.dt.year
 

@@ -114,6 +114,15 @@ stats_shipyear |>
   theme_minimal()
 ```
 
+Any have all draught missing?
+```{r}
+stats |> 
+  group_by(mmsi) |> 
+  summarise(all.draught.missing = all(draught_count) == 0) |> 
+  count(all.draught.missing)
+```
+
+
 # Completeness
 ## Number of obs
 How many mmsi observed?
@@ -231,7 +240,8 @@ stats |>
   ggplot(aes(x = distance_max, fill = factor(year))) +
   geom_histogram(position = 'identity',
                  alpha = 0.5) +
-  facet_wrap(c(~interpolated, ~phase), scales = 'free')
+  facet_wrap(c(~interpolated, ~phase), scales = 'free') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 High ones somewhere, where?
 ```{r}
@@ -321,4 +331,36 @@ stats_shipyear |>
 Distribution of distances fairly different between years.
 Is this related to poorer data quality in 2019? i.e. more missing observations for certain ships?
 
+
+# Speed
+Average speed at sea
+By observations
+```{r}
+stats |> 
+  filter(phase == 'Sea') |> 
+  ggplot(aes(x = speed_mean, fill = factor(year))) +
+  geom_histogram(position = 'identity',
+                 alpha = 0.5) +
+    facet_wrap(~interpolated)
+```
+
+Below 20kts
+```{r}
+stats |> 
+  filter(phase == 'Sea') |> 
+  filter(speed_mean <= 20) |> 
+  ggplot(aes(x = speed_mean, fill = factor(year))) +
+  geom_histogram(position = 'identity',
+                 alpha = 0.5,
+                 binwidth = 0.1) +
+    facet_wrap(~interpolated)
+```
+
+```{r}
+stats |> 
+  filter(phase == 'Sea') |> 
+  filter(speed_mean <= 20) |>
+  group_by(year) |> 
+  summarise(avg.speed.mean = mean(speed_mean))
+```
 
