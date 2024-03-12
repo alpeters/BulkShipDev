@@ -228,10 +228,10 @@ sns.lineplot(x=diagonal_coords, y=diagonal_coords, color='grey')
 fig.savefig(os.path.join(plotpath, plotprefix + 'speed_vs_servicespeed.png'))
 
 # We choose to use 'Service.Speed..knots.' as the speed variable  due to the combination of completeness and consistent definition across all ships
-
+#%%
 # ***CLARIFY***
 # derive maximum speed from service speed(service speed is 92% of maximum speed)
-wfr_bulkers['Reference.Speed..knots.'] = wfr_bulkers['Service.Speed..knots.'] / 0.92
+wfr_bulkers['Reference.Speed..knots.'] = wfr_bulkers['Service.Speed..knots.'] #/ 0.92
 
 
 #%% Check how many non-missing values for other variables required for power calculation
