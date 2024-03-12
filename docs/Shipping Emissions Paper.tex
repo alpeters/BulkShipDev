@@ -1,0 +1,211 @@
+%-------------------------------------
+% CONFIGURATION
+%-------------------------------------
+
+\documentclass[hidelinks,11pt]{article}
+
+% TABLE PATHS
+\makeatletter
+\def\input@path{{../src/tables/}}
+\makeatother
+
+% JUSTIFICATION
+\usepackage{geometry}
+\geometry{
+	paper=letterpaper, % Change to letterpaper for US letter
+	top=2.5cm, % Top margin
+	bottom=2.5cm, % Bottom margin
+	left=2.5cm, % Left margin
+	right=2.5cm, % Right margin
+	%showframe, % Uncomment to show how the type block is set on the page
+}
+\usepackage{microtype} % Improve justification
+\usepackage[onehalfspacing]{setspace}
+
+% % SECTIONS, REFERENCES, AND CITATIONS
+\usepackage[hyperfootnotes=false]{hyperref}
+\hypersetup{
+    colorlinks=false, %links not colored
+    linktoc=all %link to both section and subsections
+}
+\usepackage[english]{babel}
+\addto\extrasenglish{
+	\def% -------------------------------------------------
+\sectionautorefname{Section}
+  \def\subsectionautorefname{Section}
+	\def\subsubsectionautorefname{Section}
+}
+\usepackage[backend=biber,style=apa,autocite=inline,hyperref=false]{biblatex} 
+\usepackage{csquotes}
+\DeclareLanguageMapping{english}{english-apa}
+\addbibresource{shippingemissionstrade.bib}
+% Use shortauthor when available
+\makeatletter
+\AtEveryCitekey{\ifnameundef{shortauthor}{}{\def\cbx@apa@ifnamesaved{\@firstoftwo}}}
+\makeatother
+
+% MATH FORMATTING
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{amssymb}
+
+% GRAPHICS
+\usepackage{graphicx} % Allows including images
+\graphicspath{{../src/plots/}}
+\usepackage{float} % Allows for control of float positions
+
+% TABLE FORMATTING
+\usepackage[table]{xcolor} % for color in tables
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{makecell}
+\renewcommand\theadalign{cc}
+\renewcommand\theadfont{\bfseries}
+\renewcommand\theadgape{\Gape[1pt]}
+\renewcommand\cellalign{cl}
+\renewcommand\cellgape{\Gape[1pt]}
+\usepackage{threeparttable} % regression notes on tables
+\usepackage{adjustbox} % adjust table width
+
+% % GENERAL
+\usepackage{enumerate}
+
+% TITLE PAGE
+\newcommand{\acknowledgement}{Corresponding author. \\
+    Vancouver School of Economics, University of British Columbia, 
+    6000 Iona Drive, Vancouver, BC, Canada.\\
+    \textit{Email addresses:} apeters@protonmail.com (A. Peters), hkasahar@mail.ubc.ca (H. Kasahara), xjy099@student.ubc.ca (O. Xu), zhaoxinbo1999@outlook.com (J. Zhao).\\
+    We thank ... for excellent research assistance. Data acquisition was funded by a generous grant from the Centre for Innovative Data in Economics Research.
+}
+\title{Improving Maritime Shipping Emissions Estimates Using Machine Learning}
+\author{Allen Peters\thanks{\acknowledgement}, Hiroyuki Kasahara, Oliver Xu, Jasper Zhao\\
+        \vspace{1em}\\        
+        {\Large \textbf{DRAFT}}\\
+        % {\small \color{blue}\href{https://alpeters.github.io/assets/pdf/}{CLICK HERE FOR THE MOST RECENT VERSION}}
+        }
+\date{\today}
+
+%---------------------------------------
+% DOCUMENT
+%---------------------------------------
+
+\begin{document}
+
+\begin{titlepage}
+
+\maketitle
+
+\begin{abstract}
+    We explore the potential of machine learning algorithms to improve upon engineering estimates of CO$_2$ emissions from maritime shipping. Traditional estimates rely on engineering approximations that may not entirely capture actual fuel use. We match reported annual ship-level emissions from a European Union emissions reporting program with tracking data and technical characteristics for the global fleet of dry bulk ships. As a baseline, we follow industry standard procedures to calculate engineering estimates of annual ship-level emissions. We then train various machine learning algorithms on the residual---the discrepancy between reported and calculated emissions---and are able to improve out-of-sample prediction.
+\end{abstract}
+
+
+% % \vfill
+% % \textit{Keywords:} 
+% % \textit{JEL codes: }
+% % \textit{JEL codes (2-digit): }
+
+\thispagestyle{empty} % Removes page number from first page
+\end{titlepage}
+
+% % -------------------------------------------------
+
+\section{Introduction}
+
+Motivation:
+    \begin{itemize}
+        \item Shipping emissions are a significant contributor to global CO$_2$ emissions.
+        \item Traditional estimates rely on engineering approximations that may not entirely capture actual fuel use.
+        \item Higher frequency estimates (typically published with lag)
+        \item Existing estimates may suffer from poor data quality
+    \end{itemize}
+What we do:
+    \begin{itemize}
+        \item Provide a machine learning approach to more accurately estimate CO$_2$ emissions
+        \item Higher frequency estimates (typically published with lag)
+        \item Take emissions reports as truthful and accurate
+        \item Predict residual between reported and calculated emissions - thereby guarantee improvement upon standard bottom-up approach
+        \item Dealing with missing data for extrapolation
+        \item We are able to explain x\% of variation in residual
+        \item Better untracked (no AIS data) predictions???
+    \end{itemize}
+Contribution and results preview:
+    \begin{itemize}
+        \item Machine learning provides a flexible functional form that can:
+        \begin{itemize}
+            \item Capture divergence from engineering relationships
+            \item Help to mitigate error from imperfect/incomplete tracking data
+        \end{itemize}
+        \item Bottom-up vs. top-down
+        \begin{itemize}
+            \item How do reported values compare?
+            \item How do our estimates compare?
+        \end{itemize}
+    \end{itemize}
+Literature:
+    \begin{itemize}
+        \item IMO Fourth GHG Study
+        \item precursors for estimation method: 
+        \begin{itemize}
+            \item 
+        \end{itemize}
+        \item Paper on detecting misreporting in EU MRV
+        \item Other literatures???
+    \end{itemize}
+
+
+\section{Data}
+\begin{itemize}
+    \item AIS data
+    \begin{itemize}
+        \item Descriptive statistics on: missing observations, ...?
+    \end{itemize}
+    \item Vessel characteristics from Clarkson Research WFR
+    \item EU MRV
+    \begin{itemize}
+        \item Context
+        \item Potential for misreporting
+        \item descriptive statistics on number of reporting ships, comparison of reporting to non-reporting over various dimensions (which ones?)
+    \end{itemize}
+\end{itemize}
+
+\section{Methodology}
+\begin{itemize}
+    \item Matching AIS data to EU trips
+    \begin{itemize}
+        \item Compare to page 140 of IMO Fourth GHG Study \parencite{faber2020fourth}
+    \end{itemize}
+    \item Replicating IMO bottom-up approach (Highlight differences)
+    \begin{itemize}
+        \item Interpolating missing data
+    \end{itemize}
+    \item Machine Learning
+    \begin{itemize}
+        \item Variable selection
+        \item Algorithms
+        \begin{itemize}
+            \item Linear: lasso, ridge, (elastic net?)
+            \item discuss why not neural net
+            \item 
+        \end{itemize}
+        \item Hyper parameter tuning (cross-validation)
+    \end{itemize}
+    \item Extrapolation
+    \begin{itemize}
+        \item Comparison of MRV reporting fleet to non-reporting
+    \end{itemize}
+\end{itemize}
+
+
+\section{Results}
+\begin{itemize}
+    \item Linear vs. non-linear models
+    \item discuss log-additive discrepancy
+    \item Why do some models work better than others?
+\end{itemize}
+
+\section{Conclusion}
+
+
+
+\end{document}
