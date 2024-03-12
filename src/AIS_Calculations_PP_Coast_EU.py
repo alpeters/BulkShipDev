@@ -1,6 +1,6 @@
 """
-Select only potential portcalls within a certain distance of the coast and
-assign EEZ (country with EU status and with waterways excluded) to them
+Select actual portcalls as the subset of potential portcalls within a certain distance of the coast.
+Assign EEZ nationality (country with EU status and with waterways excluded) to these portcalls.
 Input(s): EEZ_exclusion_EU.shp, potportcalls_'callvariant'.shp
 Output(s): potportcalls_'callvariant'_EU.csv (, portcalls_'callvariant'_EU_buffer.gpkg)
 Runtime: 7m30
@@ -18,7 +18,7 @@ Steps:
 import sys, os
 from qgis.core import *
 
-datapath = './data'
+datapath = './src/data'
 variant = 'speed' #'heading'
 
 #%%
