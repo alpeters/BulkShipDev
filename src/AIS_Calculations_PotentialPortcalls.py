@@ -34,7 +34,7 @@ def pd_detect_trips_speed(df, time_window = '12H', speed_threshold = 1):
     df['pot_in_port'] = (
         df
         .groupby('mmsi')
-        .implied_speed
+        .speed  # used to be implied_speed
         .transform(lambda x: x.rolling(
             window = time_window,
             min_periods = 1)
@@ -49,6 +49,8 @@ def pd_detect_trips_speed(df, time_window = '12H', speed_threshold = 1):
     df.insert(0, 'timestamp', df.index.get_level_values('timestamp'))
     df.set_index('mmsi', inplace = True)
     return df
+
+
 #%%
 meta_dict = ais_bulkers.dtypes.to_dict()
 meta_dict['pot_in_port'] = 'bool'
