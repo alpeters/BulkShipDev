@@ -1,6 +1,7 @@
 """
 Detect potential portcalls from cleaned dynamic AIS data.
-Input(s): ais_bulkers_calcs.parquet
+Callvariant 'speed' uses a maximum speed threshold over a given time window to label potential portcalls.
+Input(s): ais_bulkers_interp.parquet
 Output(s): ais_bulkers_potportcalls_'callvariant'.parquet, potportcalls_'callvariant'.shp 
 Runtime: 7m
 """
@@ -17,7 +18,7 @@ filepath = os.path.join(datapath, 'AIS')
 callvariant = 'speed' #'heading'
 
 #%%
-ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs'))
+ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_interp'))
 ais_bulkers.head()
 
 #%%
@@ -26,6 +27,7 @@ ais_bulkers.head()
 
 # Trip detection
 def pd_detect_trips_speed(df, time_window = '12H', speed_threshold = 1):
+    df = df.copy() # was getting warning about writing to slice
     # Need to swap index from mmsi to timestamp for time rolling operation
     df['mmsi'] = df.index.get_level_values('mmsi')
     df.set_index('timestamp', inplace = True)
@@ -34,7 +36,7 @@ def pd_detect_trips_speed(df, time_window = '12H', speed_threshold = 1):
     df['pot_in_port'] = (
         df
         .groupby('mmsi')
-        .implied_speed
+        .speed
         .transform(lambda x: x.rolling(
             window = time_window,
             min_periods = 1)
