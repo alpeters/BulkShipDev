@@ -1,11 +1,11 @@
 """
-Hourly Interpolation and detect trip phases from cleaned dynamic AIS data.
+Hourly interpolation and detect trip phases from cleaned dynamic AIS data.
 Input(s): ais_bulkers_calcs.parquet
 Output(s): ais_bulkers_interp.parquet
-Runtime:
+Runtime: 23m local
 """
 
-
+running_on = 'local'  # 'local' or 'hpc'
 
 #%%
 import os, time
@@ -17,15 +17,22 @@ import dask.dataframe as dd
 from dask_jobqueue import SLURMCluster
 from datetime import timedelta
 from dask.distributed import Client, LocalCluster
-# from dask.distributed import Lock
 from scipy.spatial.transform import Rotation as R, Slerp
-import pandas as pd
 
 #%% Functions
 
 # %%
 
 def interpolate_missing_hours(group):
+    """ 
+    Interpolate missing observations in the time series at roughly hourly intervals.
+
+    Args:
+        group (pd.DataFrame): group of dataframe (grouped by mmsi) with columns latitude, longitude, timestamp
+
+    Returns:
+        pd.DataFrame: input group with additional interpolated rows and column indicating whether the row is interpolated
+    """
     group['interpolated'] = False
     
     # Calculate slerp location interpolation function
@@ -61,6 +68,7 @@ def interpolate_missing_hours(group):
     group.interp_step.ffill(inplace=True)
     group['interp_steps'] = group.interp_steps.bfill().astype(int)
     group['path'] = group.path.astype(bool)
+    group['interpolated'] = group['interpolated'].astype(bool)
     # Interpolate timestamps
     group['interp_counter'] = (np.ceil((group.timestamp_hour - group.timestamp).dt.total_seconds() / 3600).astype(int))
     group['timestamp'] = group.timestamp + pd.to_timedelta(group.interp_step*group.interp_counter, unit='H')
@@ -79,6 +87,15 @@ def interpolate_missing_hours(group):
     return group
 
 def pd_diff_haversine(df):
+    """
+    Calculates the distance (haversine) and time interval with respect to the previous row
+    
+    Args:
+        df (pd.DataFrame): input dataframe with columns latitude, longitude, timestamp
+
+    Returns:
+        pd.DataFrame: input dataframe with additional columns distance, time_interval
+    """
     df_lag = df.shift(1)
     timediff = (df.timestamp - df_lag.timestamp)/np.timedelta64(1, 'h')
     haversine_formula = 2 * 6371.0088 * 0.539956803  # precompute constant
@@ -90,41 +107,53 @@ def pd_diff_haversine(df):
     return df.assign(distance=dist, time_interval=timediff)
 
 
-def update_interpolated_speed(df):
+def impute_speed(df):
+    """ Impute speed for interpolated observations based on distance/time_interval. """
     speed = df['distance'] / df['time_interval']
     df['speed'] = np.where(df['interpolated'], speed, df['speed'])
     return df
 
 
 def infill_draught_partition(df):
-    df['draught'].bfill(inplace=True) if df['draught'].isna().iloc[0] else df['draught'].ffill(inplace=True)
+    """ Forward fill draught and then backward fill in case the first row is missing."""
+    df['draught_interpolated'] = df['draught'].isna() # TODO Clarifying what this is checking
+    df['draught'] = df['draught'].ffill()
+    df['draught'] = df['draught'].bfill()
+    # df['draught'].bfill(inplace=True) if df['draught'].isna().iloc[0] else df['draught'].ffill(inplace=True) # this will lead to inconsistent filling strategy
     return df
 
 
-def process_partition_geo(df):
-    gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude))
-    gdf = gdf.set_crs(buffered_coastline.crs)
-    gdf = gpd.sjoin(gdf, buffered_coastline, how="left", predicate='within')
-    phase_conditions = [
-        (gdf['speed'] <= 3, 'Anchored'),
-        ((gdf['speed'] >= 4) & (gdf['speed'] <= 5), 'Manoeuvring'),
-        (gdf['speed'] > 5, 'Sea')
-    ]
-    for condition, phase in phase_conditions:
-        gdf.loc[condition, 'phase'] = phase
-
+def assign_phase(df):
+    """ Assign phase to each observation based on speed and distance to coast. """
+    gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.longitude, df.latitude), crs="EPSG:4326")
+    gdf = gdf.to_crs(buffered_coastline.crs)
+    # gdf = gpd.sjoin(gdf, buffered_coastline, how="left", predicate='within')
+    gdf = gpd.sjoin(buffered_coastline, gdf, how="right", predicate='contains')
+    gdf['phase'] = pd.cut(gdf['speed'], [-np.inf, 3, 5, np.inf], right=True, include_lowest=True, labels=['Anchored', 'Manoeuvring', 'Sea'])
+    gdf.loc[(gdf['phase'] == 'Manoeuvring') & (gdf['index_left'].isna()), 'phase'] = 'Sea'
     return gdf[df.columns.tolist() + ['phase']]
 
-
 def process_group(group):
+    """ 
+    Performs interpolation and phase assignment group-wise.
+    
+    Args:
+        group (pd.DataFrame): group of ais dataframe (grouped by mmsi)
+
+    Returns:
+        pd.DataFrame: input group with additional interpolated rows and columns 'interpolated' and 'phase'
+    """
     group = interpolate_missing_hours(group)
     group = infill_draught_partition(group)
     group = pd_diff_haversine(group)
-    group = update_interpolated_speed(group)
-    group = process_partition_geo(group)
+    group = impute_speed(group)
+    group = assign_phase(group)
     return group
 
 def process_partition(df):
+    print(f"Processing partition with first mmsi {df.index[0]}")
+    # df = df.loc[205041000]
+    print(f"Time: {time.time() - start_time}")
     df = (
         df
         .groupby('mmsi', group_keys=False)
@@ -138,41 +167,38 @@ def process_partition(df):
 datapath = 'src/data/'
 filepath = os.path.join(datapath, 'AIS')
 
-
-#%% Create test file with first rows of each partition
-# dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs_test'))
-# (
-#     ais_bulkers
-#     .map_partitions(lambda df: df.head(20000)).to_parquet(
-#     os.path.join(filepath, 'ais_bulkers_calcs_testheads'),
-#     append=False,
-#     overwrite=True,
-#     engine='fastparquet')
-# )
 #%%
-ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs_testheads'))
-ais_bulkers.head()
-#%%
-# Load the buffered reprojected shapefile (can be done by python or use QGIS directly)
-buffered_coastline = gpd.read_file(os.path.join(datapath, 'buffered_reprojected_coastline', 'buffered_reprojected_coastline.shp'))
+ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs'))
+# ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs')).get_partition(0)
 
+#%%
+# Load the buffered mapfile (can be done by python or use QGIS directly)
+buffered_coastline = gpd.read_file(os.path.join(datapath, 'land_split_buffered_0_8333_degrees_fixed.gpkg')).drop(columns=['featurecla'])
+
+#%%
 meta_dict = ais_bulkers.dtypes.to_dict()
 meta_dict['interpolated'] = 'bool'
+meta_dict['draught_interpolated'] = 'bool' # TODO clarify what this is checking
 meta_dict['phase'] = 'string'
 
+#%%
+if running_on == 'hpc':
+    # Create a SLURM cluster object
+    cluster = SLURMCluster(
+        account='def-kasahara-ab',
+        cores=1,  # This matches --ntasks-per-node in the job script
+        memory='100GB', # Total memory
+        walltime='1:00:00'
+        #job_extra=['module load proj/9.0.1',
+                #'source ~/carbon/bin/activate']
+    )
+    cluster.scale(jobs=3) # This matches --nodes in the SLURM script
+elif running_on == 'local':
+    cluster = LocalCluster(
+        n_workers=2,
+        threads_per_worker=3
+    )
 
-# Create a SLURM cluster object
-cluster = SLURMCluster(
-    account='def-kasahara-ab',
-    cores=1,  # This matches --ntasks-per-node in the job script
-    memory='100GB', # Total memory
-    walltime='1:00:00'
-    #job_extra=['module load proj/9.0.1',
-               #'source ~/carbon/bin/activate']
-)
-
-# This matches --nodes in the SLURM script
-cluster.scale(jobs=3) 
 
 # Connect Dask to the cluster
 client = Client(cluster)
@@ -181,32 +207,17 @@ client = Client(cluster)
 # with open('dashboard_url.txt', 'w') as f:
 #     f.write(client.dashboard_link)
 
-
-# Original Version
-# start_time = time.time()
-# with LocalCluster(
-#     n_workers=2,
-#     # processes=True,
-#     threads_per_worker=3
-#     # memory_limit='2GB',
-#     # ip='tcp://localhost:9895',
-# ) as cluster, Client(cluster) as client:
+start_time = time.time()
 ais_bulkers.map_partitions(process_partition, meta=meta_dict).to_parquet(
     os.path.join(filepath, 'ais_bulkers_interp'),
     append=False,
     overwrite=True,
     engine='fastparquet'
     )
-# print(f"Time: {time.time() - start_time}")
-
-
+print(f"Time: {time.time() - start_time}")
 
 # Shut down the cluster
 client.close()
 cluster.close()
 
-#%% Check results
-# Load ais_bulkers_interp
-# ais_bulkers_interp = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_interp'))
-# ais_bulkers_interp.head()
 # %%
