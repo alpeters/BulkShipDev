@@ -1,6 +1,6 @@
 """
 Hourly interpolation and detect trip phases from cleaned dynamic AIS data.
-Input(s): ais_bulkers_calcs.parquet
+Input(s): ais_bulkers_calcs.parquet, land_split_buffered_0_8333_degrees_fixed.gpkg
 Output(s): ais_bulkers_interp.parquet
 Runtime: 23m local
 """
