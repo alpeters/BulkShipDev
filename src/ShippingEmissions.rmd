@@ -87,8 +87,16 @@ Files useful for troubleshooting and verifying AIS_calculations:
 
 
 ```{r, eval = FALSE}
-py_run_file('AIS_Calculations_interp.py')
+py_run_file('AIS_Calculations_Interp.py')
 ```
+
+```{r, eval = FALSE}
+py_run_file('AIS_Calculations_Interp_Stats.py')
+```
+
+```{r, child = 'AIS_Calculations_Interp_Stats_Explore.qmd', eval = FALSE}
+```
+
 
 ```{r, eval = FALSE}
 py_run_file('AIS_Calculations_PotentialPortcalls.py')
