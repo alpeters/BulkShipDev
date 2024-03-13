@@ -8,6 +8,7 @@ import os
 import pyreadr
 import numpy as np
 import pandas as pd
+import pyreadr
 
 
 datapath = 'src/data'
@@ -16,7 +17,7 @@ EUvariant = '_EEZ'
 filename = 'portcalls_' + callvariant + '_EU'
 
 
-bulkers_wfr_df = pd.read_csv(os.path.join(datapath, 'bulkers_WFR.csv'), low_memory=False)
+bulkers_wfr_df = pyreadr.read_r(os.path.join(datapath, 'bulkers_WFR.Rda'))['bulkers_df']
 mrv_df = pyreadr.read_r(os.path.join(datapath, 'MRV.Rda'))['MRV_df']
 mrv_df = mrv_df.loc[:, ['imo.number', 'reporting.period', 'EU.distance', 'total.fc']]
 ais_eu_df = pd.read_csv(os.path.join(datapath, 'AIS_' + callvariant + EUvariant + '_EU_yearly_stats.csv'))
