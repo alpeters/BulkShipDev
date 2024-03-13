@@ -43,19 +43,20 @@ merged_df['year'] = merged_df['year'].astype('int64')
 # Now, merge the resulting df with ais_eu_df on 'MMSI' and 'Year'
 final_df = pd.merge(merged_df, ais_eu_df, how='inner', on=['mmsi', 'year'])
 final_df['age'] = final_df['year'] - final_df['Built.Year']
-final_df['residual'] = np.log1p(final_df['total.fc'].values) - np.log1p(final_df['FC_sum'].values/1000000)
-
+final_df['FC_sum'] = final_df['FC_sum'] / 1E6
+final_df['residual'] = np.log1p(final_df['total.fc'].values) - np.log1p(final_df['FC_sum'].values)
+# We define residual as reported minus calculated
 
 # Only keep observations where the bias between reported distance and calculated distance is within our tolerance
 tolerance = 500 
-final_df['distance_difference'] = abs(final_df['distance_sum'] - final_df['EU.distance'])
-final_df = final_df[final_df['distance_difference'] <= tolerance]
+final_df['distance_difference'] = final_df['EU.distance'] - final_df['distance_sum']
+final_df = final_df[abs(final_df['distance_difference']) <= tolerance]
 
 # Rename columns for clarity 
 final_df = final_df.rename(columns={'total.fc': 'report_fc', 'FC_sum': 'cal_fc'})
 
 final_df['log_report_fc'] = np.log1p(final_df['report_fc'].values)
-final_df['log_cal_fc'] = np.log1p(final_df['cal_fc'].values / 1000000)
+final_df['log_cal_fc'] = np.log1p(final_df['cal_fc'].values)
 final_df.head()
 
 # Save the final dataset
