@@ -13,39 +13,37 @@ from scipy.spatial.transform import Rotation as R, Slerp
 
 
 # Create a SLURM cluster object
-# cluster = SLURMCluster(
-#     account='def-kasahara-ab',
-#     cores=1,  # This matches --ntasks-per-node in the job script
-#     memory='100GB', # Total memory
-#     walltime='1:00:00'
-#     #job_extra=['module load proj/9.0.1',
-#                #'source ~/carbon/bin/activate']
-# )
+cluster = SLURMCluster(
+    account='def-kasahara-ab',
+    cores=1,  # This matches --ntasks-per-node in the job script
+    memory='100GB', # Total memory
+    walltime='1:00:00'
+    #job_extra=['module load proj/9.0.1',
+               #'source ~/carbon/bin/activate']
+)
 
-# # This matches --nodes in the SLURM script
-# cluster.scale(jobs=3) 
+# This matches --nodes in the SLURM script
+cluster.scale(jobs=3) 
 
-# # Connect Dask to the cluster
-# client = Client(cluster)
+# Connect Dask to the cluster
+client = Client(cluster)
 
-# # Check Dask dashboard 
-# with open('dashboard_url.txt', 'w') as f:
-#     f.write(client.dashboard_link)
+# Check Dask dashboard 
+with open('dashboard_url.txt', 'w') as f:
+    f.write(client.dashboard_link)
 
 
 # %%
-datapath = 'src/data'
+datapath = '/home/oliverxu/data'
 filepath = os.path.join(datapath, 'AIS')
 
 # %%
-ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs_testheads'))
+ais_bulkers = dd.read_parquet(os.path.join(filepath, '6_hr_ais_bulkers_calcs_test'))
 
 # %%
 
 # Load the buffered reprojected shapefile (can be done by python or use QGIS directly)
-# buffered_coastline = gpd.read_file(os.path.join(filepath, 'buffered_reprojected_coastline.shp'))
-buffered_coastline = gpd.read_file(os.path.join(datapath, 'buffered_reprojected_coastline', 'buffered_reprojected_coastline.shp'))
-
+buffered_coastline = gpd.read_file(os.path.join(filepath, 'buffered_reprojected_coastline.shp'))
 
 
 # %%
@@ -143,45 +141,66 @@ def process_partition_geo(df):
 
 
 def process_group(group):
+    timings = {'interpolate_missing_hours_slerp': 0, 'infill_draught_partition': 0,
+               'pd_diff_haversine': 0, 'process_partition_geo': 0}
+
+    start_time = time.time()
     group = interpolate_missing_hours_slerp(group)
-    # group = infill_draught_partition(group)
-    # group = pd_diff_haversine(group)
-    # group = process_partition_geo(group)
-    return group
+    timings['interpolate_missing_hours_slerp'] += time.time() - start_time
+
+    start_time = time.time()
+    group = infill_draught_partition(group)
+    timings['infill_draught_partition'] += time.time() - start_time
+
+    start_time = time.time()
+    group = pd_diff_haversine(group)
+    timings['pd_diff_haversine'] += time.time() - start_time
+
+    start_time = time.time()
+    group = process_partition_geo(group)
+    timings['process_partition_geo'] += time.time() - start_time
+
+    return group, timings
 
 def process_partition(df):
+    aggregated_timings = {'interpolate_missing_hours_slerp': [], 'infill_draught_partition': [],
+                          'pd_diff_haversine': [], 'process_partition_geo': []}
+
+    def aggregate_timings(group):
+        group, timings = process_group(group)
+        for key in aggregated_timings:
+            aggregated_timings[key].append(timings[key])
+        return group
+
     df = (
         df
         .groupby('mmsi')
-        .apply(process_group)
+        .apply(aggregate_timings)
         .reset_index(level=0, drop=True)
     )
     df.index.name = 'mmsi'
+
+    # Aggregate timings and write to a file
+    with open('timing_summary.txt', 'w') as f:
+        for key, times in aggregated_timings.items():
+            f.write(f"{key}: Avg={sum(times)/len(times)}, Min={min(times)}, Max={max(times)}, Total={sum(times)}\n")
+
     return df
 
 
 meta_dict = ais_bulkers.dtypes.to_dict()
 meta_dict['interpolated'] = 'bool'
-# meta_dict['phase'] = 'string'
+meta_dict['phase'] = 'string'
 
 
-start_time = time.time()
-with LocalCluster(
-    n_workers=2,
-    # processes=True,
-    threads_per_worker=3
-    # memory_limit='2GB',
-    # ip='tcp://localhost:9895',
-) as cluster, Client(cluster) as client:
-    ais_bulkers.map_partitions(process_partition, meta=meta_dict).to_parquet(
-        os.path.join(filepath, 'ais_bulkers_interp_original'),
-        append=False,
-        overwrite=True,
-        engine='fastparquet'
-    )
-print(f"Time: {time.time() - start_time}")
 
+ais_bulkers.map_partitions(process_partition, meta=meta_dict).to_parquet(
+    os.path.join(filepath, 'ais_bulkers_interp'),
+    append=False,
+    overwrite=True,
+    engine='fastparquet'
+)
 
-# # Shut down the cluster
-# client.close()
-# cluster.close()
+# Shut down the cluster
+client.close()
+cluster.close()

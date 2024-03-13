@@ -68,11 +68,10 @@ def interpolate_missing_hours(group):
 
 ########################
 #%%
-ais_bulkers_pd = pd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs', 'part.2.parquet'))
+ais_bulkers_pd = pd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs', 'part.0.parquet'))
 
-group = ais_bulkers_pd.loc[ais_bulkers_pd.index == 229529000].copy()
+group = ais_bulkers_pd.loc[ais_bulkers_pd.index == 205041000].copy()
 print(group.dtypes)
-group.head()
 #%%
 group_interpolated = interpolate_missing_hours(group)
 print(group_interpolated.dtypes)
@@ -131,5 +130,3 @@ print(f"Time: {time.time() - start_time}")
 # Load ais_bulkers_interp
 ais_bulkers_interp = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_interp'))
 ais_bulkers_interp.head()
-
-#%%

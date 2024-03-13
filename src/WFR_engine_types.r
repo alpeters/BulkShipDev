@@ -18,10 +18,3 @@ bulkers_df %>%
   ggplot(aes(x = Main.Engine.Fuel.Type)) +
   geom_bar()
   
-
-bulkers_df %>% 
-  filter(str_detect(Main.Engine.Fuel.Type, regex('LNG', ignore_case = TRUE))) %>% 
-  distinct(Main.Engine.Detail) %>% 
-  View()
-
-         
