@@ -101,11 +101,13 @@ raw_mean = train_abs_df['residual'].mean()
 raw_std = train_abs_df['residual'].std()
 outlier_threshold = 3 # number of standard deviations from the mean
 #%% set outlier true if residual between lower and upper thresholds, false otherwise
-train_abs_df['outlier'] = train_abs_df['residual'].between(
+train_abs_df['outlier'] = ~train_abs_df['residual'].between(
     raw_mean - outlier_threshold * raw_std,
     raw_mean + outlier_threshold * raw_std,
     inclusive='neither')
 train_abs_df['outlier'].value_counts()
 
 #%%
-train_abs_df.loc[train_abs_df['outlier'], ['mmsi', 'year', 'IMO.Number']].sort_values(['mmsi', 'year'])
+train_abs_df.loc[train_abs_df['outlier'], ['mmsi', 'year', 'IMO.Number']].sort_values(['mmsi', 'year']).to_csv(os.path.join(trackeddatapath, 'outliers_train_abs.csv'), index=False)
+
+#%%
