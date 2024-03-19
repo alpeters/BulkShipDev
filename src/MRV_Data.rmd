@@ -43,19 +43,18 @@ read_MRV <- function(file) {
 }
 ```
 
-
 ```{r}
 # MRV_df <- read_MRV("data/MRV/2018-v249-13052021-EU MRV Publication of information.xlsx")
-MRV_df <- read_MRV("data/MRV/2018-v265-30042022-EU MRV Publication of information.xlsx")
+MRV_df <- read_MRV("src/data/MRV/2018-v265-30042022-EU MRV Publication of information.xlsx")
 
 # temp_df <- read_MRV("data/MRV/2019-v163-20052021-EU MRV Publication of information.xlsx")
-temp_df <- read_MRV("data/MRV/2019-v204-19052022-EU MRV Publication of information.xlsx")
+temp_df <- read_MRV("src/data/MRV/2019-v204-19052022-EU MRV Publication of information.xlsx")
 
 MRV_df <- MRV_df %>% 
   bind_rows(temp_df)
 
 # temp_df <- read_MRV("data/MRV/2020-v63-05102021-EU MRV Publication of information.xlsx")
-temp_df <- read_MRV("data/MRV/2020-v150-19052022-EU MRV Publication of information.xlsx")
+temp_df <- read_MRV("src/data/MRV/2020-v150-19052022-EU MRV Publication of information.xlsx")
 
 temp_df <- temp_df %>% 
   rename("Annual total time spent at sea [hours]" = "Annual time spent at sea [hours]",
@@ -64,7 +63,7 @@ temp_df <- temp_df %>%
 MRV_df <- MRV_df %>% 
   bind_rows(temp_df)
 
-temp_df <- read_MRV("data/MRV/2021-v41-25082022-EU MRV Publication of information.xlsx")
+temp_df <- read_MRV("src/data/MRV/2021-v41-25082022-EU MRV Publication of information.xlsx")
 
 temp_df <- temp_df %>% 
   rename("Annual total time spent at sea [hours]" = "Annual time spent at sea [hours]",
@@ -182,7 +181,7 @@ MRV_df <- MRV_df %>%
 ```
 
 ```{r}
-save(MRV_df, file = "data/MRV.Rda")
+save(MRV_df, file = "src/data/MRV.Rda")
 ```
 
 ## Inspect
@@ -207,4 +206,8 @@ MRV_df %>%
   summarise(across(everything(), sum)) %>% 
   # arrange(ship.type)
   filter(ship.type == "Bulk carrier")
+```
+
+```{r}
+
 ```

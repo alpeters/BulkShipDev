@@ -2,6 +2,9 @@
 /docs/SSHRC IDG 2023/2021SSHRC
 /src/data
 /src/data/AIS
+/Machine Learning/data
+/Machine Learning/plots
+/catboost_info
 *.zip
 Fourth IMO GHG Study 2020 - Full report and annexes.pdf
 
