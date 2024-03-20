@@ -20,20 +20,26 @@ filename = 'portcalls_' + callvariant + '_EU'
 #%%
 bulkers_wfr_df = pyreadr.read_r(os.path.join(datapath, 'bulkers_WFR.Rda'))['bulkers_df']
 mrv_df = pyreadr.read_r(os.path.join(datapath, 'MRV.Rda'))['MRV_df']
-mrv_df = mrv_df.loc[:, ['imo.number', 'reporting.period', 'EU.distance', 'total.fc']]
+mrv_df = mrv_df.loc[:, ['imo.number', 'reporting.period', 'EU.distance', 'total.fc', 'a', 'b', 'c', 'd', 'verifier.country', 'verifier.name']]
 ais_eu_df = pd.read_csv(os.path.join(datapath, 'AIS_' + callvariant + EUvariant + '_EU_yearly_stats.csv'))
 
+#%% Rename MRV data to ensure not used for prediction models
+mrv_df = mrv_df.rename(columns={
+    'imo.number':'IMO.Number',
+    'reporting.period': 'year',
+    'a': 'MRV.method.a',
+    'b': 'MRV.method.b',
+    'c': 'MRV.method.c',
+    'd': 'MRV.method.d',
+    'EU.distance': 'MRV.EU.distance',
+    'verifier.country': 'MRV.verifier.country',
+    'verifier.name': 'MRV.verifier.name'
+    })
+
 #%%
-mrv_df.columns = ['IMO.Number' if x == 'imo.number' else 
-                  'year' if x == 'reporting.period' else
-                  x for x in mrv_df.columns]
-
-bulkers_wfr_df.columns = ['mmsi' if x == 'MMSI' else 
-                          x for x in bulkers_wfr_df.columns]
-
+bulkers_wfr_df = bulkers_wfr_df.rename(columns={'MMSI': 'mmsi'})
 bulkers_wfr_df.dropna(subset=['IMO.Number'], inplace=True)
 mrv_df.dropna(subset=['IMO.Number'], inplace=True)
-
 bulkers_wfr_df['IMO.Number'] = bulkers_wfr_df['IMO.Number'].astype(int)
 mrv_df['IMO.Number'] = mrv_df['IMO.Number'].astype(int)
 
@@ -58,12 +64,12 @@ final_df['log_cal_fc'] = np.log1p(final_df['cal_fc'].values)
 #%% Identify observations where distance discrepancy is within a certain tolerance
 ## Absolute
 tolerance_abs = 500 
-final_df['distance_difference'] = final_df['EU.distance'] - final_df['distance_sum']
+final_df['distance_difference'] = final_df['MRV.EU.distance'] - final_df['distance_sum']
 final_df['within_tol_abs'] = abs(final_df['distance_difference']) <= tolerance_abs
 
 ## Relative
 tolerance_rel = 0.1
-final_df['distance_difference_rel'] = final_df['distance_difference']/final_df['EU.distance'] # this is negative of typical definition but in keeping with residual definition
+final_df['distance_difference_rel'] = final_df['distance_difference']/final_df['MRV.EU.distance'] # this is negative of typical definition but in keeping with residual definition
 final_df['within_tol_rel'] = abs(final_df['distance_difference_rel']) <= tolerance_rel
 
 #%% Label training and testing sets
@@ -94,6 +100,9 @@ for tol in ['abs', 'rel']:
             .to_csv(os.path.join(trackeddatapath, 'df_ml_' + tol + '_' + set + '.csv'), index=False)
         )
 
+#%% Check training set features
+final_df.columns[final_df.columns.str.contains('a', case=True)]
+        
 #%% Check training set outliers
 # Absolute
 train_abs_df = final_df[final_df['within_tol_abs'] & (final_df['set'] == 'train')].copy()
@@ -109,5 +118,8 @@ train_abs_df['outlier'].value_counts()
 
 #%%
 train_abs_df.loc[train_abs_df['outlier'], ['mmsi', 'year', 'IMO.Number']].sort_values(['mmsi', 'year']).to_csv(os.path.join(trackeddatapath, 'outliers_train_abs.csv'), index=False)
+
+#%%
+train_rel_df = final_df[final_df['within_tol_rel'] & (final_df['set'] == 'train')].copy()
 
 #%%

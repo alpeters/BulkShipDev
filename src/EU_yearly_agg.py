@@ -15,8 +15,8 @@ import dask.dataframe as dd
 import numpy as np
 from dask.distributed import Client, LocalCluster
 
-datapath = 'src/data'
-# datapath = '/media/apeters/Extreme SSD/Working'
+# datapath = 'src/data'
+datapath = '/media/apeters/Extreme SSD/Working'
 callvariant = 'speed' #'heading'
 EUvariant = '_EEZ' #''
 filename = 'portcalls_' + callvariant + '_EU'
@@ -261,34 +261,6 @@ joined_df.head()
 
 ###### Summary statistics aggregated at the ship-year level ######
 
-def pd_diff_haversine(df):
-    """
-    Calculates the distance (haversine) and time interval with respect to the previous row
-    
-    Args:
-        df (pd.DataFrame): input dataframe with columns latitude, longitude, timestamp
-
-    Returns:
-        vector?: haversine distances
-    """
-    df_lag = df.shift(1)
-    lat_diff = np.radians(df['latitude'] - df_lag['latitude'])
-    lng_diff = np.radians(df['longitude'] - df_lag['longitude'])
-    d = (np.sin(lat_diff * 0.5) ** 2 +
-         np.cos(np.radians(df_lag['latitude'])) *
-         np.cos(np.radians(df['latitude'])) *
-         np.sin(lng_diff * 0.5) ** 2)
-    haversine_formula = 2 * 6371.0088 * np.arcsin(np.sqrt(d))
-    print(type(haversine_formula))
-    return haversine_formula
-
-# Unused TODO: remove?
-# def calculate_longest_distance(group):
-#     distances = pd_diff_haversine(group)
-#     # Ignore the first distance which is NaN due to the shift
-#     return distances.iloc[1:].max()
-
-
 # Define an aggregation function to get the number of unique values
 # This will be used to get the number of unique trips
 # refer to https://docs.dask.org/en/latest/dataframe-groupby.html#aggregate
@@ -319,21 +291,41 @@ yearly_stats = (
         })
     .compute())
 
-# Calculate percentage of ships that are sitting at the port
-yearly_stats['port_pct'] = (
+# Calculate percentage of observations in which ships at port
+yearly_stats['port_frac'] = (
     joined_df[joined_df['phase'] == 'Anchored']
     .groupby(['mmsi', 'year'])
     .size()
     .divide(joined_df.groupby(['mmsi', 'year']).size())
-).compute().rename('port_pct')
+).compute().rename('port_frac')
 
-# TODO: fix
-# Calculate longest distance where 'interpolated' is False
-# yearly_stats['longest_jump'] = (
-#     joined_df.loc[joined_df['interpolated'] == False, :]
-#     .groupby(['mmsi', 'year'])
-#     .apply(lambda df: pd_diff_haversine(df).iloc[1:].max(), axis=1, meta=('distance', 'f8'))
-# ).compute().rename('longest_jump')
+# Calculate longest jump (distance) between observed data points
+def observed_distances(df):
+    """
+    Calculates the distance (haversine) and time interval with respect to the previous row
+    
+    Args:
+        df (pd.DataFrame): input dataframe with columns latitude, longitude, timestamp
+
+    Returns:
+        vector?: haversine distances
+    """
+    df = df[~df['interpolated']]
+    lat_lag = df.latitude.shift(1)
+    lng_lag = df.longitude.shift(1)
+    lat_diff = np.radians(df['latitude'] - lat_lag)
+    lng_diff = np.radians(df['longitude'] - lng_lag)
+    d = (np.sin(lat_diff * 0.5) ** 2 +
+         np.cos(np.radians(lat_lag)) *
+         np.cos(np.radians(df['latitude'])) *
+         np.sin(lng_diff * 0.5) ** 2)
+    df['distance'] = 2 * 6371.0088 * np.arcsin(np.sqrt(d))
+    return df
+
+yearly_stats['longest_jump'] = (
+    joined_df
+    .map_partitions(lambda part: part.groupby(['mmsi', 'year']).apply(lambda df: observed_distances(df).distance.max()))).compute()
+
 
 # Flatten the multi-index columns
 yearly_stats_flat = yearly_stats.rename(columns = {"invalid_speed": ("invalid", "speed")})
@@ -349,6 +341,9 @@ interpolated_sea = (
 missing_frac_sea = (interpolated_sea['sum'] / interpolated_sea['count']).rename('missing_frac_sea')
 
 yearly_stats_flat = yearly_stats_flat.join(missing_frac_sea, on = ['mmsi', 'year'])
+yearly_stats_flat = yearly_stats_flat.rename(columns={
+    'port_frac_':'port_frac',
+    'longest_jump_':'longest_jump'})
 yearly_stats_flat.to_csv(os.path.join(datapath, 'AIS_' + callvariant + EUvariant + '_EU_yearly_stats.csv'))
 
 #%%
