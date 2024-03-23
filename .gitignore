@@ -15,6 +15,7 @@ Fourth IMO GHG Study 2020 - Full report and annexes.pdf
 
 # VSCode
 *.code-workspace
+settings.json
 
 ## Latex
 ## Core latex/pdflatex auxiliary files:
