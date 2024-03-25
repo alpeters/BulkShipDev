@@ -276,4 +276,14 @@ yearly_stats_flat['weighted_speed_mean'] = yearly_stats_flat['speed_distance_sum
 #%%
 yearly_stats_flat.to_csv(os.path.join(datapath, 'AIS_yearly_stats.csv'))
 
-#%%
+#########################
+# Summary stats and plots
+#########################
+#%% load yearly_stats.csv
+yearly_stats = pd.read_csv(os.path.join(datapath, 'AIS_yearly_stats.csv'))
+
+# %% Total unique MMSI
+yearly_stats['mmsi'].nunique()
+# %% Unique MMSI by year
+yearly_stats.value_counts('year')
+

@@ -20,10 +20,10 @@ filename = 'portcalls_' + callvariant + '_EU'
 #%%
 bulkers_wfr_df = pyreadr.read_r(os.path.join(datapath, 'bulkers_WFR.Rda'))['bulkers_df']
 mrv_df = pyreadr.read_r(os.path.join(datapath, 'MRV.Rda'))['MRV_df']
-mrv_df = mrv_df.loc[:, ['imo.number', 'reporting.period', 'EU.distance', 'total.fc', 'a', 'b', 'c', 'd', 'verifier.country', 'verifier.name']]
 ais_eu_df = pd.read_csv(os.path.join(datapath, 'AIS_' + callvariant + EUvariant + '_EU_yearly_stats.csv'))
 
-#%% Rename MRV data to ensure not used for prediction models
+#%% Select and rename MRV data to ensure not used for prediction models
+mrv_df = mrv_df.loc[:, ['imo.number', 'reporting.period', 'EU.distance', 'total.fc', 'a', 'b', 'c', 'd', 'verifier.country', 'verifier.name', 'ship.type']]
 mrv_df = mrv_df.rename(columns={
     'imo.number':'IMO.Number',
     'reporting.period': 'year',
@@ -33,7 +33,8 @@ mrv_df = mrv_df.rename(columns={
     'd': 'MRV.method.d',
     'EU.distance': 'MRV.EU.distance',
     'verifier.country': 'MRV.verifier.country',
-    'verifier.name': 'MRV.verifier.name'
+    'verifier.name': 'MRV.verifier.name',
+    'ship.type': 'MRV.ship.type'
     })
 
 #%%
@@ -100,6 +101,42 @@ for tol in ['abs', 'rel']:
             .to_csv(os.path.join(trackeddatapath, 'df_ml_' + tol + '_' + set + '.csv'), index=False)
         )
 
+#########################
+# Summary stats and plots
+#########################
+
+#%% How many MRV observations that we consider to be bulk carriers and what other categories do they fall under in MRV.ship.type?
+merged_df['MRV.ship.type'].unique().tolist()
+#%% Which categories have we chosen as dry bulk in WFR?
+bulkers_wfr_df['Type'].unique().tolist()
+#%% Which actually get matched'
+types_considered = merged_df['Type'].unique().tolist()
+
+#%% How many active 'bulkers' in WFR?
+bulkers_wfr_df['Status'].unique().tolist()
+#%%
+active_bulkers_df = bulkers_wfr_df[
+    bulkers_wfr_df['Demo.Date'].isna() &
+    bulkers_wfr_df['Status'].isin(['Active', 'In Service', 'Idle', 'Repairs', 'Storage', 'Laid Up']) &
+    bulkers_wfr_df['Built.Year'].notna() &
+    bulkers_wfr_df['Type'].isin(types_considered)
+    ]
+
+#%% How many considered bulkers in WFR?
+obs_counts = merged_df.value_counts(['year']).sort_index().to_frame()
+obs_counts['fraction_active'] = obs_counts['count']/active_bulkers_df.shape[0]
+obs_counts
+
+#%%
+merged_df.value_counts(['year', 'MRV.ship.type', 'Type'])
+
+#%%
+final_df.value_counts(['year', 'MRV.ship.type', 'Type'])
+
+#%% MRV counts
+mrv_df.groupby(['year'])
+
+
 #%% Check training set features
 final_df.columns[final_df.columns.str.contains('a', case=True)]
         
@@ -122,4 +159,6 @@ train_abs_df.loc[train_abs_df['outlier'], ['mmsi', 'year', 'IMO.Number']].sort_v
 #%%
 train_rel_df = final_df[final_df['within_tol_rel'] & (final_df['set'] == 'train')].copy()
 
-#%%
+#%% Are outliers incorrectly matched ships?
+train_abs_df[['outlier', 'MRV.ship.type', 'Type']].value_counts()
+# %%
