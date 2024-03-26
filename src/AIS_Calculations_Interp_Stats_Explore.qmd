@@ -9,6 +9,7 @@ library(tidyverse)
 ```
 
 Plotting defaults
+
 ```{r}
 imagepath = "plots"
 imageprefix = "AIS_Calculations_Interp_Stats_Explore_"
@@ -27,13 +28,15 @@ theme_pres <- function(base_size){
 pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a")
 ```
 
-
 ```{r}
 stats <- read_csv('data/AIS/ais_bulkers_interp_stats.csv')
 stats
 ```
+
 # Further aggregation and calcs
+
 Create version aggregated over phase
+
 ```{r}
 stats_shipyearinterp <- stats |> 
   group_by(mmsi, year, interpolated) |> 
@@ -45,6 +48,7 @@ stats_shipyear_observed <- stats_shipyearinterp |>
 ```
 
 Create version aggregated over interpolated
+
 ```{r}
 stats_shipyearphase <- stats |> 
   group_by(mmsi, year, phase) |> 
@@ -52,8 +56,8 @@ stats_shipyearphase <- stats |>
 stats_shipyearphase
 ```
 
-
 Create version aggregated over interpolated and phase
+
 ```{r}
 stats_shipyear <- stats |> 
   group_by(mmsi, year) |> 
@@ -63,6 +67,7 @@ stats_shipyear
 ```
 
 Check I understand pandas size function correctly
+
 ```{r}
 stats |> 
   mutate(across(contains('_size'),
@@ -70,10 +75,13 @@ stats |>
                 .keep = 'none') |> 
   summarise(across(everything(), all))
 ```
+
 These should all be true
 
 # Check missing
+
 Check no NAs in variables
+
 ```{r}
 stats |> 
   mutate(across(contains('_count'),
@@ -81,9 +89,11 @@ stats |>
                 .keep = 'none') |> 
   summarise(across(everything(), all))
 ```
+
 TRUE if no na observations
 
 Expect NAs in distance and time interval because of first observation
+
 ```{r}
 stats_shipyear |> 
   group_by(mmsi) |> 
@@ -97,6 +107,7 @@ stats_shipyear |>
                  alpha = 0.5) +
   theme_minimal()
 ```
+
 Some have more than one. Not sure why, but it isn't many.
 
 ```{r}
@@ -115,6 +126,7 @@ stats_shipyear |>
 ```
 
 Any have all draught missing?
+
 ```{r}
 stats |> 
   group_by(mmsi) |> 
@@ -122,10 +134,12 @@ stats |>
   count(all.draught.missing)
 ```
 
-
 # Completeness
+
 ## Number of obs
+
 How many mmsi observed?
+
 ```{r}
 stats |> 
   distinct(mmsi) |> 
@@ -133,6 +147,7 @@ stats |>
 ```
 
 Per year
+
 ```{r}
 stats |> 
   group_by(year) |> 
@@ -141,6 +156,7 @@ stats |>
 ```
 
 Check two methods of calculating number of observed (vs. interpolated) rows give the same
+
 ```{r}
 stats_shipyear_observed |>  
   select(mmsi, year, timestamp_count) |> 
@@ -152,6 +168,7 @@ stats_shipyear_observed |>
 ```
 
 Number of observations per ship-year
+
 ```{r}
 stats_shipyear_observed |> 
   ggplot(aes(x = timestamp_count, fill = factor(year))) +
@@ -160,14 +177,16 @@ stats_shipyear_observed |>
 ```
 
 Which are very low?
+
 ```{r}
 stats_shipyear_observed |> 
   filter(timestamp_count < 10) # One of 3 IMO4 criteria for discarding mmsi
 ```
 
-
 ## Non-interpolated fraction
+
 Amount observed within first obs to last obs
+
 ```{r}
 stats_shipyearinterp |> 
   group_by(mmsi, year) |> 
@@ -180,7 +199,27 @@ stats_shipyearinterp |>
   theme_minimal()
 ```
 
+```{r}
+stats_shipyearinterp |> 
+  group_by(mmsi, year) |> 
+  mutate(rows.fraction.pct = timestamp_count/sum(timestamp_count)*100, .after = 'interpolated') |> 
+  filter(interpolated) |> 
+  group_by(year) |>
+  summarise(mean(rows.fraction.pct), sd(rows.fraction.pct))
+```
+
+```{r}
+stats_shipyearinterp |> 
+  group_by(mmsi, year) |> 
+  mutate(rows.fraction.pct = timestamp_count/sum(timestamp_count)*100, .after = 'interpolated') |> 
+  filter(interpolated) |> 
+  ungroup() |> 
+  summarise(mean(rows.fraction.pct), sd(rows.fraction.pct))
+```
+
+
 ## Coverage (hours observed vs total hours per year)
+
 ```{r}
 stats_shipyear_observed |> 
   mutate(coverage.pct = timestamp_count/8760*100) |> 
@@ -192,7 +231,9 @@ stats_shipyear_observed |>
 ```
 
 ## By Time
+
 Very similar, except time interval should be smaller for more-than-hourly one, so shouldn't be over 100
+
 ```{r}
 stats_shipyear_observed |> 
   mutate(time.observed.pct = time_interval_sum/8760*100) |> 
@@ -201,10 +242,13 @@ stats_shipyear_observed |>
                  alpha = 0.5) +
   theme_minimal()
 ```
+
 # TODO: Look into why still have over 100%
 
 # Check Data Validity
+
 ## Time Intervals
+
 ```{r}
 stats |> 
   group_by(mmsi, year) |> 
@@ -215,6 +259,7 @@ stats |>
 ```
 
 Mean time interval for anchored
+
 ```{r}
 stats |> 
   filter(phase == 'Anchored') |> 
@@ -224,6 +269,7 @@ stats |>
 ```
 
 Mean time interval for sea
+
 ```{r}
 stats |> 
   filter(phase == 'Sea') |> 
@@ -232,9 +278,10 @@ stats |>
   facet_wrap(~interpolated)
 ```
 
-
 ## Distance intervals
+
 max
+
 ```{r}
 stats |> 
   ggplot(aes(x = distance_max, fill = factor(year))) +
@@ -243,7 +290,9 @@ stats |>
   facet_wrap(c(~interpolated, ~phase), scales = 'free') +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
 High ones somewhere, where?
+
 ```{r}
 stats |> 
   select(mmsi, year, interpolated, phase, distance_max) |> 
@@ -259,9 +308,20 @@ stats |>
   count()
 ```
 
+What fraction have distance over 25 knots?
+```{r}
+stats |> 
+  select(mmsi, year, interpolated, phase, distance_max) |> 
+  count(distance_max > 30) |> 
+  ungroup() |> 
+  mutate(frac = n/sum(n))
+```
+
 
 ## Speed
+
 max
+
 ```{r}
 stats |> 
   ggplot(aes(x = speed_max, fill = factor(year))) +
@@ -269,7 +329,9 @@ stats |>
                  alpha = 0.5) +
   facet_wrap(c(~interpolated, ~phase), scales = 'free')
 ```
+
 High ones somewhere, where?
+
 ```{r}
 stats |> 
   select(mmsi, year, interpolated, phase, speed_max) |> 
@@ -285,9 +347,19 @@ stats |>
   count()
 ```
 
+What fraction have speed over 25 knots?
+```{r}
+stats |> 
+  select(mmsi, year, interpolated, phase, speed_max) |> 
+  count(speed_max > 25) |> 
+  ungroup() |> 
+  mutate(frac = n/sum(n))
+```
 
 # Phase share
-By time 
+
+By time
+
 ```{r}
 stats_shipyearphase |> 
   group_by(mmsi, year) |> 
@@ -309,10 +381,10 @@ stats_shipyearphase |>
   pivot_wider(names_from = year, values_from = mean.phase.time.pct)
 ```
 
-
-
 # Distance
+
 Total distance per year
+
 ```{r}
 stats_shipyear |> 
   ggplot(aes(x = distance_sum, fill = factor(year))) +
@@ -328,13 +400,13 @@ stats_shipyear |>
   geom_histogram(position = 'identity',
                  alpha = 0.5)
 ```
-Distribution of distances fairly different between years.
-Is this related to poorer data quality in 2019? i.e. more missing observations for certain ships?
 
+Distribution of distances fairly different between years. Is this related to poorer data quality in 2019? i.e. more missing observations for certain ships?
 
 # Speed
-Average speed at sea
-By observations
+
+Average speed at sea By observations
+
 ```{r}
 stats |> 
   filter(phase == 'Sea') |> 
@@ -345,6 +417,7 @@ stats |>
 ```
 
 Below 20kts
+
 ```{r}
 stats |> 
   filter(phase == 'Sea') |> 
@@ -363,4 +436,3 @@ stats |>
   group_by(year) |> 
   summarise(avg.speed.mean = mean(speed_mean))
 ```
-
