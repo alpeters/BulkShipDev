@@ -130,8 +130,15 @@ obs_counts
 #%%
 merged_df.value_counts(['year', 'MRV.ship.type', 'Type'])
 
+#%% How many observations in each year after merges?
+merged_df.value_counts('year')
 #%%
-final_df.value_counts(['year', 'MRV.ship.type', 'Type'])
+final_df.value_counts('year')
+
+#%% How many within tolerance?
+final_df.value_counts(['year', 'within_tol_abs'])
+#%%
+final_df.value_counts(['year', 'within_tol_rel'])
 
 #%% MRV counts
 mrv_df.groupby(['year'])
