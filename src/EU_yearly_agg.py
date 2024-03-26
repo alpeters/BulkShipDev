@@ -287,7 +287,8 @@ yearly_stats = (
         't_over_t_ref_without_m': ['sum'],
         'v_over_v_ref_with_n': ['sum'],
         'v_over_v_ref_without_n': ['sum'],
-        'FC': ['sum']
+        'FC': ['sum'],
+        'speed': ['mean']
         })
     .compute())
 
