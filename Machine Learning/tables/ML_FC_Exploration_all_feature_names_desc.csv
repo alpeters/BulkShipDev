@@ -52,7 +52,7 @@
 "Launch.Date",,"characteristic","WFR","raw",,,,
 "Operational.Speed..knots.",,"characteristic","WFR","raw",,,,
 "TPC","Tonnage per centimeter","characteristic","WFR","raw",,"Load change required to change draft by one centimeter","tonnes/cm","t/cm"
-"NT","Net tonnage","characteristic","WFR","raw",,"Dimensionless index calculated from the total moulded volume of cargo spaces",,
+"NT","Net tonnage","characteristic","WFR","raw",,"Dimensionless index based on the total volume of cargo spaces",,
 "Strengthened.for.Heavy.Cargo",,"characteristic","WFR","raw",,,,
 "Strengthened.for.Ore",,"characteristic","WFR","raw",,,,
 "Owner.Main.Vessel.Type",,"characteristic","WFR","raw",,,,
@@ -207,14 +207,14 @@
 "work_sum","Travel work","calc","AIS","derived","$V^2 \cdot d$",,"nm^3/h^2",
 "trip_nunique","Number of trips","activity","AIS","aggregated",,"Number of trips detected from AIS data",,
 "interpolated_sum","Number of interpolated observations","quality","AIS","aggregated",,,,
-"W_component_first","Fixed component","calc","AIS+WFR","derived","$C / (t_{\textit{ref}}^{0.66} \cdot v_{\textit{ref}}^3)$","Fixed component of Admiralty formula","$\text{kilowatts}/(\text{meters}^{0.66} \cdot \text{knots}^3)$",
+"W_component_first","Admiralty static component","calc","AIS+WFR","derived","$C / (t_{\textit{ref}}^{0.66} \cdot v_{\textit{ref}}^3)$","Static component of (\ref{eqn:admiralty})","$\text{kilowatts}/(\text{meters}^{0.66} \cdot \text{knots}^3)$",
 "ME_W_ref_first","Main Engine Power","characteristic","WFR","raw",,"Power rating of main engine","thousand watts","kW"
-"t_m_times_v_n_sum","Instantaneous component","calc","AIS","derived","$\sum t^{0.66} \cdot v^3$","Aggregation of instantaneous component of Admiralty formula","$\text{meters}^{0.66} \cdot \text{knots}^3$",
-"t_over_t_ref_with_m_sum","Draft term","calc","AIS+WFR","derived","$\sum (t/t_{\textit{ref}})^{0.66}$","Aggregation of draft term of Admiralty formula",,
+"t_m_times_v_n_sum","Admiralty instantaneous component","calc","AIS","derived","$\sum t^{0.66} \cdot v^3$","Aggregation of instantaneous component of (\ref{eqn:admiralty})","$\text{meters}^{0.66} \cdot \text{knots}^3$",
+"t_over_t_ref_with_m_sum","Admiralty draft term","calc","AIS+WFR","derived","$\sum (t/t_{\textit{ref}})^{0.66}$","Aggregation of draft term of (\ref{eqn:admiralty})",,
 "t_over_t_ref_without_m_sum","Relative draft","calc","AIS+WFR","derived","$\sum (t/t_{\textit{ref}})$","Aggregation of relative draft",,
-"v_over_v_ref_with_n_sum","Speed term","calc","AIS+WFR","derived","$\sum (v/v_{\textit{ref}})^{3}$","Aggregation of speed term of Admiralty formula",,
+"v_over_v_ref_with_n_sum","Admiralty speed term","calc","AIS+WFR","derived","$\sum (v/v_{\textit{ref}})^{3}$","Aggregation of speed term of (\ref{eqn:admiralty})",,
 "v_over_v_ref_without_n_sum","Relative speed","calc","AIS+WFR","derived","$\sum (v/v_{\textit{ref}})$","Aggregation of relative speed",,
-"cal_fc","Fuel consumption","calc","AIS+WFR","derived","per \autoref{subsec:engcalc}","Calculated fuel consumption","million tonnes","Mt"
+"cal_fc","Calculated fuel consumption","calc","AIS+WFR","derived","per (\ref{eqn:annual_fc})","Theoretical fuel consumption","million tonnes","Mt"
 "speed_mean","Average speed","activity","AIS","aggregated",,"Average observed speed after interpolation","knots","kn"
 "port_frac","At-port fraction","activity","AIS","aggregated",,"Fraction of hourly observations with operational phase ‘at-port’",,
 "longest_jump","Longest distance","quality","AIS","aggregated",,"Longest distance between consecutive locations after interpolation","nautical miles","nm"
