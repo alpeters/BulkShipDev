@@ -91,14 +91,16 @@ features_set_desc |>
                              paste0(description, ', calculated as ', definition),
                              paste(description, unit))) |> 
   mutate(name = str_to_title(name),
-         name = str_replace_all(name, 'Ais', 'AIS')) |> 
+         name = str_replace_all(name, 'Ais', 'AIS'),
+         name = str_replace_all(name, 'Acs', 'acs'),
+         name = str_replace_all(name, 'Fc', 'FC')) |> 
          # table.desc = str_to_sentence(table.desc)) |>
   select(Variable = name, Description = table.desc) |> 
   kbl(digits = 0,
       format = 'latex',
       escape = FALSE,
       booktabs = TRUE) |>
-  column_spec(1, width = "15em") |>
+  column_spec(1, width = "16em") |>
   column_spec(2, width = "30em") |> 
   pack_rows(index = index) |> 
   # kable_paper(c("striped")) |>
