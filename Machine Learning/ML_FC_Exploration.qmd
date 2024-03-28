@@ -32,30 +32,37 @@ theme_pres <- function(base_size){
 pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a")
 ```
 
+# Load data
 
-# Feature list and description
 ```{r}
-read_csv('../src/tracked_data/df_ml_rel_train.csv',
-                          show_col_types = FALSE) |> 
+train_df <- read_csv('../src/tracked_data/df_ml_rel_train.csv',
+                          show_col_types = FALSE)
+```
+
+# Features
+
+```{r}
+train_df |> 
   colnames() |> 
   as_tibble() |> 
   rename('variable' = 'value') |> 
   write_csv(file.path(tablepath, paste0(fileprefix, "all_feature_names.csv")))
 ```
 
-# Manually create feature descriptions in csv, then load
+## Manually create feature descriptions in csv, then load
+
 ```{r}
 features_all_desc <- read_csv(file.path(tablepath, paste0(fileprefix, 'all_feature_names_desc.csv')))
 ```
-
 
 ```{r}
 features_all_desc
 ```
 
-# Create latex table for a given feature set
+## Create latex table for a given feature set
+
 ```{r}
-set <- 'm4dd'
+set <- 'm5dd_nofilter'
 features_set_desc <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_features.csv') %>%
   file.path(mltrackeddatapath, .) |> 
   read_csv(show_col_types = FALSE) |> 
@@ -115,10 +122,24 @@ test <- read_csv('../src/tracked_data/df_ml_rel_train.csv',
                           show_col_types = FALSE) 
 ```
 
-
 ```{r}
 test |> select(Name, Dwt, HP.Total.Propulsion, ME_W_ref_first) |> 
   mutate(test = HP.Total.Propulsion/ME_W_ref_first) |> 
   arrange(desc(test))
 ```
 
+# Plot raw data
+
+```{r}
+library(showtext)
+showtext_auto()
+
+train_df |> 
+  ggplot(aes(x = log_report_fc, y = log_cal_fc)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  geom_smooth(method = 'lm') +
+  theme_minimal(base_family = 'sans')
+  # theme(panel.grid = element_blank())
+ggsave('test.png', device = 'png', width = 4, height = 2)
+```
