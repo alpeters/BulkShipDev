@@ -3,5 +3,3 @@ gb,GradientBoostingRegressor,Gradient Boosting,tree,False
 linear,LinearRegression,Linear Regression,linear,False
 lasso,Lasso,Lasso,linear,True
 ridge,Ridge,Ridge,linear,True
-rf,RandomForestRegressor,Random Forest,tree,False
-cb,CatBoostRegressor,Cat Boost,tree,False

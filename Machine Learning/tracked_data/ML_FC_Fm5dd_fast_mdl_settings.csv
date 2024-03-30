@@ -1,0 +1,4 @@
+model,class_name,name,type,scaling,fast
+linear,LinearRegression,Linear Regression,linear,False,True
+lasso,Lasso,Lasso,linear,True,True
+ridge,Ridge,Ridge,linear,True,True
