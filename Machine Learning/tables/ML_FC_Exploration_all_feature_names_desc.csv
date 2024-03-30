@@ -208,7 +208,7 @@
 "trip_nunique","Number of trips","activity","AIS","aggregated",,"Number of trips detected from AIS data",,
 "interpolated_sum","Number of interpolated observations","quality","AIS","aggregated",,,,
 "W_component_first","Admiralty static component","calc","AIS+WFR","derived","$C / (t_{\textit{ref}}^{0.66} \cdot v_{\textit{ref}}^3)$","Static component of (\ref{eqn:admiralty})","$\text{kilowatts}/(\text{meters}^{0.66} \cdot \text{knots}^3)$",
-"ME_W_ref_first","Main Engine Power","characteristic","WFR","raw",,"Power rating of main engine","thousand watts","kW"
+"ME_W_ref_first","Main Engine Power","characteristic","WFR","raw",,"Power rating of main engine","kilowatts","kW"
 "t_m_times_v_n_sum","Admiralty instantaneous component","calc","AIS","derived","$\sum t^{0.66} \cdot v^3$","Aggregation of instantaneous component of (\ref{eqn:admiralty})","$\text{meters}^{0.66} \cdot \text{knots}^3$",
 "t_over_t_ref_with_m_sum","Admiralty draft term","calc","AIS+WFR","derived","$\sum (t/t_{\textit{ref}})^{0.66}$","Aggregation of draft term of (\ref{eqn:admiralty})",,
 "t_over_t_ref_without_m_sum","Relative draft","calc","AIS+WFR","derived","$\sum (t/t_{\textit{ref}})$","Aggregation of relative draft",,
@@ -220,8 +220,8 @@
 "longest_jump","Longest distance","quality","AIS","aggregated",,"Longest distance between consecutive locations after interpolation","nautical miles","nm"
 "missing_frac_sea","Interpolated fraction at-sea","quality","AIS","aggregated",,"Fraction of hourly observations with operational phase ‘at-sea’ that are interpolated",,
 "age","Age","characteristic","MRV+WFR","raw",,"Age at observation","years","yrs"
-"residual","Residual of log fuel consumption","calc","AIS+MRV","derived","\log(FC_{report})-\log(FC_{calc})","Log reported fuel consumption minus log calculated fuel consumption",,
-"log_report_fc","Log reported fuel consumption",,"MRV","raw",,,,
-"log_cal_fc","Log annual calculated fuel consumption","calc","AIS","derived",,,,
+"residual","Residual of log fuel consumption","calc","AIS+MRV","derived","\log(FC_{report})-\log(FC_{calc})","Log (log1p) reported fuel consumption minus log1p calculated fuel consumption",,
+"log_report_fc","Log reported fuel consumption",,"MRV","raw",,"Log (log1p) reported fuel consumption",,
+"log_cal_fc","Log annual calculated fuel consumption","calc","AIS","derived",,"Log (log1p) calculated fuel consumption",,
 "distance_difference","Log annual reported fuel consumption","quality","AIS+MRV","derived",,,,
 "distance_difference_rel",,"quality","AIS+MRV","derived",,,,
