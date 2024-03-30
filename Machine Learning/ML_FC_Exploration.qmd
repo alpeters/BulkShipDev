@@ -252,7 +252,7 @@ headers <- get_separate_headers(eval_results, sep = "_")
 
 eval_results |> 
   setNames(headers$colnames) |>
-  kbl(digits = c(rep(3,4),rep(2,2)),
+  kbl(digits = c(rep(3,5),rep(2,2)),
       format = 'latex',
       escape = TRUE,
       booktabs = TRUE,
