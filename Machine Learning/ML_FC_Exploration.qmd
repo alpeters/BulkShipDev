@@ -7,7 +7,12 @@ editor: visual
 ```{r}
 library(tidyverse)
 library(kableExtra)
+library(readr)
 ```
+# Functions
+
+
+
 
 Plotting defaults
 
@@ -59,10 +64,14 @@ features_all_desc <- read_csv(file.path(tablepath, paste0(fileprefix, 'all_featu
 features_all_desc
 ```
 
-## Create latex table for a given feature set
-
+# Select run name
 ```{r}
-set <- 'm5dd_nofilter'
+set <- 'm5dd'
+```
+
+
+### Feature description table
+```{r}
 features_set_desc <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_features.csv') %>%
   file.path(mltrackeddatapath, .) |> 
   read_csv(show_col_types = FALSE) |> 
@@ -88,8 +97,7 @@ index_df <- features_set_desc |>
 index <- index_df$n
 names(index) <- index_df$group
 
-# features_set_desc_table <- 
-features_set_desc |> 
+features_set_desc_table <- features_set_desc |>
   mutate(unit = ifelse(is.na(unit),
                             unit,
                             paste0('(', unit, ')'))) |> 
@@ -102,7 +110,9 @@ features_set_desc |>
          name = str_replace_all(name, 'Acs', 'acs'),
          name = str_replace_all(name, 'Fc', 'FC')) |> 
          # table.desc = str_to_sentence(table.desc)) |>
-  select(Variable = name, Description = table.desc) |> 
+  select(Variable = name, Description = table.desc)
+
+features_set_desc_table |>   
   kbl(digits = 0,
       format = 'latex',
       escape = FALSE,
@@ -110,11 +120,10 @@ features_set_desc |>
   column_spec(1, width = "16em") |>
   column_spec(2, width = "30em") |> 
   pack_rows(index = index) |> 
-  # kable_paper(c("striped")) |>
   save_kable(file.path(tablepath, paste0(fileprefix, 'features_', set, ".tex")),
              float = FALSE)
 
-# features_set_desc_table
+features_set_desc_table
 ```
 
 ```{r}
@@ -129,17 +138,140 @@ test |> select(Name, Dwt, HP.Total.Propulsion, ME_W_ref_first) |>
 ```
 
 # Plot raw data
+showtext makes fonts work properly for png's, but don't use because not consistent with previous chapter plots
+```{r}
+# library(showtext)
+# showtext_auto()
+# 
+# train_df |> 
+#   ggplot(aes(x = log_report_fc, y = log_cal_fc)) +
+#   geom_point() +
+#   geom_abline(slope = 1, intercept = 0) +
+#   geom_smooth(method = 'lm') +
+#   theme_minimal(base_family = 'sans')
+#   # theme(panel.grid = element_blank())
+# ggsave('test.png', device = 'png', width = 4, height = 2)
+```
+
+# Tables
+## Functions
+```{r}
+sieve_cols <- function(mat){
+  for(i in seq_len(ncol(mat))){
+    col <- mat[,i]
+    last_element <- max(which(col != ""))
+    col <- c(rep(" ", length(col)-last_element), col[1:last_element])
+    mat[,i] = col
+  }
+  return(mat)
+}
+
+make_header_rows <- function(colnames, sep = '_'){
+  n_headers <- max(str_count(colnames, sep)) + 1
+  header_rows <- str_split(colnames, sep, simplify=TRUE) |> 
+    t() |> 
+    sieve_cols() %>% 
+  split(., row(.))
+  return(header_rows)
+}
+
+list_subsequent_count <- function(l){
+  count <- integer(length=length(l)) # max length of counts list (actual length unknowable a priori)
+  value <- vector('list', length=length(count))
+  reps = 1
+  element = 1
+  for(i in 1:(length(l)-1)){
+    if(l[[i]] == l[[i+1]]){
+      reps <- reps + 1
+    }else{
+      count[element] <- reps
+      value[element] <- l[[i]]
+      element <- element + 1
+      reps = 1
+    }
+    count[element] <- reps
+    value[element] <- l[[length(l)]]
+  }
+  names(count) <- value
+  return(count[count != 0])
+}
+
+get_separate_headers <- function(df, sep = '_'){
+  header_rows <- make_header_rows(colnames(df), sep = sep)
+  rows_indexes <- lapply(header_rows[-length(header_rows)], list_subsequent_count)
+  # print(rows_indexes)
+  # return(rows_indexes)
+  return(list(rows_indexes = rows_indexes, colnames = header_rows[[length(header_rows)]]))
+}
+
+add_headers_above <- function(kbl, headers, escape = FALSE){
+  i = 1
+  for(header in rev(headers)){
+    # if(any(str_detect(names(header), '%'))){
+    #   escape = TRUE
+    # }else(
+    #   escape = FALSE
+    # )
+    if(i == 1){
+      line = TRUE
+    }else{
+        line = FALSE
+    }
+    kbl <- kbl |> 
+      add_header_above(header, escape = escape, line = line)
+    i = i + 1
+  }
+  return(kbl)
+}
+```
+
+
+## Train Eval Results Table
+```{r}
+eval_results <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_eval_fc_stats.csv') %>%
+  file.path(mltrackeddatapath, .) |> 
+  read_csv(show_col_types = FALSE) |> 
+  select(Model = class_name, starts_with('r2'), starts_with('mae'), starts_with('mape')) |> 
+  mutate(Model = str_replace_all(Model, regex('(?<!^)(([A-Z][a-z]|(?<=[a-z]))[A-Z])'), ' \\1'),
+         Model = str_replace_all(Model, c('Cat Boost' = 'CatBoost',
+                                          'Ridge' = 'Ridge Regression'))) |> 
+  mutate(across(starts_with('MAPE'), \(x) x*100))
+
+colnames(eval_results) <- colnames(eval_results) |> 
+  str_replace_all(c('r2' = 'R$^2$',
+                    'mae' = 'MAE (Mt)',
+                    'mape' = 'MAPE (%)'))
+
+colnames(eval_results)
+```
 
 ```{r}
-library(showtext)
-showtext_auto()
+tablefilepath <- file.path(tablepath, paste0(fileprefix, 'eval_stats_', set, ".tex"))
 
-train_df |> 
-  ggplot(aes(x = log_report_fc, y = log_cal_fc)) +
-  geom_point() +
-  geom_abline(slope = 1, intercept = 0) +
-  geom_smooth(method = 'lm') +
-  theme_minimal(base_family = 'sans')
-  # theme(panel.grid = element_blank())
-ggsave('test.png', device = 'png', width = 4, height = 2)
+headers <- get_separate_headers(eval_results, sep = "_")
+print(headers)
+test <- eval_results |> 
+  setNames(headers$colnames) |>
+  kbl(digits = 3,
+      format = 'latex',
+      escape = TRUE,
+      booktabs = TRUE,
+      linesep = c('')) |> 
+  add_headers_above(headers$rows_indexes) |>
+  # column_spec(1, width = "12em")
+  # column_spec(2, width = "30em") |> 
+  row_spec(row = 0, align = 'c') |> 
+  save_kable(tablefilepath, float = FALSE)
+
+read_file(tablefilepath) |> 
+  str_replace_all('\\%', '\\\\%') |> 
+  write_file(tablefilepath)
+
+eval_results
 ```
+
+```{r}
+
+```
+
+
