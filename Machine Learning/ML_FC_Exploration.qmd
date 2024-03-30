@@ -249,10 +249,10 @@ colnames(eval_results)
 tablefilepath <- file.path(tablepath, paste0(fileprefix, 'eval_stats_', set, ".tex"))
 
 headers <- get_separate_headers(eval_results, sep = "_")
-print(headers)
-test <- eval_results |> 
+
+eval_results |> 
   setNames(headers$colnames) |>
-  kbl(digits = 3,
+  kbl(digits = c(rep(3,4),rep(2,2)),
       format = 'latex',
       escape = TRUE,
       booktabs = TRUE,
