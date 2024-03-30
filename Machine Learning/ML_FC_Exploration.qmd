@@ -248,21 +248,23 @@ colnames(eval_results)
 ```{r}
 tablefilepath <- file.path(tablepath, paste0(fileprefix, 'eval_stats_', set, ".tex"))
 
+# split column headers across multiple rows
 headers <- get_separate_headers(eval_results, sep = "_")
 
 eval_results |> 
-  setNames(headers$colnames) |>
+  setNames(headers$colnames) |> # part of column header splitting
   kbl(digits = c(rep(3,5),rep(2,2)),
       format = 'latex',
-      escape = TRUE,
+      escape = FALSE,
       booktabs = TRUE,
       linesep = c('')) |> 
-  add_headers_above(headers$rows_indexes) |>
+  add_headers_above(headers$rows_indexes) |> # part of column header splitting
   # column_spec(1, width = "12em")
   # column_spec(2, width = "30em") |> 
   row_spec(row = 0, align = 'c') |> 
   save_kable(tablefilepath, float = FALSE)
 
+# Manually include escape character for percent symbol
 read_file(tablefilepath) |> 
   str_replace_all('\\%', '\\\\%') |> 
   write_file(tablefilepath)
@@ -270,8 +272,53 @@ read_file(tablefilepath) |>
 eval_results
 ```
 
+
+## Test Results Table
+```{r}
+test_results <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_test_fc.csv') %>%
+  file.path(mltrackeddatapath, .) |> 
+  read_csv(show_col_types = FALSE) |> 
+  select(Model = class_name, starts_with('r2'), starts_with('mae'), starts_with('mape')) |> 
+  mutate(Model = str_replace_all(Model, regex('(?<!^)(([A-Z][a-z]|(?<=[a-z]))[A-Z])'), ' \\1'),
+         Model = str_replace_all(Model, c('Cat Boost' = 'CatBoost',
+                                          'Ridge' = 'Ridge Regression'))) |> 
+  mutate(across(starts_with('MAPE'), \(x) x*100))
+
+colnames(test_results) <- colnames(test_results) |> 
+  str_replace_all(c('r2' = 'R$^2$',
+                    'mae' = 'MAE (Mt)',
+                    'mape' = 'MAPE (%)'))
+
+colnames(test_results)
+```
+
+```{r}
+tablefilepath <- file.path(tablepath, paste0(fileprefix, 'test_fc_', set, ".tex"))
+
+# split column headers across multiple rows
+headers <- get_separate_headers(test_results, sep = "_")
+
+test_results |> 
+  setNames(headers$colnames) |> # part of column header splitting
+  kbl(digits = c(rep(3,3),2),
+      format = 'latex',
+      escape = FALSE,
+      booktabs = TRUE,
+      linesep = c('')) |> 
+  add_headers_above(headers$rows_indexes) |> # part of column header splitting
+  # column_spec(1, width = "12em")
+  # column_spec(2, width = "30em") |> 
+  row_spec(row = 0, align = 'c') |> 
+  save_kable(tablefilepath, float = FALSE)
+
+# Manually include escape character for percent symbol
+read_file(tablefilepath) |>
+  str_replace_all('\\%', '\\\\%') |>
+  write_file(tablefilepath)
+
+test_results
+```
 ```{r}
 
 ```
-
 
