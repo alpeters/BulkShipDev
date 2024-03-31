@@ -293,12 +293,17 @@ params <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_eval_fc_sta
   file.path(mltrackeddatapath, .) |> 
   read_csv(show_col_types = FALSE) |> 
   select(Model = class_name, Parameters = params) |> 
+  mutate(Model = str_replace_all(Model, regex('(?<!^)(([A-Z][a-z]|(?<=[a-z]))[A-Z])'), ' \\1'),
+         Model = str_replace_all(Model, c('Cat Boost' = 'CatBoost',
+                                          'Ridge' = 'Ridge Regression'))) |> 
   mutate(Parameters = str_remove_all(Parameters, "\\{|\\}|\\'") |> 
            str_replace_all('_', ' ')) |> 
   separate(Parameters, sep = ',', into = as.character(1:10), fill = 'right') |>
   pivot_longer(-Model, names_to = NULL, values_to = 'Parameters') |> 
   drop_na(Parameters) |> 
-  mutate(Parameters = ifelse(Parameters=='', 'n/a', Parameters)) |> 
+  separate(Parameters, into = c('Parameter', 'Value'), sep = ': ') |> 
+  mutate(Parameter = ifelse(Parameter=='', 'n/a', Parameter),
+         Value = replace_na(Value, 'n/a')) |> 
   arrange(Model)
 
 colored_rows <- params |>
@@ -308,27 +313,27 @@ colored_rows <- which(!colored_rows$test2)
 
 rows_rule_below <- params |> 
   mutate(test = Model != lead(Model))
-  
+# last row will be NA, so won't put line below last row, which is what we want
+
 rows_rule_below <- which(rows_rule_below$test)
-# rows_rule_below <- rows_rule_below[rows_rule_below != nrow(params)]
 rows_rule_below
-```
 
+# ncol(params)
 
-```{r}
 params |> 
   kbl(format = 'latex',
       escape = FALSE,
       booktabs = TRUE,
-      linesep = c('')) |> 
-  row_spec(row = 0, align = 'l') |>
+      linesep = c(''),
+      align = 'llr') |> 
   collapse_rows(columns = 1,
                 latex_hline = 'none',
                 valign = 'top') |>
-  row_spec(1,
-           extra_latex_after = "\\arrayrulecolor{black!30}\\midrule") |> 
-  row_spec(nrow(params),
-           extra_latex_after = "\\bottomrule")
+  # row_spec(rows_rule_below,
+  #          extra_latex_after = "\\arrayrulecolor{greytext}\\midrule\\arrayrulecolor{black}") |>
+  row_spec(row = 0, align = 'l') |>
+  row_spec(rows_rule_below,
+           extra_latex_after = paste0("\\cmidrule(lr){1-", ncol(params), "}")) |>
   save_kable(file.path(tablepath, paste0(fileprefix, 'tuned_parameters_', set, ".tex")))
 params
 ```
