@@ -1,0 +1,52 @@
+\section{Data}\label{sec:MLdata}
+We obtain data on the global fleet of dry bulk ships, which includes annual fuel consumption reports, hourly tracking data, and ship characteristics, jointly spanning the years 2019 to 2021. 
+
+Since 2018, fuel consumption reports are publicly available from the \ac{EU} \ac{MRV} program, which requires commercial ships over 5,000 \ac{GT} to report their total annual fuel consumption and distance travelled for all voyages into and out of the European Economic Area (henceforth referred to as EU trips) \parencite{eu2015regulation}. We take the reported annual fuel consumption, in \ac{t}, for \ac{EU} trips as ground truth,\footnote{The \ac{MRV} program requires third-party validation of all reports to ensure accuracy. Furthermore, during the period that we study there were no binding emissions regulations and therefore no clear incentive to misreport fuel consumption.} and take the log to construct our target variable. 
+% TODO: Mention average and sd at least, maybe plot
+% TODO: plot histogram of FC for all bulk vs. matched?
+
+Ship characteristics are taken from the \ac{WFR}, purchased from Clarksons Research, which includes a wide range of ship characteristics, such as ship type, size, engine power, etc. We match these characteristics to the \ac{EU} \ac{MRV} data using the \ac{IMO} number, a unique identifier for each ship. We retain only dry bulk carriers, after which between 3,600 and 3,900 ship observations remain per year, comprising roughly 30\% of the global dry bulk fleet.\footnote{We consider dry bulk to include all ships over 10,000 \acs{DWT} categorized in the \acs{WFR} under Ore Carrier, Bulk Carrier, Chip Carrier, Open Hatch Carrier, Forest Product Carrier, Aggregates Carrier, Cement Carrier, Nickel Carrier, and Slurry Carrier.}
+% Value sources: ML_preprocessing.py
+
+% TODO: Check for representativeness in appendix?
+
+Ship tracking data consists of messages transmitted by \aclp{AIS} (\acs{AIS}) fitted to each ship, which rely on global positioning systems and radio transmitters to track and report the ship's activity. Our dataset is purchased from Spire and contains hourly transmissions from all dry bulk ships, recorded by both land- and satellite-based receivers. Draft observations from static \ac{AIS} messages are merged to dynamic messages by hour and \ac{MMSI}, which identifies a ship's transceiver. Draft values are input manually by the ship's crew and therefore many observations are missing. We follow a commonly-used strategy and replace each missing draft value with the last valid observation.
+% TODO: quantify missing draft values in appendix and reference here
+
+\ac{AIS} data is subject to various sources of error, and we largely follow standard procedures to clean it, which are described in greater detail in \autoref{app:ML}. We employ an intentionally conservative cleaning strategy, and rely on a final validation step with the \ac{MRV} (described at the end of this section) to ensure that valid data is used to train our model. Throughout, we employ the haversine formula to calculate distances between location observations in an accurate and computationally feasible manner.
+
+One common error we observe are physically infeasible changes in a ship's trajectory and/or location. Since many of these are single, anomalous observations, we first drop single data points that represent an abrupt change of direction that is infeasible for the speed at which the ship is travelling. In other cases, a ship (as identified by the \ac{MMSI}), appears to jump to a new location, pursue a feasible trajectory for some time, and then jump back to its previous location. To correct for this type of error, we split each ship's trajectory whenever both the distance between observations exceeds 140 \ac{nm} and the implied speed (calculated as distance divided by time between observations) exceeds 25 knots. We retain either the even or odd trajectory segments depending on which set comprises the greater number of observations. The resulting data set contains trajectories for 12,716 unique \ac{MMSI}.
+% Source: AIS_Calculations.py
+% TODO: add and reference summary stats in appendix for:
+% - jumps
+% - ships with multiple segments
+% - dropped points
+% - how many span full three years?
+
+A second important error is missing dynamic data, i.e. hours for which there is no observation for a ship. We interpolate these missing data points as per the \ac{IMO}'s strategy \parencite{faber2020fourth}, creating an observation for each missing hour, assuming a constant speed and using the haversine formula to interpolate location coordinates. Speed is interpolated as the distance between consecutive locations divided by the time difference, and the previous draft value is assigned. On average, 37\% of observations for each ship-year are interpolated, although this figure varies widely, with a standard deviation of 21\%. This average decreases year-on-year, from 46\% in 2019 to 30\% in 2021. 
+% Source: AIS_Calculations_Interp.py
+
+To match the cleaned \ac{AIS} tracking data to the \ac{MRV} reports, it is necessary to identify which observations to attribute to \ac{EU} trips, as only activity related to those trips is reported in the \ac{MRV} data. To do so, we first identify port calls based on observed speed and proximity to land.\footnote{We identify a port call when a ship does not exceed a speed of one knot for at least 12 hours and is within a nation's economic exclusion zone (200 \ac{nm} from the coast).}\footnote{This strategy will tend to detect more than the correct number of port calls, as these are defined in the regulation as occurring only when cargo is loaded or unloaded, however this is not directly observable from the tracking data \parencite{eu2015regulation}.} A trip is defined as a ship's movement between two port calls. As per the \ac{EU} \ac{MRV} regulation, any trip with at least one of its two port calls within the jurisdiction of an \ac{EU} member state is considered an \ac{EU} trip \parencite{eu2015regulation}.\footnote{Ports in the United Kingdom ceased to be included as of the beginning of 2021.} To obtain the various annual values we use as predictors (see \autoref{sec:MLmethodology}), we aggregate over all observations assigned to an \ac{EU} trip in each year. These annual aggregate values are then matched to the \ac{MRV} and \ac{WFR} data by \ac{MMSI} and year. We successfully match 1989 ships for 2019, 2084 for 2020, and 2349 for 2021.
+% Source: ML_preprocessing.py
+% TODO: more detail in appendix?
+
+Finally, given the potential for errors stemming from the raw \ac{AIS} data and the trip detection procedure, we develop our model using a subset of data for which the observed distance travelled on EU trips agrees well with the reported distance. Specifically, we select only those ship-year observations for which the calculated and reported distances agree within 500 \ac{nm}.\footnote{As a robustness check, we also apply an alternative criterion of $\pm$10\%.} Summary statistics of the resulting data set are provided in \autoref{tab:reportstats}. We pool the observations from 2019 and 2020 to construct a training set of 1281 observations, while the observations from 2021 are set aside for out-of-sample testing.
+% Source: ML_prepocessing.py
+
+\begin{table}
+    \centering
+    % \begin{adjustbox}{max width=\textwidth}
+    \begin{threeparttable}
+        \caption{Reported fuel consumption summary statistics}
+        \label{tab:reportstats}
+        \input{ML_FC_Exploration_report_filtered_stats_m5dd.tex}
+        % \begin{tablenotes}[flushleft]\small
+            % \item \textit{Note:} MAE is mean absolute error, and $R^2$ is the coefficient of determination. The best score for each metric is highlighted in bold.
+        % \end{tablenotes}
+    \end{threeparttable}
+    % \end{adjustbox}
+\end{table}
+
+% TODO: add some plots of summary stats to demonstrate representativeness of retained data
+% TODO: Compare to page 140 of IMO Fourth GHG Study [@faber2020fourth]
+

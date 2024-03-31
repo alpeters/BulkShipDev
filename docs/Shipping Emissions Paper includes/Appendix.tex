@@ -1,0 +1,55 @@
+\section{Data Cleaning}\label{app:MLDataCleaning}
+
+% number of missing obs?
+
+% no invalid long, lat values
+% no speed values above 30 knots (according t Oliver)
+% implied speed?
+% Source: AIS_Calculations.py
+
+% Jumps
+% greater than 170 above 5 knots or 
+% Source: AIS_Calculations.py
+
+% number of impossible values?
+% number of jumps?
+% number of drafts infilled?
+
+% After interpolation
+% high speed values!
+% high distance values
+
+\section{Summary Statistics}\label{app:summarystats}
+
+% representativeness of EU MRV reporting fleet
+% mean, sd of all variables
+
+\section{Trip Detection}\label{app:tripdetection}
+
+
+\section{Machine Learning Details}\label{app:mldetails}
+
+The optimal tuning parameters are provided in \autoref{tab:trainparams}.
+\begin{table}[H]
+    \centering
+    \begin{adjustbox}{max width=\textwidth}
+    \begin{threeparttable}
+        \caption{Optimal tuning parameters}
+        \label{tab:trainparams}
+        \input{ML_FC_Exploration_tuned_parameters_m5dd.tex}
+        % \begin{tablenotes}[flushleft]\small
+            % \item \textit{Note:} MAE is mean absolute error, and $R^2$ is the coefficient of determination. The best score for each metric is highlighted in bold.
+        % \end{tablenotes}
+    \end{threeparttable}
+    \end{adjustbox}
+\end{table}
+
+The inferior performance of the CatBoost model versus ridge regression is shown in \autoref{fig:twoway_test_compare2_levels}.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\textwidth]{ML_FC_Fm5dd_twoway_test_levels_compare2.png}
+    \caption{Test set prediction accuracy (levels) for ridge regression and CatBoost}
+    \label{fig:twoway_test_compare2_levels}
+\end{figure}
+
+\section{Alternative Data Inclusion Criteria}\label{app:altcriteria}

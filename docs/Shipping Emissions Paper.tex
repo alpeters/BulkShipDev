@@ -1,0 +1,118 @@
+%-------------------------------------
+% CONFIGURATION
+%-------------------------------------
+
+\documentclass[hidelinks,11pt]{article}
+
+% TABLE PATHS
+\makeatletter
+\def\input@path{{./Shipping Emissions Paper includes/tables/}}
+\makeatother
+
+% JUSTIFICATION
+\usepackage{geometry}
+\geometry{
+	paper=letterpaper, % Change to letterpaper for US letter
+	top=2.5cm, % Top margin
+	bottom=2.5cm, % Bottom margin
+	left=2.5cm, % Left margin
+	right=2.5cm, % Right margin
+	%showframe, % Uncomment to show how the type block is set on the page
+}
+\usepackage{microtype} % Improve justification
+\usepackage[onehalfspacing]{setspace}
+
+% % SECTIONS, REFERENCES, AND CITATIONS
+\usepackage[hyperfootnotes=false]{hyperref}
+\hypersetup{
+    colorlinks=false, %links not colored
+    linktoc=all %link to both section and subsections
+}
+\usepackage[english]{babel}
+\addto\extrasenglish{
+	\def% -------------------------------------------------
+\sectionautorefname{Section}
+  \def\subsectionautorefname{Section}
+	\def\subsubsectionautorefname{Section}
+}
+\usepackage[backend=biber,style=apa,autocite=inline,hyperref=false]{biblatex} 
+\usepackage{csquotes}
+\DeclareLanguageMapping{english}{english-apa}
+\addbibresource{shippingemissionstrade.bib}
+% Use shortauthor when available
+\makeatletter
+\AtEveryCitekey{\ifnameundef{shortauthor}{}{\def\cbx@apa@ifnamesaved{\@firstoftwo}}}
+\makeatother
+
+\usepackage[nolist,nohyperlinks]{acronym}
+
+\usepackage[compact]{titlesec}
+%% The following commands causes chapter and section references to
+%% uppercase the part name.
+\renewcommand{\chapterautorefname}{Chapter}
+\renewcommand{\sectionautorefname}{Section}
+\renewcommand{\subsectionautorefname}{Section}
+\renewcommand{\subsubsectionautorefname}{Section}
+
+% MATH FORMATTING
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{amssymb}
+
+% GRAPHICS
+\usepackage{graphicx} % Allows including images
+\graphicspath{{./Shipping Emissions Paper includes/plots/}}
+\usepackage{float} % Allows for control of float positions
+
+% TABLE FORMATTING
+\usepackage[table]{xcolor} % for color in tables
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{makecell}
+\renewcommand\theadalign{cc}
+\renewcommand\theadfont{\bfseries}
+\renewcommand\theadgape{\Gape[1pt]}
+\renewcommand\cellalign{cl}
+\renewcommand\cellgape{\Gape[1pt]}
+\usepackage{threeparttable} % regression notes on tables
+\usepackage{adjustbox} % adjust table width
+
+% % GENERAL
+\usepackage{enumerate}
+
+% TITLE PAGE
+
+\title{Improving Maritime Shipping Emissions Estimates Using Machine Learning}
+
+\date{\today}
+
+%---------------------------------------
+% DOCUMENT
+%---------------------------------------
+
+\begin{document}
+
+\begin{titlepage}
+
+\maketitle
+
+\begin{abstract}
+    We employ machine learning to improve upon engineering estimates of \acl{CO2} emissions from maritime shipping. Traditional estimates rely on engineering approximations that may not entirely capture actual fuel use. We match reported annual ship-level emissions from a \acl{EU} emissions reporting program with tracking data and technical characteristics for the global fleet of dry bulk ships. Following industry standard procedures, we calculate engineering estimates of annual ship-level emissions and include these values as a predictor. We train various machine learning algorithms on reported fuel consumption and achieve high out-of-sample prediction accuracy.
+\end{abstract}
+
+
+% % \vfill
+% % \textit{Keywords:} 
+% % \textit{JEL codes: }
+% % \textit{JEL codes (2-digit): }
+
+\thispagestyle{empty} % Removes page number from first page
+\end{titlepage}
+
+\input{Shipping Emissions Paper includes/glossary}
+\include{Shipping Emissions Paper includes/Main}
+
+\appendix
+\include{Shipping Emissions Paper includes/Appendix}
+
+\end{document}

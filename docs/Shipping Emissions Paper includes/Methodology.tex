@@ -1,0 +1,80 @@
+\section{Methodology}\label{sec:MLmethodology}
+
+We train a model of fuel consumption in two steps: First, we calculate theoretical annual fuel consumption based on the bottom-up methodology used by the \ac{IMO}. Second, we train machine learning models to predict fuel consumption, using as predictors both the calculated fuel consumption and additional ship characteristics. We evaluate the performance of these models using a cross-validation procedure with the training data as well as on a separate test set.
+
+\subsection{Engineering Calculation}\label{subsec:engcalc}
+% Generally following the IMO Fourth GHG Study
+We follow closely the \ac{IMO} procedure described in \textcite{faber2020fourth} to calculate theoretical fuel consumption, with only a few minor simplifications. The key steps are outlined below, and further details are provided in \autoref{app:ML}. 
+
+A ship's total instantaneous fuel consumption, $FC_{i}$, is the sum of the fuel consumed by each of the \acf{ME}, \acf{AE}, and \acf{BO}, each of which is the product of the demanded power $W_{i}$ and the specific fuel consumption $SFC_{i}$ for that component:
+% Admiralty formula, other
+\begin{equation*}
+    FC_{i} = W_{\text{ME},i} \cdot SFC_{\text{ME},i} + W_{\text{AE},i} \cdot SFC_{\text{AE},i} + W_{\text{BO},i} \cdot SFC_{\text{BO},i}.
+\end{equation*}
+
+Demanded power is the power required to move the ship through the water (and air). For the \acl{AE} and \acl{BO}, power values are assigned based on the ship's operating phase, as determined by its speed and distance from shore. For the \acl{ME}, demanded power is given by the Admiralty formula, which is nonlinear in speed $v$ and draft $t$:
+% TODO: phase assignment in appendix
+
+\begin{equation}\label{eqn:admiralty}
+    W_{\text{ME},i} = C \cdot W_{\text{ME},\textit{ref}} \cdot \left( \frac{t_i}{t_{\textit{ref}}} \right)^{0.66} \cdot \left( \frac{v_i}{v_{\textit{ref}}} \right)^{3},
+\end{equation}
+
+where $C$ is a constant applied to correct for factors such as weather and hull fouling, and the \textit{ref} subscript denotes reference values that are maximum ratings taken from ship specifications in the \ac{WFR}.
+% TODO: detail static values in appendix (or data section?)
+
+Specific fuel consumption describes the efficiency of each engine. For the \acl{AE} and \acl{BO} this is taken to be constant and equal to $SFC_{base}$, while efficiency of the \acl{ME} is taken to be quadratic in engine load (the ratio of demanded power to reference power):
+
+\begin{equation*}
+SFC_{\text{ME},i} = SFC_{\text{base}} \cdot \left(0.455 \cdot \left(\frac{W_{\text{ME},i}}{W_{\text{ME},\textit{ref}}}\right)^2 - 0.710 \cdot \frac{W_{\text{ME},i}}{W_{\text{ME},\textit{ref}}} + 1.280\right).
+\end{equation*}
+
+$SFC_{\text{base}}$ is assigned based on the ship's engine type, fuel type, and year built.
+% TODO: SFC_base in appendix
+% (see \autoref{app:ML})
+
+% SFC_base
+%   - Phase assignment
+
+To aggregate, we assume operating conditions are constant over each hour (the frequency of the interpolated observational data) so that hourly fuel consumption is simply obtained by multiplying by the duration of each observation, $t$, equal to one hour. Annual fuel consumption $FC$ is then the sum over all observations $j$ in a year:
+
+\begin{equation}\label{eqn:annual_fc}
+    FC = \sum_j FC_{i,j} \cdot t.
+\end{equation}
+
+% Instantaneous values of draft, speed, and location taken from hourly \ac{AIS} data clearly aggregate non-linearly via the above equations.
+
+\subsection{Machine Learning}\label{subsec:machinelearning}
+% Intro - which models we consider
+We evaluate the performance of several machine learning algorithms, both linear and tree-based. These include linear regression, lasso, ridge regression, gradient boosting regression, random forest regression, and CatBoost.\footnote{We use Python's Scikit-learn library for all but CatBoost, for which we use the CatBoost library.}
+% Why not NN?
+
+We consider as predictor variables both ship characteristics from the \ac{WFR} and activity-dependent variables derived from \ac{AIS} tracking data. Given the hundreds of characteristics available and the potentially infinite variations on aggregating tracking data, we select a set of features based on a combination of domain knowledge and feature importance results from preliminary analyses. These are described in \autoref{tab:features}. The features we derive from tracking data can be split into three categories. The first includes straightforward aggregation of observational behaviour, such as total distance travelled, number of trips taken, and fraction of time spent at ports. The second category includes the fuel consumption calculated as per \autoref{subsec:engcalc}, as well as components of the Admiralty formula \eqref{eqn:admiralty}. Lastly, we include variables that represent aspects of the quality of the tracking data, including the number of interpolated observations when the ship is at sea (when most fuel is consumed) and the longest distance between observations.
+
+\begin{table}
+    \centering
+    \begin{adjustbox}{max width=\textwidth}
+    \begin{threeparttable}
+        \caption{Variable definitions}
+        \label{tab:features}
+        \input{ML_FC_Exploration_features_m5dd.tex}
+        \begin{tablenotes}[flushleft]\small
+            \item All derived values aggregated annually over EU trips.
+        \end{tablenotes}
+    \end{threeparttable}
+    \end{adjustbox}
+\end{table}
+
+% TODO: add filtering outliers?
+
+% Impute, transform, scale
+We perform final data preprocessing before training the models. We drop observations for which the discrepancy between log calculated fuel consumption and log reported consumption is greater than three standard deviations from the mean. We use median imputation for missing values of ship characteristics \textit{\ac{TPC}} (15\% missing) and \textit{\ac{NT}} (0.2\% missing). All numeric variables are log-transformed, using $log(1+x)$. The categorical variable \textit{size category} is coded as an ordinal variable. Finally, for lasso and ridge regression only, we normalize the log-transformed variables to have zero mean and unit variance.
+% TODO: fix data so I can drop the mention of filtering outliers
+
+% Hyperparameter tuning and algorithm evaluation
+Hyperparameters are tuned using grid search with k-fold cross-validation, with k=5. The parameter grid values are provided in \autoref{app:ML}. The best performing set of parameters for each algorithm is selected on the basis of the mean \ac{R2} value across the splits.
+% TODO: parameter grids in appendix
+% Algorithm evaluation/comparison
+% As an initial evaluation of the relative performance of the algorithms, we split the training set into 100 folds.\footnote{We choose 100 to balance computational time and randomness of the results.} We fit each model using the previously chosen hyperparameters on each combination of 99 folds, predicting the fuel consumption on the remaining fold. We then combine predicted values from all folds and calculate various performance metrics. Given that this procedure still utilizes the training set data, it may be subject to overfitting. 
+We assess the generalizability of the optimally tuned models in two ways. First, we perform 3x repeated 10-fold cross-validation and take the mean performance scores from the validation splits. Secondly, we fit each model on the entire training set (data from 2019 and 2020) and predict fuel consumption on the test set (2021 data).
+
+% We do not incorporate the effects of variable weather, however previous authors have found that this increases hull resistance by at most 10\%, which is in line with the static weather correction factor suggested by the \ac{IMO} and incorporated in our calculated fuel consumption \parencite{guo2022combined}.

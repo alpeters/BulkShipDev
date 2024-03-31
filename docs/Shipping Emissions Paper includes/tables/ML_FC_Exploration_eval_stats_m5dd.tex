@@ -1,0 +1,15 @@
+
+\begin{tabular}[t]{lrrrrrr}
+\toprule
+\multicolumn{1}{c}{ } & \multicolumn{2}{c}{R$^2$} & \multicolumn{2}{c}{MAE (t)} & \multicolumn{2}{c}{MAPE (\%)} \\
+\cmidrule(l{3pt}r{3pt}){2-3} \cmidrule(l{3pt}r{3pt}){4-5} \cmidrule(l{3pt}r{3pt}){6-7}
+\multicolumn{1}{c}{Model} & \multicolumn{1}{c}{mean} & \multicolumn{1}{c}{sd} & \multicolumn{1}{c}{mean} & \multicolumn{1}{c}{sd} & \multicolumn{1}{c}{mean} & \multicolumn{1}{c}{sd}\\
+\midrule
+Ridge Regression & 0.956 & 0.019 & 122 & 13 & 9.8 & 0.7\\
+Linear Regression & 0.956 & 0.020 & 122 & 14 & 9.8 & 0.7\\
+Lasso & 0.954 & 0.020 & 125 & 14 & 10.0 & 0.7\\
+Gradient Boosting Regressor & 0.942 & 0.039 & 130 & 16 & 10.6 & 0.9\\
+CatBoost Regressor & 0.939 & 0.053 & 127 & 17 & 10.3 & 0.9\\
+Random Forest Regressor & 0.914 & 0.036 & 157 & 19 & 12.3 & 1.0\\
+\bottomrule
+\end{tabular}

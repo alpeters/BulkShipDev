@@ -1,0 +1,73 @@
+%% The following is a directive for TeXShop to indicate the main file
+%%!TEX root = diss.tex
+
+% \chapter{Glossary}
+
+% This glossary uses the handy \latexpackage{acroynym} package to automatically
+% maintain the glossary.  It uses the package's \texttt{printonlyused}
+% option to include only those acronyms explicitly referenced in the
+% \LaTeX\ source.  To change how the acronyms are rendered, change the
+% \verb+\acsfont+ definition in \verb+diss.tex+.
+
+% use \acrodef to define an acronym, but no listing
+% \acrodef{UI}{user interface}
+\acrodef{UBC}{University of British Columbia}
+\acrodef{FC}{fuel consumption}
+
+% The acronym environment will typeset only those acronyms that were
+% *actually used* in the course of the document
+
+% search for potential acronyms using \s[A-Z]{2,}\s
+% {
+% \renewcommand{\baselineskip}{0em}
+% \begin{acronym}
+% \setlength{\parskip}{0ex}
+% \setlength{\itemsep}{0ex}
+\acrodef{IMO}[IMO]{International Maritime Organization}
+\acrodef{IPCC}[IPPC]{Intergovernmental Panel on Climate Change}
+\acrodef{UNCTAD}[UNCTAD]{United Nations Conference on Trade and Development}
+\acrodef{CO2}[CO$_2$]{carbon dioxide}
+\acrodef{MRV}[MRV]{Monitoring, Reporting, and Validation}
+\acrodef{EU}[EU]{European Union}
+\acrodef{AIS}[AIS]{Automatic Identification System}
+\acrodef{GDP}[GDP]{gross domestic product}
+\acrodef{OECD}[OECD]{Organisation for Economic Co-operation and Development}
+\acrodef{DWT}[DWT]{tons deadweight}
+\acrodef{RMSE}[RMSE]{root-mean-squared error}
+\acrodef{WIP}[WIP]{world industrial production}
+\acrodef{USD}[USD]{United States dollars}
+\acrodef{GHG}[GHG]{greenhouse gas}
+\acrodef{MAPE}[MAPE]{mean absolute percentage error}
+\acrodef{MAE}[MAE]{mean absolute error}
+\acrodef{MSE}[MSE]{mean squared error}
+\acrodef{HFO}[HFO]{heavy fuel oil}
+\acrodef{OLS}[OLS]{ordinary least squares}
+\acrodef{R2}[R$^2$]{coefficient of determination}
+\acrodef{nm}[nm]{nautical miles}
+\acrodef{GT}[GT]{gross tonnage}
+\acrodef{WFR}[WFR]{World Fleet Register}
+\acrodef{MMSI}[MMSI]{Maritime Mobile Service Identity}
+\acrodef{ME}[ME]{main engine}
+\acrodef{AE}[AE]{auxiliary engine}
+\acrodef{BO}[BO]{boiler}
+\acrodef{TPC}[TPC]{tonnage per centimeter}
+\acrodef{NT}[NT]{net tonnage}
+\acrodef{t}[t]{tonnes}
+% \end{acronym}
+% }
+
+% You can also use \newacro{}{} to only define acronyms
+% but without explictly creating a glossary
+% 
+% \newacro{ANOVA}[ANOVA]{Analysis of Variance\acroextra{, a set of
+%   statistical techniques to identify sources of variability between groups.}}
+% \newacro{API}[API]{application programming interface}
+% \newacro{GOMS}[GOMS]{Goals, Operators, Methods, and Selection\acroextra{,
+%   a framework for usability analysis.}}
+% \newacro{TLX}[TLX]{Task Load Index\acroextra{, an instrument for gauging
+%   the subjective mental workload experienced by a human in performing
+%   a task.}}
+% \newacro{UI}[UI]{user interface}
+% \newacro{UML}[UML]{Unified Modelling Language}
+% \newacro{W3C}[W3C]{World Wide Web Consortium}
+% \newacro{XML}[XML]{Extensible Markup Language}
