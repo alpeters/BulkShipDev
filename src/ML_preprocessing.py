@@ -9,7 +9,8 @@ import pyreadr
 import numpy as np
 import pandas as pd
 import pyreadr
-
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 datapath = 'src/data'
 trackeddatapath = 'src/tracked_data'
@@ -91,12 +92,17 @@ final_df.groupby('set').value_counts(['within_tol_abs'])
 print('Relative')
 final_df.groupby('set').value_counts(['within_tol_rel'])
 
+#%% Additional criteria on fraction of distance attributed to jumps
+final_df['jump_distance_frac'] = final_df['total_jump_distance'] / final_df['distance_sum']
+final_df['within_tol_jumps'] = final_df['jump_distance_frac'] <= 0.003
+
+
 #%%
 # Save separate datasets for absolute and relative tolerance and training and testing
 for tol in ['abs', 'rel']:
     for set in ['train', 'test']:
         (
-            final_df[final_df['within_tol_' + tol] & (final_df['set'] == set)]
+            final_df[final_df['within_tol_jumps'] & final_df['within_tol_' + tol] & (final_df['set'] == set)]
             .drop(columns = ['within_tol_rel', 'within_tol_abs', 'set'])
             .to_csv(os.path.join(trackeddatapath, 'df_ml_' + tol + '_' + set + '.csv'), index=False)
         )
@@ -136,9 +142,12 @@ merged_df.value_counts('year')
 final_df.value_counts('year')
 
 #%% How many within tolerance?
-final_df.value_counts(['year', 'within_tol_abs'])
+final_df.value_counts(['year', 'within_tol_abs', 'within_tol_jumps'])
 #%%
-final_df.value_counts(['year', 'within_tol_rel'])
+final_df.value_counts(['year', 'within_tol_rel', 'within_tol_jumps'])
+
+#%% How many left?
+final_df.loc[final_df['within_tol_abs'] & final_df['within_tol_jumps']].value_counts('year')
 
 #%% MRV counts
 mrv_df.groupby(['year'])
@@ -168,4 +177,20 @@ train_rel_df = final_df[final_df['within_tol_rel'] & (final_df['set'] == 'train'
 
 #%% Are outliers incorrectly matched ships?
 train_abs_df[['outlier', 'MRV.ship.type', 'Type']].value_counts()
+
+
+#### JUMP DISTANCE #####
 # %%
+sns.histplot(data=train_abs_df.loc[train_abs_df['total_jump_distance'] > 10], x='total_jump_distance', hue='outlier', bins=100)
+plt.title('Total jump distance')
+
+#%%
+sns.histplot(data=train_abs_df, x='distance_sum', hue='outlier', bins=100)
+plt.title('Total distance')
+
+# %%
+train_abs_df['jump_frac'] = train_abs_df['total_jump_distance']/train_abs_df['distance_sum']
+sns.histplot(data=train_abs_df.loc[train_abs_df['jump_frac'] > 0.00001], x='jump_frac', hue='outlier', bins=100)
+plt.title('Total jump distance as fraction of total distance')
+
+#%%
