@@ -174,18 +174,17 @@ ais_bulkers['IS_distance'] = ais_bulkers['implied_speed'] * ais_bulkers['distanc
 ais_bulkers['speed_distance'] = ais_bulkers['speed'] * ais_bulkers['distance']
 
 #%%
-# yearly_ISgt24 = (
-#     ais_bulkers.loc[ais_bulkers.implied_speed > 24]
-#     .groupby(['mmsi', 'year'])
-#     .distance
-#     .agg(['count', 'sum'])
-#     .compute()
-# )
+yearly_ISgt25 = (
+    ais_bulkers.loc[ais_bulkers.implied_speed > 25]
+    .groupby(['mmsi', 'year'])
+    .distance
+    .agg(['count', 'sum'])
+    .compute()
+)
 
-#%%
-# yearly_ISgt24 = yearly_ISgt24.rename(columns = {
-#     'count': ('IS', 'gt24'),
-#     'sum': ('IS', 'gt24Distance')})
+yearly_ISgt25 = yearly_ISgt25.rename(columns = {
+    'count': 'IS_gt25_count',
+    'sum': 'IS_gt25_sum'})
 
 
 #%%
@@ -246,13 +245,18 @@ yearly_stats_base = (
         'speed_distance': ['sum']})
     ).compute()
 
+
 #%%
-# yearly_stats = (
-#     yearly_stats_base
-#     .merge(
-#         yearly_ISgt24,
-#         how = 'left',
-#         on = ['mmsi', 'year'])
+yearly_stats_flat = yearly_stats_base
+yearly_stats_flat.columns = ['_'.join(col) for col in yearly_stats_flat.columns.values]
+
+#%%
+yearly_stats_flat = (
+    yearly_stats_flat
+    .merge(
+        yearly_ISgt25,
+        how = 'left',
+        on = ['mmsi', 'year'])
 #     .merge(
 #         yearly_TIgt12,
 #         how = 'left',
@@ -261,12 +265,10 @@ yearly_stats_base = (
 #         yearly_TIgt48,
 #         how = 'left',
 #         on = ['mmsi', 'year'])
-#     )
+    )
+#%% Replace Na in IS_gt25_count with 0
+yearly_stats_flat['IS_gt25_count'] = yearly_stats_flat['IS_gt25_count'].fillna(0)
 
-
-#%%
-yearly_stats_flat = yearly_stats_base
-yearly_stats_flat.columns = ['_'.join(col) for col in yearly_stats_flat.columns.values]
 
 #%% Distance weighted average implied speed
 yearly_stats_flat['weighted_IS_mean'] = yearly_stats_flat['IS_distance_sum'] / yearly_stats_flat['distance_sum']
@@ -287,3 +289,12 @@ yearly_stats['mmsi'].nunique()
 # %% Unique MMSI by year
 yearly_stats.value_counts('year')
 
+# Number of obs with high implied speed
+# %%
+yearly_stats[['year', 'IS_gt25_count']].groupby('year').describe()
+# %%
+yearly_stats[['year', 'IS_gt25_count']].describe()
+# %%
+import seaborn as sns
+sns.histplot(data=yearly_stats, x='IS_gt25_count', hue='year', bins=100)
+# %%

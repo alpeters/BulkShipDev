@@ -93,4 +93,53 @@ with LocalCluster(
             engine = 'fastparquet')
     )
 
-# #%%
+#########################
+# Summary stats and plots
+#########################
+#%% Calculate summary stats
+ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_merged'),
+    columns = ['timestamp', 'latitude', 'longitude', 'speed', 'course', 'draught'])
+
+ais_bulkers['year'] = ais_bulkers.timestamp.apply(
+    lambda x: x.year,
+    meta = ('x', 'int16'))
+
+yearly_stats_base = (
+    ais_bulkers
+    .groupby(['mmsi', 'year'])
+    .agg({
+        'timestamp': ['count', 'min', 'max'],
+        'speed': ['mean', 'max'],
+        'draught': ['count', 'mean', 'max']})
+    ).compute()
+
+yearly_stats_flat = yearly_stats_base
+yearly_stats_flat.columns = ['_'.join(col) for col in yearly_stats_flat.columns.values]
+
+yearly_stats_other = (
+    ais_bulkers
+    .loc[ais_bulkers.speed > 25, ['year', 'timestamp']]
+    .groupby(['mmsi', 'year'])
+    .agg(['count'])
+    .compute()
+)
+yearly_stats_other.columns = ['_'.join(col) + '_highspeed' for col in yearly_stats_other.columns.values]
+
+yearly_stats_flat = yearly_stats_flat.join(yearly_stats_other, how = 'outer')
+
+yearly_stats_flat.to_csv(os.path.join(datapath, 'AIS_raw_yearly_stats.csv'))
+
+##### Plots
+#%% load yearly_stats.csv
+yearly_stats = pd.read_csv(os.path.join(datapath, 'AIS_raw_yearly_stats.csv'))
+
+#%%
+yearly_stats_flat['frac_highspeed'] = yearly_stats_flat['timestamp_count_highspeed'] / yearly_stats_flat['timestamp_count']
+
+#%% Overall
+yearly_stats_flat.describe(percentiles = [])
+
+#%% By year
+yearly_stats_flat.groupby('year').describe(percentiles = [])
+
+# %%

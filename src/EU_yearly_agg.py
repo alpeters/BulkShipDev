@@ -210,7 +210,7 @@ meta = joined_df._meta.assign(ME_W=pd.Series(dtype=float),
 joined_df.map_partitions(calculate_hourly_power, meta=meta).to_parquet(os.path.join(datapath, 'AIS', 'ais_bulkers_trips_EU_power'), append = False, overwrite = True, engine = 'pyarrow')
 
 # joined_df.head()
-
+################################# RUN FROM HERE TO ADD NEW STATS
 #%% Hourly fuel consumption for main engine (IMO4 Eqns 8 and 10)
 joined_df = dd.read_parquet(os.path.join(datapath, 'AIS', 'ais_bulkers_trips_EU_power'))
 
@@ -327,6 +327,25 @@ yearly_stats['longest_jump'] = (
     joined_df
     .map_partitions(lambda part: part.groupby(['mmsi', 'year']).apply(lambda df: observed_distances(df).distance.max()))).compute()
 
+# Calculate total jump distance
+def observed_large_distances(df):
+    df = df[~df['interpolated']]
+    lat_lag = df.latitude.shift(1)
+    lng_lag = df.longitude.shift(1)
+    lat_diff = np.radians(df['latitude'] - lat_lag)
+    lng_diff = np.radians(df['longitude'] - lng_lag)
+    d = (np.sin(lat_diff * 0.5) ** 2 +
+         np.cos(np.radians(lat_lag)) *
+         np.cos(np.radians(df['latitude'])) *
+         np.sin(lng_diff * 0.5) ** 2)
+    df['distance'] = 2 * 6371.0088 * np.arcsin(np.sqrt(d))
+    df = df[df['implied_speed'] > 25]
+    return df
+
+yearly_stats['total_jump_distance'] = (
+    joined_df
+    .map_partitions(lambda part: part.groupby(['mmsi', 'year']).apply(lambda df: observed_large_distances(df).distance.sum()))).compute()
+
 
 # Flatten the multi-index columns
 yearly_stats_flat = yearly_stats.rename(columns = {"invalid_speed": ("invalid", "speed")})
@@ -344,7 +363,8 @@ missing_frac_sea = (interpolated_sea['sum'] / interpolated_sea['count']).rename(
 yearly_stats_flat = yearly_stats_flat.join(missing_frac_sea, on = ['mmsi', 'year'])
 yearly_stats_flat = yearly_stats_flat.rename(columns={
     'port_frac_':'port_frac',
-    'longest_jump_':'longest_jump'})
+    'longest_jump_':'longest_jump',
+    'total_jump_distance_':'total_jump_distance',})
 yearly_stats_flat.to_csv(os.path.join(datapath, 'AIS_' + callvariant + EUvariant + '_EU_yearly_stats.csv'))
 
 #%%

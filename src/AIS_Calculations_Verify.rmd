@@ -26,10 +26,34 @@ AIS_df %>%
   geom_histogram(position = 'identity',
                  alpha = 0.5)
 ```
+
 ```{r}
 AIS_df %>% 
   ggplot(aes(x = Timestamp.Min, fill = factor(Year))) +
   geom_histogram(position = 'identity',
                  alpha = 0.5)
+```
+
+Any high speed?
+```{r}
+AIS_df |> 
+  summarise(any(Speed.Max > 25))
+```
+
+Number of obs
+```{r}
+AIS_df |> 
+  summarise(mean(Timestamp.Count), sd(Timestamp.Count))
+```
+
+Hours in a year?
+```{r}
+365*24
+```
+
+How many implied speeds over 25 knots?
+```{r}
+AIS_df |> 
+  summarise(mean(Is.Gt25.Count), sd(Is.Gt25.Count))
 ```
 
