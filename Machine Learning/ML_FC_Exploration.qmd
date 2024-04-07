@@ -66,7 +66,7 @@ features_all_desc
 
 # ***Select run name
 ```{r}
-set <- 'm5dd'
+set <- 'm5dd' #'m5dd_rel'
 ```
 
 
@@ -235,7 +235,8 @@ stats_report_filtered <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set
   select(Year = year, starts_with('report'))
 # 
 colnames(stats_report_filtered) <- colnames(stats_report_filtered) |>
-  str_replace_all(c('std' = 'sd')) |> 
+  str_replace_all(c('std' = 'sd (t)',
+                  'mean' = 'mean (t)')) |> 
   str_remove_all('report_fc_')
 
 colnames(stats_report_filtered)
@@ -265,7 +266,8 @@ stats_cal_filtered <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '
   select(Year = year, starts_with('cal'))
 # 
 colnames(stats_cal_filtered) <- colnames(stats_cal_filtered) |>
-  str_replace_all(c('std' = 'sd')) |> 
+  str_replace_all(c('std' = 'sd (t)',
+                    'mean' = 'mean (t)')) |> 
   str_remove_all('cal_fc_')
 
 colnames(stats_cal_filtered)
@@ -286,6 +288,43 @@ stats_cal_filtered |>
 
 stats_cal_filtered
 ```
+
+### Combined
+```{r}
+flip_names <- function(name, sep){
+  if(str_detect(name, sep)){
+    name_list <- str_split(name, sep, simplify = TRUE)
+    name <- paste0(name_list[[2]], sep, name_list[[1]])
+  }
+  return(name)
+}
+```
+
+```{r}
+stats_both <- full_join(stats_report_filtered,
+                        stats_cal_filtered |> select(-count),
+                        by = 'Year', 
+                        suffix = c('_Reported', '_Calculated'))
+
+colnames(stats_both) <- sapply(colnames(stats_both), \(x) flip_names(x, sep = '_'))
+
+stats_both |> 
+  kbl(digits = 0,
+      format = 'latex',
+      escape = FALSE,
+      booktabs = TRUE,
+      linesep = c(''),
+      align = c('c', rep('r', 3))) |> 
+  column_spec(1, width = "4em") |> 
+  column_spec(2:4, width = "4em") |> 
+  header_separate(sep = '_') |> 
+  row_spec(row = 0, align = 'c') |> 
+  save_kable(file.path(tablepath, paste0(fileprefix, 'both_filtered_stats_', set, ".tex")),
+             float = FALSE)
+
+stats_both
+```
+
 
 ## Optimal parameters table
 ```{r}
@@ -432,7 +471,46 @@ read_file(tablefilepath) |>
 test_results
 ```
 
-```{r}
 
+## Predictor summary stats
+```{r}
+pred_stats <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_desc_stats_predictors_filtered_set.csv') %>%
+  file.path(mltrackeddatapath, .) |> 
+  read_csv(show_col_types = FALSE) |> 
+  pivot_longer(-set) |> 
+  separate(name, into = c('variable', 'stat'), sep = "_(?=[^_]+$)", extra = 'merge') |> 
+  unite(set_stat, c("set", "stat")) |> 
+  pivot_wider(names_from = set_stat, values_from = value) |> 
+  left_join(features_all_desc, by = 'variable') |> 
+  mutate(unit = ifelse(is.na(unit),
+                          unit,
+                          paste0('(', unit, ')'))) |> 
+  mutate(across(everything(), \(x) replace_na(x, ''))) |> 
+  mutate(Name = ifelse(type == 'derived',
+                       name,
+                       paste(name, unit))) |> 
+  mutate(group = factor(group, 
+                        ordered = TRUE, 
+                        levels = c('characteristic', 'activity', 'calc', 'quality'),
+                        labels = c('Ship Characteristics', 'Ship Activity', 'Calculated', 'Data Quality'))) |> 
+  arrange(group, name) |> 
+  select(Name, starts_with('Train'), starts_with('Test')) |> 
+  mutate(across(c(-Name, -contains('count')), 
+                \(x) case_when(x < 0.001 ~ format(x, digits = 3, scientific = TRUE),
+                               between(x, 0.001, 1) ~ format(round(x, 2), scientific = FALSE),
+                               between(x, 1, 100) ~ format(round(x, 1), scientific = FALSE),
+                               between(x, 100, 10000) ~ format(round(x, 0), scientific = FALSE),
+                               x > 10000 ~ format(x, digits = 3, scientific = TRUE))))
+
+pred_stats |> 
+  kbl(digits = 3,
+      format = 'latex',
+      align = c('l', rep('r', ncol(pred_stats)-1)),
+      escape = FALSE,
+      booktabs = TRUE) |> 
+  header_separate(sep = '_') |> 
+  save_kable(file.path(tablepath, paste0(fileprefix, 'predictor_stats_', set, ".tex")),
+             float = FALSE)
+pred_stats
 ```
 
