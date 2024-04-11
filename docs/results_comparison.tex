@@ -1,0 +1,35 @@
+\documentclass[11pt]{article}
+% make paper size legal
+\usepackage{geometry}
+\geometry{paperwidth=22in, paperheight=10in, margin=0in}
+
+% set table file paths
+\makeatletter
+% \def\input@path{{../src/plots/Sep21_Paper/}{../src/tables/Sep21_Paper/}}
+\def\input@path{{../Machine Learning/tables}}
+\makeatother
+
+\usepackage{pdflscape}
+\usepackage{booktabs}
+
+\begin{document}
+\pagestyle{empty}
+% log/linear, efficiency/consumption, OECD/OECDa/m5dd
+
+
+\begin{table} \centering
+    \begin{tabular}{c|c|c|c|c}
+        \toprule
+            & \multicolumn{2}{c}{FE} & \multicolumn{2}{c}{FC} \\
+            & Linear & Log & Linear & Log \\
+        \midrule
+        OECD      & \input{ML_FE_Exploration_test_fc_mOECD_linear}  & \input{ML_FE_Exploration_test_fc_mOECD}       &                                                      & \\
+        \midrule
+        OECD+ours & \input{ML_FE_Exploration_test_fc_mOECDa_linear_fast} & \input{ML_FE_Exploration_test_fc_mOECDa_fast} & \input{ML_FC_Exploration_test_fc_mOECDa_linear_fast} & \input{ML_FC_Exploration_test_fc_mOECDa_fast} \\
+        \midrule
+        Original  & \input{ML_FE_Exploration_test_fc_m5dd_linear_fast}   & \input{ML_FE_Exploration_test_fc_m5dd_fast}   & \input{ML_FC_Exploration_test_fc_m5dd_linear_fast} & \input{ML_FC_Exploration_test_fc_m5dd.tex} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\end{document}
