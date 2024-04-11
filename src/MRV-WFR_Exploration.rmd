@@ -56,6 +56,18 @@ fleet_df %>%
 ```
 About 30% of all bulker ships report in the MRV each year.
 
+## Check fuel consumption per distance makes sense
+```{r}
+fleet_df |> 
+  select(IMO.Number, contains('MRV.EU.Distance'), contains('MRV.FC.Per.Distance'), contains('MRV.Total.FC')) |>
+  select(IMO.Number, contains('2018')) |> 
+  mutate(test = MRV.Total.FC.2018/MRV.EU.Distance.2018*1e3 - MRV.FC.Per.Distance.2018) |> 
+  drop_na('test') |> 
+  summarise(all(test < 1e-2))
+```
+
+
+
 ## Fuel consumption and efficiency
 ```{r}
 fleet_df %>% 
