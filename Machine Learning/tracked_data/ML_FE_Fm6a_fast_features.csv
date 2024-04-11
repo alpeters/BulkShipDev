@@ -1,0 +1,16 @@
+variable
+Speed..knots.
+ME_W_ref_first
+Draught..m.
+LBP..m.
+LOA..m.
+Beam.Mld..m.
+TPC
+Dwt
+age
+port_frac
+missing_frac_sea
+total_jump_distance
+cal_fc
+distance_sum
+speed_mean

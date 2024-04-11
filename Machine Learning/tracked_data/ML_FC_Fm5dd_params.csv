@@ -2,7 +2,7 @@ parameter,value
 y_transformer_func,<ufunc 'log1p'>
 y_transformer_inverse_func,<ufunc 'expm1'>
 tol_type,abs
-outlier_threshold,3
+outlier_threshold,inf
 feature_set,m5dd
 cv_folds,5
 cv_scoring,r2

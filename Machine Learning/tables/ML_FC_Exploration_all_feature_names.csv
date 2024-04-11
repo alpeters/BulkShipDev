@@ -218,6 +218,7 @@ cal_fc
 speed_mean
 port_frac
 longest_jump
+total_jump_distance
 missing_frac_sea
 age
 residual
@@ -225,3 +226,5 @@ log_report_fc
 log_cal_fc
 distance_difference
 distance_difference_rel
+jump_distance_frac
+within_tol_jumps
