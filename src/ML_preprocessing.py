@@ -107,6 +107,14 @@ for tol in ['abs', 'rel']:
             .to_csv(os.path.join(trackeddatapath, 'df_ml_' + tol + '_' + set + '.csv'), index=False)
         )
 
+# Don't separate training and test yet
+for tol in ['abs', 'rel']:
+        (
+            final_df[final_df['within_tol_jumps'] & final_df['within_tol_' + tol]]
+            .drop(columns = ['within_tol_rel', 'within_tol_abs', 'set'])
+            .to_csv(os.path.join(trackeddatapath, 'df_ml_' + tol + '_all.csv'), index=False)
+        )
+
 #########################
 # Summary stats and plots
 #########################

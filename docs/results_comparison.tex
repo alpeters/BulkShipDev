@@ -16,20 +16,43 @@
 \pagestyle{empty}
 % log/linear, efficiency/consumption, OECD/OECDa/m5dd
 
-
 \begin{table} \centering
+    \caption{Test 2021}
     \begin{tabular}{c|c|c|c|c}
         \toprule
             & \multicolumn{2}{c}{FE} & \multicolumn{2}{c}{FC} \\
             & Linear & Log & Linear & Log \\
         \midrule
-        OECD      & \input{ML_FE_Exploration_test_fc_mOECD_linear}  & \input{ML_FE_Exploration_test_fc_mOECD}       &                                                      & \\
+        OECD      & \input{ML_FE_Exploration_test_fc_mOECD_test2021_linear}  & \input{ML_FE_Exploration_test_fc_mOECD}       &                                                      & \\
         \midrule
         OECD+ours & \input{ML_FE_Exploration_test_fc_mOECDa_linear} & \input{ML_FE_Exploration_test_fc_mOECDa} & \input{ML_FC_Exploration_test_fc_mOECDa_linear} & \input{ML_FC_Exploration_test_fc_mOECDa_fast} \\
         \midrule
-        Original  & \input{ML_FE_Exploration_test_fc_m5dd_linear_fast}   & \input{ML_FE_Exploration_test_fc_m5dd}   & \input{ML_FC_Exploration_test_fc_m5dd_linear_fast} & \input{ML_FC_Exploration_test_fc_m5dd.tex} \\
+        Original  & \input{ML_FE_Exploration_test_fc_m5dd_linear_fast}   & \input{ML_FE_Exploration_test_fc_m5dd}   & \input{ML_FC_Exploration_test_fc_m5dd_linear_fast} & \input{ML_FC_Exploration_test_fc_m5dd} \\
         \bottomrule
     \end{tabular}
 \end{table}
+
+\newpage
+
+\begin{table} \centering
+    \caption{Test 2020}
+    \begin{tabular}{c|c|c|c|c}
+        \toprule
+            & \multicolumn{2}{c}{FE} & \multicolumn{2}{c}{FC} \\
+            & Linear & Log & Linear & Log \\
+        \midrule
+        % OECD      & \input{ML_FE_Exploration_test_fc_mOECD_linear}  & \input{ML_FE_Exploration_test_fc_mOECD}       &                                                      & \\
+        OECD & \input{ML_FE_Exploration_test_fc_mOECD_test2020_linear} & & & \\
+        \midrule
+        % OECD+ours & \input{ML_FE_Exploration_test_fc_mOECDa_linear} & \input{ML_FE_Exploration_test_fc_mOECDa} & \input{ML_FC_Exploration_test_fc_mOECDa_linear} & \input{ML_FC_Exploration_test_fc_mOECDa_fast} \\
+        
+        OECD+ours & \input{ML_FE_Exploration_test_fc_mOECDa_test2020_linear} & \input{ML_FE_Exploration_test_fc_mOECDa_test2020} & \input{ML_FC_Exploration_test_fc_mOECDa_test2020_linear_fast} & \input{ML_FC_Exploration_test_fc_mOECDa_test2020_fast}\\
+        \midrule
+        % Original  & \input{ML_FE_Exploration_test_fc_m5dd_linear_fast}   & \input{ML_FE_Exploration_test_fc_m5dd}   & \input{ML_FC_Exploration_test_fc_m5dd_linear_fast} & \input{ML_FC_Exploration_test_fc_m5dd} \\
+        Original  & & & & \input{ML_FC_Exploration_test_fc_m5dd_test2020_fast} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
 
 \end{document}

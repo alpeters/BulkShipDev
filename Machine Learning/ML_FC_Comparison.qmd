@@ -1,0 +1,147 @@
+---
+title: "ML FC Comparison"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(kableExtra)
+library(readr)
+```
+
+# Functions
+
+Plotting defaults
+
+```{r}
+imagepath = "plots"
+tablepath = "tables"
+mltrackeddatapath = "tracked_data"
+trackeddatapath = "../src/tracked_data"
+fileprefix = "ML_FC_Comparison_"
+# update_geom_defaults("text", list(size = 20))
+base_size <- 18
+theme_set(theme_minimal(base_size = base_size))
+theme_pres <- function(base_size){
+  theme_get() %+replace%
+    theme(axis.ticks = element_line(colour = "grey70", linewidth = rel(0.5)),
+          panel.grid = element_blank(),
+          panel.grid.major.y = element_line(colour = 'grey90', linewidth = rel(0.5)),
+          # panel.border = element_rect(fill = NA, colour = "grey30", linewidth = rel(0.8)),
+          strip.text = element_text(size=1.03*base_size),
+          legend.text = element_text(size=1.1*base_size))
+}
+pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a")
+```
+
+# Data to compare
+
+```{r}
+variants = c('FE_FmOECD_test2021_linear', 
+                'FE_FmOECDa_linear',
+                'FE_FmOECDa',
+                'FC_FmOECDa_linear',
+                'FC_FmOECDa_test2021_fast',
+                'FC_Fm5dd',
+                'FE_FmOECD_test2020_linear',
+                'FE_FmOECDa_test2020_linear',
+                'FE_FmOECDa_test2020',
+                'FC_FmOECDa_test2020_linear_fast',
+                'FC_FmOECDa_test2020_fast',
+                'FC_Fm5dd_test2020_fast')
+
+sort(variants)
+```
+
+```{r}
+compare_df <- tibble()
+for(variant in variants){
+  compare_df <- bind_rows(compare_df,
+                          paste0('ML_', variant, '_total_fc.csv') %>%
+                            file.path(mltrackeddatapath, .) |> 
+                            read_csv(show_col_types = FALSE) |> 
+                            pivot_longer(-model, names_to = 'Year', values_to='Total_FC') |> 
+                            mutate(#Variant = variant,
+                                   Variant = str_remove(variant, '_test.*?(?=_|$)'),
+                                   Variant = str_remove(Variant, '_fast'),
+                                   Test_set = str_extract(variant, '(?<=_test).*?(?=_|$)')) |> 
+                            mutate(Test_set = replace_na(Test_set, '2021')))
+}
+```
+
+
+```{r}
+compare_df |> 
+  pivot_wider(names_from = model, values_from = Total_FC) |> 
+  pivot_longer(cols = -c('Year', 'Variant', 'Test_set', 'report'),
+               names_to = 'Model',
+               values_to = 'Total_FC') |> 
+  ggplot(aes(x = Variant, y = Total_FC, fill = Model)) +
+  geom_col(position = 'dodge') +
+  geom_hline(aes(yintercept = report), linetype = 'dashed') + 
+  facet_grid(Test_set~Year) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_cartesian(ylim= c(400e3, NA))
+```
+
+```{r}
+compare_df |> 
+  pivot_wider(names_from = model, values_from = Total_FC) |> 
+  pivot_longer(cols = -c('Year', 'Variant', 'Test_set', 'report'),
+               names_to = 'Model',
+               values_to = 'Total_FC') |> 
+  mutate(Total_Error = Total_FC - report,
+         Total_Pct_Error = Total_Error/report*100) |> 
+  ggplot(aes(x = Variant, y = Total_Error, fill = Model)) +
+  geom_col(position = 'dodge') +
+  facet_grid(Test_set~Year) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+compare_df |>
+  pivot_wider(names_from = model, values_from = Total_FC) |>
+  pivot_longer(cols = -c('Year', 'Variant', 'Test_set', 'report'),
+               names_to = 'Model',
+               values_to = 'Total_FC') |> 
+  filter(Year == as.integer(Test_set)) |> 
+  mutate(Total_Error = Total_FC - report,
+         Total_Pct_Error = Total_Error/report*100) |> 
+  group_by(Variant, Model) |> 
+  summarise(Mean_Total_Error = mean(Total_Error), count = n()) |>
+  filter(count != 1) |> 
+  arrange(abs(Mean_Total_Error))
+```
+
+
+```{r}
+compare_df |> 
+  pivot_wider(names_from = model, values_from = Total_FC) |> 
+  pivot_longer(cols = -c('Year', 'Variant', 'Test_set', 'report'),
+               names_to = 'Model',
+               values_to = 'Total_FC') |> 
+  mutate(Total_Error = Total_FC - report,
+         Total_Pct_Error = Total_Error/report*100) |> 
+  ggplot(aes(x = Variant, y = Total_Pct_Error, fill = Model)) +
+  geom_col(position = 'dodge') +
+  facet_grid(Test_set~Year) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+compare_df |>
+  pivot_wider(names_from = model, values_from = Total_FC) |>
+  pivot_longer(cols = -c('Year', 'Variant', 'Test_set', 'report'),
+               names_to = 'Model',
+               values_to = 'Total_FC') |> 
+  filter(Year == as.integer(Test_set)) |> 
+  mutate(Total_Error = Total_FC - report,
+         Total_Pct_Error = Total_Error/report*100) |> 
+  group_by(Variant, Model) |> 
+  summarise(Mean_Total_Pct_Error = mean(Total_Pct_Error),
+            Mean_Abs_Total_Pct_Error = mean(abs(Total_Pct_Error)),
+            count = n()) |>
+  filter(count != 1) |> 
+  arrange(abs(Mean_Abs_Total_Pct_Error))
+```

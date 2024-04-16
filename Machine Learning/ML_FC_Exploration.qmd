@@ -9,19 +9,16 @@ library(tidyverse)
 library(kableExtra)
 library(readr)
 ```
-# Functions
 
-
-
-
-Plotting defaults
-
+# Global params
 ```{r}
 imagepath = "plots"
 tablepath = "tables"
 mltrackeddatapath = "tracked_data"
 trackeddatapath = "../src/tracked_data"
-fileprefix = "ML_FC_Exploration_"
+fileprefix = "ML_FE_Exploration_"
+set <- 'mOECDa_test2020_linear' #'m5dd_rel'
+
 # update_geom_defaults("text", list(size = 20))
 base_size <- 18
 theme_set(theme_minimal(base_size = base_size))
@@ -37,8 +34,80 @@ theme_pres <- function(base_size){
 pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a")
 ```
 
-# Load data
 
+# Functions
+For tables
+```{r}
+sieve_cols <- function(mat){
+  for(i in seq_len(ncol(mat))){
+    col <- mat[,i]
+    last_element <- max(which(col != ""))
+    col <- c(rep(" ", length(col)-last_element), col[1:last_element])
+    mat[,i] = col
+  }
+  return(mat)
+}
+
+make_header_rows <- function(colnames, sep = '_'){
+  n_headers <- max(str_count(colnames, sep)) + 1
+  header_rows <- str_split(colnames, sep, simplify=TRUE) |> 
+    t() |> 
+    sieve_cols() %>% 
+  split(., row(.))
+  return(header_rows)
+}
+
+list_subsequent_count <- function(l){
+  count <- integer(length=length(l)) # max length of counts list (actual length unknowable a priori)
+  value <- vector('list', length=length(count))
+  reps = 1
+  element = 1
+  for(i in 1:(length(l)-1)){
+    if(l[[i]] == l[[i+1]]){
+      reps <- reps + 1
+    }else{
+      count[element] <- reps
+      value[element] <- l[[i]]
+      element <- element + 1
+      reps = 1
+    }
+    count[element] <- reps
+    value[element] <- l[[length(l)]]
+  }
+  names(count) <- value
+  return(count[count != 0])
+}
+
+get_separate_headers <- function(df, sep = '_'){
+  header_rows <- make_header_rows(colnames(df), sep = sep)
+  rows_indexes <- lapply(header_rows[-length(header_rows)], list_subsequent_count)
+  # print(rows_indexes)
+  # return(rows_indexes)
+  return(list(rows_indexes = rows_indexes, colnames = header_rows[[length(header_rows)]]))
+}
+
+add_headers_above <- function(kbl, headers, escape = FALSE){
+  i = 1
+  for(header in rev(headers)){
+    # if(any(str_detect(names(header), '%'))){
+    #   escape = TRUE
+    # }else(
+    #   escape = FALSE
+    # )
+    if(i == 1){
+      line = TRUE
+    }else{
+        line = FALSE
+    }
+    kbl <- kbl |> 
+      add_header_above(header, escape = escape, line = line)
+    i = i + 1
+  }
+  return(kbl)
+}
+```
+
+# Load data
 ```{r}
 train_df <- read_csv('../src/tracked_data/df_ml_rel_train.csv',
                           show_col_types = FALSE)
@@ -63,12 +132,6 @@ features_all_desc <- read_csv(file.path(tablepath, paste0(fileprefix, 'all_featu
 ```{r}
 features_all_desc
 ```
-
-# ***Select run name
-```{r}
-set <- 'm5dd' #'m5dd_rel'
-```
-
 
 ### Feature description table
 ```{r}
@@ -154,78 +217,6 @@ showtext makes fonts work properly for png's, but don't use because not consiste
 ```
 
 # Tables
-## Functions
-```{r}
-sieve_cols <- function(mat){
-  for(i in seq_len(ncol(mat))){
-    col <- mat[,i]
-    last_element <- max(which(col != ""))
-    col <- c(rep(" ", length(col)-last_element), col[1:last_element])
-    mat[,i] = col
-  }
-  return(mat)
-}
-
-make_header_rows <- function(colnames, sep = '_'){
-  n_headers <- max(str_count(colnames, sep)) + 1
-  header_rows <- str_split(colnames, sep, simplify=TRUE) |> 
-    t() |> 
-    sieve_cols() %>% 
-  split(., row(.))
-  return(header_rows)
-}
-
-list_subsequent_count <- function(l){
-  count <- integer(length=length(l)) # max length of counts list (actual length unknowable a priori)
-  value <- vector('list', length=length(count))
-  reps = 1
-  element = 1
-  for(i in 1:(length(l)-1)){
-    if(l[[i]] == l[[i+1]]){
-      reps <- reps + 1
-    }else{
-      count[element] <- reps
-      value[element] <- l[[i]]
-      element <- element + 1
-      reps = 1
-    }
-    count[element] <- reps
-    value[element] <- l[[length(l)]]
-  }
-  names(count) <- value
-  return(count[count != 0])
-}
-
-get_separate_headers <- function(df, sep = '_'){
-  header_rows <- make_header_rows(colnames(df), sep = sep)
-  rows_indexes <- lapply(header_rows[-length(header_rows)], list_subsequent_count)
-  # print(rows_indexes)
-  # return(rows_indexes)
-  return(list(rows_indexes = rows_indexes, colnames = header_rows[[length(header_rows)]]))
-}
-
-add_headers_above <- function(kbl, headers, escape = FALSE){
-  i = 1
-  for(header in rev(headers)){
-    # if(any(str_detect(names(header), '%'))){
-    #   escape = TRUE
-    # }else(
-    #   escape = FALSE
-    # )
-    if(i == 1){
-      line = TRUE
-    }else{
-        line = FALSE
-    }
-    kbl <- kbl |> 
-      add_header_above(header, escape = escape, line = line)
-    i = i + 1
-  }
-  return(kbl)
-}
-```
-
-
 ## Summary stats table
 ### Reported
 ```{r}
@@ -442,9 +433,7 @@ colnames(test_results) <- colnames(test_results) |>
                     'mape' = 'MAPE (%)'))
 
 colnames(test_results)
-```
 
-```{r}
 tablefilepath <- file.path(tablepath, paste0(fileprefix, 'test_fc_', set, ".tex"))
 
 # split column headers across multiple rows
