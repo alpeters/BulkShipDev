@@ -1,0 +1,69 @@
+---
+title: "ML FC features Exploration"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(kableExtra)
+library(readr)
+```
+
+# Global params
+
+```{r}
+imagepath = "plots"
+tablepath = "tables"
+mltrackeddatapath = "tracked_data"
+trackeddatapath = "../src/tracked_data"
+fileprefix = "ML_FC_features_Exploration_"
+```
+
+
+```{r}
+# update_geom_defaults("text", list(size = 20))
+base_size <- 18
+theme_set(theme_minimal(base_size = base_size))
+theme_pres <- function(base_size){
+  theme_get() %+replace%
+    theme(axis.ticks = element_line(colour = "grey70", linewidth = rel(0.5)),
+          panel.grid = element_blank(),
+          panel.grid.major.y = element_line(colour = 'grey90', linewidth = rel(0.5)),
+          # panel.border = element_rect(fill = NA, colour = "grey30", linewidth = rel(0.8)),
+          strip.text = element_text(size=1.03*base_size),
+          legend.text = element_text(size=1.1*base_size))
+}
+pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a")
+```
+
+# Functions
+```{r}
+extract_best_score <- function(variant, score, minmax = 'max'){
+  score_sym <- sym(score)
+  df <- read_csv(file.path(mltrackeddatapath,
+                           paste0('ML_FC_features_F',
+                                  variant,
+                                  '_test2021_fast_test_fc.csv')),
+                 show_col_types = FALSE)
+  ifelse(score == 'r2',
+         df <- df |> filter(!!score_sym == max(!!score_sym)),
+         df <- df |> filter(!!score_sym == min(!!score_sym)))
+  df <- df |> 
+    select(model, !!score_sym) |> 
+    mutate(variant = variant, .before = everything())
+  return(df)
+}
+```
+
+# Individual 
+```{r}
+variants <- c('cal_fc', 'agg_adm_sep1')
+score <- sym('mape')
+
+lapply(variants, \(x) extract_score(x, score)) |> 
+  bind_rows() |> 
+  ggplot(aes(x = variant, y = !!score, fill = model)) +
+  geom_col()
+```
+
