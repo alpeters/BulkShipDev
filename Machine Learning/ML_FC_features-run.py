@@ -52,15 +52,15 @@ for i in range(2, 11):
 #%% Incremental b
 feature_sets_df['incr_b1'] = feature_sets_df['variable'] == 'cal_fc'
 
-for i in range(2, 7):
+for i in range(2, 10):
     feature_sets_df['incr_b' + str(i)] = feature_sets_df['incr_b' + str(i-1)] | (feature_sets_df['incr_b'] == i)
 
 #%%
 feature_sets_df['calc_dist'] = (feature_sets_df['variable'] == 'cal_fc') | (feature_sets_df['variable'] == 'distance_sum')
 
 #%% Create disjoint feature sets on top of cal_fc
-for i in feature_sets_df['disjoint_a'].unique():
-    feature_sets_df[str(i)] = (feature_sets_df['disjoint_a'] == i) | (feature_sets_df['variable'] == 'cal_fc')
+for i in feature_sets_df['disjoint_b'].unique():
+    feature_sets_df['disjoint_b' + str(i)] = (feature_sets_df['disjoint_b'] == i) | (feature_sets_df['variable'] == 'cal_fc')
 
 #%%
 variants = feature_sets_df.select_dtypes(include=bool).columns.tolist()
