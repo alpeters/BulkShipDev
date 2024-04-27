@@ -26,6 +26,42 @@ feature_sets_df['calc_agg_inst_adm_sep1'] = (feature_sets_df['variable'] == 'cal
 
 feature_sets_df['calc_agg_inst_adm_sep1_chars'] = (feature_sets_df['variable'] == 'cal_fc') | feature_sets_df['agg_adm_sep1'] | feature_sets_df['inst_adm_sep1'] | feature_sets_df['add_chars']
 
+feature_sets_df['calc_inst_adm_fund_chars'] = (feature_sets_df['variable'] == 'cal_fc') | feature_sets_df['inst_adm_fund'] | feature_sets_df['add_chars']
+
+#%% Create disjoint feature sets
+for i in feature_sets_df['disjoint'].unique():
+    feature_sets_df[str(i)] = feature_sets_df['disjoint'] == i
+
+#%% All characteristics not in calcs
+feature_sets_df['add_chars_plus'] = feature_sets_df['add_chars'] | (feature_sets_df['disjoint'] == 99)
+
+#%%
+feature_sets_df['incr2'] = (feature_sets_df['variable'] == 'cal_fc') | feature_sets_df['4']
+
+feature_sets_df['incr3'] = feature_sets_df['incr2'] | feature_sets_df['6']
+
+#%% Everything except work and its components
+feature_sets_df['pref_noWork'] = (feature_sets_df['preferred'] & ~feature_sets_df['work'])
+
+#%% Incremental a
+feature_sets_df['incr_a1'] = feature_sets_df['variable'] == 'cal_fc'
+
+for i in range(2, 11):
+    feature_sets_df['incr_a' + str(i)] = feature_sets_df['incr_a' + str(i-1)] | (feature_sets_df['incr_a'] == i)
+
+#%% Incremental b
+feature_sets_df['incr_b1'] = feature_sets_df['variable'] == 'cal_fc'
+
+for i in range(2, 7):
+    feature_sets_df['incr_b' + str(i)] = feature_sets_df['incr_b' + str(i-1)] | (feature_sets_df['incr_b'] == i)
+
+#%%
+feature_sets_df['calc_dist'] = (feature_sets_df['variable'] == 'cal_fc') | (feature_sets_df['variable'] == 'distance_sum')
+
+#%% Create disjoint feature sets on top of cal_fc
+for i in feature_sets_df['disjoint_a'].unique():
+    feature_sets_df[str(i)] = (feature_sets_df['disjoint_a'] == i) | (feature_sets_df['variable'] == 'cal_fc')
+
 #%%
 variants = feature_sets_df.select_dtypes(include=bool).columns.tolist()
 print(variants)
@@ -36,8 +72,10 @@ feature_sets_df.to_csv(trackeddatapath + 'ML_FC_variants_generated.csv')
 pm.inspect_notebook(notebookpath + '.ipynb')
 # %%
 fast_only = False
-# feature_sets = [variants[i] for i in [3, 4]]
-feature_sets = ['cal_fc'] + variants
+feature_sets = ['incr_b' + str(i) for i in range(7, 10)]
+feature_sets = feature_sets + ['disjoint_a' + str(i) for i in [2,3,4,5,7,8,9,10]]
+# feature_sets = ['add_chars', 'incr_a7']
+# feature_sets = ['calc_dist']
 print(feature_sets)
 
 #%%

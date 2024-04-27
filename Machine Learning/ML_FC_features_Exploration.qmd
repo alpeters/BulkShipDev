@@ -39,31 +39,574 @@ pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a")
 
 # Functions
 ```{r}
-extract_best_score <- function(variant, score, minmax = 'max'){
-  score_sym <- sym(score)
+read_results <- function(variant, set = 'test_fc'){
   df <- read_csv(file.path(mltrackeddatapath,
                            paste0('ML_FC_features_F',
                                   variant,
-                                  '_test2021_fast_test_fc.csv')),
-                 show_col_types = FALSE)
-  ifelse(score == 'r2',
-         df <- df |> filter(!!score_sym == max(!!score_sym)),
-         df <- df |> filter(!!score_sym == min(!!score_sym)))
-  df <- df |> 
-    select(model, !!score_sym) |> 
+                                  '_test2021_',
+                                  set,
+                                  '.csv')),
+                 show_col_types = FALSE) |> 
     mutate(variant = variant, .before = everything())
   return(df)
 }
 ```
 
-# Individual 
+# All
 ```{r}
-variants <- c('cal_fc', 'agg_adm_sep1')
-score <- sym('mape')
-
-lapply(variants, \(x) extract_score(x, score)) |> 
-  bind_rows() |> 
-  ggplot(aes(x = variant, y = !!score, fill = model)) +
-  geom_col()
+variants <- c('cal_fc',
+              'agg_adm_sep1',
+              'calc_agg_adm_sep1',
+              'calc_agg_inst_adm_sep1',
+              'agg_adm_sep2',
+              # 'calc_agg_adm_sep2',
+              'inst_adm_sep1',
+              'ME_W_ref_first',
+              'inst_adm_noW',
+              'inst_adm_sep2',
+              'inst_adm_fund',
+              'add_chars',
+              # 'add_chars_plus',
+              'work',
+              'work_fundamentals',
+              # 'work_add_chars',
+              'preferred'
+              # 'pref_noWork'
+              # 'all'
+              )
+# variants
 ```
 
+```{r}
+results <- lapply(variants, read_results) |> 
+  bind_rows() |> 
+  mutate(variant = factor(variant, levels=variants, ordered=TRUE)) |> 
+  select(-params) |> 
+  pivot_longer(c(-variant, -model, -class_name))
+results
+```
+
+```{r}
+eng <- results |> 
+  filter(model == 'eng', variant == first(variant)) |> 
+  select(-variant)
+eng
+```
+
+```{r}
+results_train <- lapply(variants, \(x) read_results(x, set='train')) |> 
+  bind_rows() |> 
+  mutate(variant = factor(variant, levels=variants, ordered=TRUE)) |> 
+  select(-params) |> 
+  pivot_longer(c(-variant, -class_name))
+results_train
+```
+
+## Best
+```{r}
+score <- 'r2'
+
+results |> 
+  filter(model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == max(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+results |> 
+  filter(model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == max(value)) |> 
+  arrange(desc(value))
+```
+
+### Train
+```{r}
+score <- 'r2'
+
+results_train |> 
+  filter(name == score) |> 
+  group_by(variant) |> 
+  filter(value == max(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = class_name)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  # geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+  #            linetype = 'dashed') +
+  ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+```{r}
+results_train |> 
+  filter(name == score) |> 
+  group_by(variant) |> 
+  filter(value == max(value)) |> 
+  arrange(desc(value))
+```
+
+
+### Other scores
+```{r}
+score <- 'mae'
+
+results |> 
+  filter(model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == min(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  # ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+score <- 'mape'
+
+results |> 
+  filter(model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == min(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  # ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Preferred Variant Best Model
+```{r}
+best <- results |> 
+  filter(name == 'r2') |> 
+  filter(value == max(value))
+
+results |> 
+  filter(model == best$model) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(aes(yintercept = value),
+             linetype = 'dashed',
+             data = eng) +
+  facet_wrap(~name, scales = 'free_y') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+## Linear
+```{r}
+results |> 
+  filter(model == 'linear') |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(aes(yintercept = value),
+             linetype = 'dashed',
+             data = eng) +
+  facet_wrap(~name, scales = 'free_y') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# Distinct
+```{r}
+variants_dist <- c('cal_fc',
+                   'inst_adm_sep2',
+                   # 'ME_W_ref_first',
+                   # 'inst_adm_noW',
+                   '3',
+                   '4',
+                   '5',
+                   '6',
+                   '7',
+                   '8',
+                   'distance_sum',
+                   'add_chars',
+                   'work'
+                   )
+```
+
+```{r}
+results_dist <- lapply(variants_dist, read_results) |> 
+  bind_rows() |> 
+  mutate(variant = factor(variant, levels=variants_dist, ordered=TRUE)) |> 
+  select(-params) |> 
+  pivot_longer(c(-variant, -model, -class_name))
+results_dist
+```
+
+## Best
+```{r}
+score <- 'r2'
+
+results_dist |> 
+  filter(model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == max(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+results_dist |> 
+  filter(model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == max(value)) |> 
+  ungroup() |> 
+  arrange(desc(value)) |> 
+  mutate(rank = rank(desc(value)), .after = variant)
+```
+
+
+```{r}
+score <- 'mae'
+
+results_dist |> 
+  filter(model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == min(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  # ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+score <- 'mape'
+
+results_dist |> 
+  filter(model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == min(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  # ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Preferred Variant Best Model
+```{r}
+best <- results_dist |> 
+  filter(name == 'r2') |> 
+  filter(value == max(value))
+
+results_dist |> 
+  filter(model == best$model) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(aes(yintercept = value),
+             linetype = 'dashed',
+             data = eng) +
+  facet_wrap(~name, scales = 'free_y') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+## Linear
+```{r}
+results_dist |> 
+  filter(model == 'linear') |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(aes(yintercept = value),
+             linetype = 'dashed',
+             data = eng) +
+  facet_wrap(~name, scales = 'free_y') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# Incremental Test
+```{r}
+variants_incrTest <- c('cal_fc',
+                       'calc_dist',
+                   'calc_agg_adm_sep1',
+                   'calc_agg_inst_adm_sep1',
+                   'preferred')
+
+variants_incrTest
+```
+
+```{r}
+results_incrTest <- lapply(variants_incrTest, read_results) |> 
+  bind_rows() |> 
+  mutate(variant = factor(variant, levels=variants_incrTest, ordered=TRUE)) |> 
+  select(-params) |> 
+  pivot_longer(c(-variant, -model, -class_name))
+results_incrTest
+```
+
+```{r}
+eng <- results_incrTest |> 
+  filter(model == 'eng', variant == first(variant)) |> 
+  select(-variant)
+eng
+```
+
+
+## Best
+```{r}
+score <- 'r2'
+
+results_incrTest |> 
+  filter(model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == max(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+score <- 'mae'
+
+results_incrTest |> 
+  filter(model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == min(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  # ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+score <- 'mape'
+
+results_incrTest |> 
+  filter(model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == min(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  # ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Preferred Variant Best Model
+```{r}
+best <- results_incrTest |> 
+  filter(name == 'r2') |> 
+  filter(value == max(value))
+
+print(paste('Best variant:', best$variant))
+
+results_incrTest |> 
+  filter(model == best$model) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(aes(yintercept = value),
+             linetype = 'dashed',
+             data = eng) +
+  facet_wrap(~name, scales = 'free_y') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+CatBoost
+```{r}
+results_incrTest |> 
+  filter(model == 'cb') |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(aes(yintercept = value),
+             linetype = 'dashed',
+             data = eng) +
+  facet_wrap(~name, scales = 'free_y') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# Incremental
+```{r}
+# variants_incr <- c('cal_fc',
+#                    paste0('incr_a', 2:7),
+#                    'incr_a9',
+#                    'preferred')
+
+variants_incr <- c('cal_fc',
+                   paste0('incr_a', 2:7),
+                   'incr_a9',
+                   # paste0('incr_b', 4:4),
+                   'preferred')
+
+variants_incr
+```
+
+```{r}
+results_incr <- lapply(variants_incr, read_results) |> 
+  bind_rows() |> 
+  mutate(variant = factor(variant, levels=variants_incr, ordered=TRUE)) |> 
+  select(-params) |> 
+  pivot_longer(c(-variant, -model, -class_name))
+results_incr
+```
+
+```{r}
+eng <- results_incr |> 
+  filter(model == 'eng', variant == first(variant)) |> 
+  select(-variant)
+eng
+```
+
+
+## Best
+```{r}
+score <- 'r2'
+
+results_incr |> 
+  filter(model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == max(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+results_incr |> 
+  filter(model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == max(value)) |> 
+  ungroup() |>
+  mutate(diff = value - lag(value))
+```
+
+
+
+```{r}
+score <- 'mae'
+
+results_incr |> 
+  filter(model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == min(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  # ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+score <- 'mape'
+
+results_incr |> 
+  filter(model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == min(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  # ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Preferred Variant Best Model
+```{r}
+best <- results_incr |> 
+  filter(name == 'r2') |> 
+  filter(value == max(value))
+
+print(paste('Best variant:', best$variant))
+
+results_incr |> 
+  filter(model == best$model) |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(aes(yintercept = value),
+             linetype = 'dashed',
+             data = eng) +
+  facet_wrap(~name, scales = 'free_y') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+CatBoost
+```{r}
+results_incr |> 
+  filter(model == 'cb') |> 
+  filter(name == 'r2') |> 
+  ggplot(aes(x = variant, y = value, fill = model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  # geom_hline(aes(yintercept = value),
+  #            linetype = 'dashed',
+  #            data = eng) +
+  facet_wrap(~name, scales = 'free_y') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```

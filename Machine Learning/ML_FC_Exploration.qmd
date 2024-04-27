@@ -11,13 +11,14 @@ library(readr)
 ```
 
 # Global params
+
 ```{r}
 imagepath = "plots"
 tablepath = "tables"
 mltrackeddatapath = "tracked_data"
 trackeddatapath = "../src/tracked_data"
-fileprefix = "ML_FE_Exploration_"
-set <- 'mOECDa_test2020_linear' #'m5dd_rel'
+fileprefix = "ML_FC_features_Exploration_"
+set <- 'preferred_test2021' #'m5dd_rel'
 
 # update_geom_defaults("text", list(size = 20))
 base_size <- 18
@@ -34,9 +35,10 @@ theme_pres <- function(base_size){
 pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a")
 ```
 
-
 # Functions
+
 For tables
+
 ```{r}
 sieve_cols <- function(mat){
   for(i in seq_len(ncol(mat))){
@@ -108,6 +110,7 @@ add_headers_above <- function(kbl, headers, escape = FALSE){
 ```
 
 # Load data
+
 ```{r}
 train_df <- read_csv('../src/tracked_data/df_ml_rel_train.csv',
                           show_col_types = FALSE)
@@ -126,7 +129,7 @@ train_df |>
 ## Manually create feature descriptions in csv, then load
 
 ```{r}
-features_all_desc <- read_csv(file.path(tablepath, paste0(fileprefix, 'all_feature_names_desc.csv')))
+features_all_desc <- read_csv(file.path(tablepath, paste0(str_remove(fileprefix, '_features'), 'all_feature_names_desc.csv')))
 ```
 
 ```{r}
@@ -134,6 +137,7 @@ features_all_desc
 ```
 
 ### Feature description table
+
 ```{r}
 features_set_desc <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_features.csv') %>%
   file.path(mltrackeddatapath, .) |> 
@@ -165,7 +169,7 @@ features_set_desc_table <- features_set_desc |>
                             unit,
                             paste0('(', unit, ')'))) |> 
   mutate(across(everything(), \(x) replace_na(x, ''))) |> 
-  mutate(table.desc = ifelse(type == 'derived',
+  mutate(table.desc = ifelse(calc_type == 'derived',
                              paste0(description, ', calculated as ', definition),
                              paste(description, unit))) |> 
   mutate(name = str_to_title(name),
@@ -201,7 +205,9 @@ test |> select(Name, Dwt, HP.Total.Propulsion, ME_W_ref_first) |>
 ```
 
 # Plot raw data
+
 showtext makes fonts work properly for png's, but don't use because not consistent with previous chapter plots
+
 ```{r}
 # library(showtext)
 # showtext_auto()
@@ -217,8 +223,11 @@ showtext makes fonts work properly for png's, but don't use because not consiste
 ```
 
 # Tables
+
 ## Summary stats table
+
 ### Reported
+
 ```{r}
 stats_report_filtered <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_desc_stats_filtered_year.csv') %>%
   file.path(mltrackeddatapath, .) |> 
@@ -250,6 +259,7 @@ stats_report_filtered
 ```
 
 ### Calculated
+
 ```{r}
 stats_cal_filtered <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_desc_stats_filtered_year.csv') %>%
   file.path(mltrackeddatapath, .) |> 
@@ -281,6 +291,7 @@ stats_cal_filtered
 ```
 
 ### Combined
+
 ```{r}
 flip_names <- function(name, sep){
   if(str_detect(name, sep)){
@@ -316,8 +327,8 @@ stats_both |>
 stats_both
 ```
 
-
 ## Optimal parameters table
+
 ```{r}
 params <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_eval_fc_stats.csv') %>%
   file.path(mltrackeddatapath, .) |> 
@@ -368,8 +379,8 @@ params |>
 params
 ```
 
-
 ## Train Eval Results Table
+
 ```{r}
 eval_results <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_eval_fc_stats.csv') %>%
   file.path(mltrackeddatapath, .) |> 
@@ -415,8 +426,8 @@ read_file(tablefilepath) |>
 eval_results
 ```
 
-
 ## Test Results Table
+
 ```{r}
 test_results <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_test_fc.csv') %>%
   file.path(mltrackeddatapath, .) |> 
@@ -460,8 +471,8 @@ read_file(tablefilepath) |>
 test_results
 ```
 
-
 ## Predictor summary stats
+
 ```{r}
 pred_stats <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_desc_stats_predictors_filtered_set.csv') %>%
   file.path(mltrackeddatapath, .) |> 
@@ -502,4 +513,3 @@ pred_stats |>
              float = FALSE)
 pred_stats
 ```
-
