@@ -10,7 +10,7 @@ import papermill as pm
 
 trackeddatapath = 'Machine Learning/tracked_data/'
 notebookpath = 'Machine Learning/ML_FC_features'
-# notebookpath = 'Machine Learning/test'
+notebookoutpath = 'Machine Learning/data/ML_FC_features'
 
 #%%
 feature_sets_df = pd.read_csv(trackeddatapath + 'ML_FC_variants.csv')
@@ -62,6 +62,18 @@ feature_sets_df['calc_dist'] = (feature_sets_df['variable'] == 'cal_fc') | (feat
 for i in feature_sets_df['disjoint_b'].unique():
     feature_sets_df['disjoint_b' + str(i)] = (feature_sets_df['disjoint_b'] == i) | (feature_sets_df['variable'] == 'cal_fc')
 
+#%% Create incremental sets from disjoint on top of cal_fc rank
+feature_sets_df['djbrank_1'] = feature_sets_df['variable'] == 'cal_fc'
+
+for i in range(2,11):
+    feature_sets_df['djbrank_' + str(i)] = feature_sets_df['djbrank_' + str(i-1)] | (feature_sets_df['djbrank'] == i)
+
+#%% Create single char feature sets on top of incr_b4
+add_chars = feature_sets_df.loc[feature_sets_df['incr_b'] == 5]['variable']
+#%%
+for i, char in enumerate(add_chars):
+    feature_sets_df['char' + str(i)] = feature_sets_df['djbrank_4'] | (feature_sets_df['variable'] == char)
+
 #%%
 variants = feature_sets_df.select_dtypes(include=bool).columns.tolist()
 print(variants)
@@ -72,10 +84,7 @@ feature_sets_df.to_csv(trackeddatapath + 'ML_FC_variants_generated.csv')
 pm.inspect_notebook(notebookpath + '.ipynb')
 # %%
 fast_only = False
-feature_sets = ['incr_b' + str(i) for i in range(7, 10)]
-feature_sets = feature_sets + ['disjoint_a' + str(i) for i in [2,3,4,5,7,8,9,10]]
-# feature_sets = ['add_chars', 'incr_a7']
-# feature_sets = ['calc_dist']
+feature_sets = ['char' + str(i) for i in range(0, 11)]
 print(feature_sets)
 
 #%%
@@ -87,7 +96,7 @@ for feature_set in feature_sets:
     try:
         pm.execute_notebook(
             notebookpath + '.ipynb',
-            notebookpath + '_' + out_suffix + '.ipynb',
+            notebookoutpath + '_' + out_suffix + '.ipynb',
             parameters=dict(
                 feature_set=feature_set,
                 fast_only=fast_only)
