@@ -17,8 +17,10 @@ imagepath = "plots"
 tablepath = "tables"
 mltrackeddatapath = "tracked_data"
 trackeddatapath = "../src/tracked_data"
-fileprefix = "ML_FC_features_Exploration_"
-set <- 'preferred_test2021' #'m5dd_rel'
+fileprefix = "ML_FC_Exploration_"
+set <- 'djbrank_9_test2021' #'m5dd_rel'
+# fileprefix = "ML_FC_features_Exploration_"
+# set <- 'djbrank_9_test2021' #'m5dd_rel'
 
 # update_geom_defaults("text", list(size = 20))
 base_size <- 18
@@ -193,6 +195,81 @@ features_set_desc_table |>
 features_set_desc_table
 ```
 
+### Feature description table (incremental groups) (TERRIBLE CODE!!)
+
+```{r}
+features_groups <- read_csv(file.path(mltrackeddatapath, 'ML_FC_variants.csv'), show_col_types = FALSE) |> 
+  select(variable, djbrank, disjoint_b_name) |> 
+  drop_na(disjoint_b_name) |> 
+  mutate(disjoint_b_name = str_to_title(disjoint_b_name)) |> 
+  arrange(djbrank)
+
+features_set_desc <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_features.csv') %>%
+  file.path(mltrackeddatapath, .) |> 
+  read_csv(show_col_types = FALSE) |> 
+  left_join(features_all_desc, by = 'variable') |> 
+  select(-group) |> 
+  left_join(features_groups, by = 'variable') |> 
+  mutate(group = factor(djbrank, 
+                        ordered = TRUE, 
+                        levels = unique(features_groups$djbrank),
+                        labels = unique(features_groups$disjoint_b_name)),
+         .after = name) |> 
+  arrange(group, name)
+```
+
+```{r}
+features_set_desc
+```
+
+```{r}
+features_set_desc |> arrange(group)
+
+undefined <- features_set_desc |> 
+  filter(is.na(name)) |> 
+  pull(variable)
+
+if(length(undefined) > 0){
+  warning(paste('The following variables have no description:',
+                paste(undefined, collapse = ', ')))
+}
+
+index_df <- features_set_desc |> 
+  count(group)
+
+index <- index_df$n
+names(index) <- index_df$group
+names(index) <- paste0(1:length(index), '. ', names(index))
+
+features_set_desc_table <- features_set_desc |>
+  mutate(unit = ifelse(is.na(unit),
+                            unit,
+                            paste0('(', unit, ')'))) |> 
+  mutate(across(-c(group,djbrank), \(x) replace_na(x, ''))) |> 
+  mutate(table.desc = ifelse(calc_type == 'derived',
+                             paste0(description, ', calculated as ', definition),
+                             paste(description, unit))) |> 
+  mutate(name = str_to_title(name),
+         name = str_replace_all(name, 'Ais', 'AIS'),
+         name = str_replace_all(name, 'Acs', 'acs'),
+         name = str_replace_all(name, 'Fc', 'FC')) |> 
+         # table.desc = str_to_sentence(table.desc)) |>
+  select(Variable = name, Description = table.desc)
+
+features_set_desc_table |>   
+  kbl(digits = 0,
+      format = 'latex',
+      escape = FALSE,
+      booktabs = TRUE) |>
+  column_spec(1, width = "16em") |>
+  column_spec(2, width = "30em") |> 
+  pack_rows(index = index) |> 
+  save_kable(file.path(tablepath, paste0(fileprefix, 'features_groups_', set, ".tex")),
+             float = FALSE)
+
+features_set_desc_table
+```
+
 ```{r}
 test <- read_csv('../src/tracked_data/df_ml_rel_train.csv',
                           show_col_types = FALSE) 
@@ -223,110 +300,6 @@ showtext makes fonts work properly for png's, but don't use because not consiste
 ```
 
 # Tables
-
-## Summary stats table
-
-### Reported
-
-```{r}
-stats_report_filtered <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_desc_stats_filtered_year.csv') %>%
-  file.path(mltrackeddatapath, .) |> 
-  read_csv(show_col_types = FALSE) |> 
-  select(Year = year, starts_with('report'))
-# 
-colnames(stats_report_filtered) <- colnames(stats_report_filtered) |>
-  str_replace_all(c('std' = 'sd (t)',
-                  'mean' = 'mean (t)')) |> 
-  str_remove_all('report_fc_')
-
-colnames(stats_report_filtered)
-
-stats_report_filtered |> 
-  kbl(digits = 0,
-      format = 'latex',
-      escape = FALSE,
-      booktabs = TRUE,
-      linesep = c(''),
-      align = c('c', rep('r', 3))) |> 
-  column_spec(1, width = "4em") |> 
-  column_spec(2:4, width = "3em") |> 
-  # column_spec(2, width = "30em") |> 
-  row_spec(row = 0, align = 'c') |> 
-  save_kable(file.path(tablepath, paste0(fileprefix, 'report_filtered_stats_', set, ".tex")),
-             float = FALSE)
-
-stats_report_filtered
-```
-
-### Calculated
-
-```{r}
-stats_cal_filtered <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_desc_stats_filtered_year.csv') %>%
-  file.path(mltrackeddatapath, .) |> 
-  read_csv(show_col_types = FALSE) |> 
-  select(Year = year, starts_with('cal'))
-# 
-colnames(stats_cal_filtered) <- colnames(stats_cal_filtered) |>
-  str_replace_all(c('std' = 'sd (t)',
-                    'mean' = 'mean (t)')) |> 
-  str_remove_all('cal_fc_')
-
-colnames(stats_cal_filtered)
-
-stats_cal_filtered |> 
-  kbl(digits = 0,
-      format = 'latex',
-      escape = FALSE,
-      booktabs = TRUE,
-      linesep = c(''),
-      align = c('c', rep('r', 3))) |> 
-  column_spec(1, width = "4em") |> 
-  column_spec(2:4, width = "3em") |> 
-  # column_spec(2, width = "30em") |> 
-  row_spec(row = 0, align = 'c') |> 
-  save_kable(file.path(tablepath, paste0(fileprefix, 'cal_filtered_stats_', set, ".tex")),
-             float = FALSE)
-
-stats_cal_filtered
-```
-
-### Combined
-
-```{r}
-flip_names <- function(name, sep){
-  if(str_detect(name, sep)){
-    name_list <- str_split(name, sep, simplify = TRUE)
-    name <- paste0(name_list[[2]], sep, name_list[[1]])
-  }
-  return(name)
-}
-```
-
-```{r}
-stats_both <- full_join(stats_report_filtered,
-                        stats_cal_filtered |> select(-count),
-                        by = 'Year', 
-                        suffix = c('_Reported', '_Calculated'))
-
-colnames(stats_both) <- sapply(colnames(stats_both), \(x) flip_names(x, sep = '_'))
-
-stats_both |> 
-  kbl(digits = 0,
-      format = 'latex',
-      escape = FALSE,
-      booktabs = TRUE,
-      linesep = c(''),
-      align = c('c', rep('r', 3))) |> 
-  column_spec(1, width = "4em") |> 
-  column_spec(2:4, width = "4em") |> 
-  header_separate(sep = '_') |> 
-  row_spec(row = 0, align = 'c') |> 
-  save_kable(file.path(tablepath, paste0(fileprefix, 'both_filtered_stats_', set, ".tex")),
-             float = FALSE)
-
-stats_both
-```
-
 ## Optimal parameters table
 
 ```{r}
@@ -471,6 +444,109 @@ read_file(tablefilepath) |>
 test_results
 ```
 
+## Summary stats table
+
+### Reported
+
+```{r}
+stats_report_filtered <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_desc_stats_filtered_year.csv') %>%
+  file.path(mltrackeddatapath, .) |> 
+  read_csv(show_col_types = FALSE) |> 
+  select(Year = year, starts_with('report'))
+# 
+colnames(stats_report_filtered) <- colnames(stats_report_filtered) |>
+  str_replace_all(c('std' = 'sd (t)',
+                  'mean' = 'mean (t)')) |> 
+  str_remove_all('report_fc_')
+
+colnames(stats_report_filtered)
+
+stats_report_filtered |> 
+  kbl(digits = 0,
+      format = 'latex',
+      escape = FALSE,
+      booktabs = TRUE,
+      linesep = c(''),
+      align = c('c', rep('r', 3))) |> 
+  column_spec(1, width = "4em") |> 
+  column_spec(2:4, width = "3em") |> 
+  # column_spec(2, width = "30em") |> 
+  row_spec(row = 0, align = 'c') |> 
+  save_kable(file.path(tablepath, paste0(fileprefix, 'report_filtered_stats_', set, ".tex")),
+             float = FALSE)
+
+stats_report_filtered
+```
+
+### Calculated
+
+```{r}
+stats_cal_filtered <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_desc_stats_filtered_year.csv') %>%
+  file.path(mltrackeddatapath, .) |> 
+  read_csv(show_col_types = FALSE) |> 
+  select(Year = year, starts_with('cal'))
+# 
+colnames(stats_cal_filtered) <- colnames(stats_cal_filtered) |>
+  str_replace_all(c('std' = 'sd (t)',
+                    'mean' = 'mean (t)')) |> 
+  str_remove_all('cal_fc_')
+
+colnames(stats_cal_filtered)
+
+stats_cal_filtered |> 
+  kbl(digits = 0,
+      format = 'latex',
+      escape = FALSE,
+      booktabs = TRUE,
+      linesep = c(''),
+      align = c('c', rep('r', 3))) |> 
+  column_spec(1, width = "4em") |> 
+  column_spec(2:4, width = "3em") |> 
+  # column_spec(2, width = "30em") |> 
+  row_spec(row = 0, align = 'c') |> 
+  save_kable(file.path(tablepath, paste0(fileprefix, 'cal_filtered_stats_', set, ".tex")),
+             float = FALSE)
+
+stats_cal_filtered
+```
+
+### Combined
+
+```{r}
+flip_names <- function(name, sep){
+  if(str_detect(name, sep)){
+    name_list <- str_split(name, sep, simplify = TRUE)
+    name <- paste0(name_list[[2]], sep, name_list[[1]])
+  }
+  return(name)
+}
+```
+
+```{r}
+stats_both <- full_join(stats_report_filtered,
+                        stats_cal_filtered |> select(-count),
+                        by = 'Year', 
+                        suffix = c('_Reported', '_Calculated'))
+
+colnames(stats_both) <- sapply(colnames(stats_both), \(x) flip_names(x, sep = '_'))
+
+stats_both |> 
+  kbl(digits = 0,
+      format = 'latex',
+      escape = FALSE,
+      booktabs = TRUE,
+      linesep = c(''),
+      align = c('c', rep('r', 3))) |> 
+  column_spec(1, width = "4em") |> 
+  column_spec(2:4, width = "4em") |> 
+  header_separate(sep = '_') |> 
+  row_spec(row = 0, align = 'c') |> 
+  save_kable(file.path(tablepath, paste0(fileprefix, 'both_filtered_stats_', set, ".tex")),
+             float = FALSE)
+
+stats_both
+```
+
 ## Predictor summary stats
 
 ```{r}
@@ -486,6 +562,7 @@ pred_stats <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_desc_st
                           unit,
                           paste0('(', unit, ')'))) |> 
   mutate(across(everything(), \(x) replace_na(x, ''))) |> 
+  mutate(name = str_to_title(name)) |> 
   mutate(Name = ifelse(type == 'derived',
                        name,
                        paste(name, unit))) |> 
