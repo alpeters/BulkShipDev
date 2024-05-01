@@ -20,7 +20,6 @@ trackeddatapath = "../src/tracked_data"
 fileprefix = "ML_FC_features_Exploration_"
 ```
 
-
 ```{r}
 # update_geom_defaults("text", list(size = 20))
 base_size <- 18
@@ -32,12 +31,14 @@ theme_pres <- function(base_size){
           panel.grid.major.y = element_line(colour = 'grey90', linewidth = rel(0.5)),
           # panel.border = element_rect(fill = NA, colour = "grey30", linewidth = rel(0.8)),
           strip.text = element_text(size=1.03*base_size),
-          legend.text = element_text(size=1.1*base_size))
+          legend.text = element_text(size=0.8*base_size))
 }
-pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a")
+# pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a")
+python_palette <- c('cb' = "#0072B2", 'lasso' = "#E69F00", 'ridge' = "#56B4E9", 'linear' = "#D55E00", 'gb' = "#CC79A7", 'rf' = "#009E73")
 ```
 
 # Functions
+
 ```{r}
 read_results <- function(variant, set = 'test_fc'){
   df <- read_csv(file.path(mltrackeddatapath,
@@ -50,6 +51,18 @@ read_results <- function(variant, set = 'test_fc'){
     mutate(variant = variant, .before = everything())
   return(df)
 }
+```
+
+# Model names for plots
+```{r}
+model_names_df <- read_results('cal_fc') |> 
+  distinct(model, class_name) |> 
+  mutate(model_name = str_replace_all(class_name, regex('(?<!^)(([A-Z][a-z]|(?<=[a-z]))[A-Z])'), ' \\1'),
+         model_name = str_replace_all(model_name, c('Cat Boost' = 'CatBoost',
+                                          'Ridge' = 'Ridge Regression')))
+model_names = model_names_df$model_name
+names(model_names) = model_names_df$model
+model_names
 ```
 
 # All
@@ -103,6 +116,7 @@ results_train
 ```
 
 ## Best
+
 ```{r}
 score <- 'r2'
 
@@ -131,6 +145,7 @@ results |>
 ```
 
 ### Train
+
 ```{r}
 score <- 'r2'
 
@@ -147,6 +162,7 @@ results_train |>
   theme_pres(base_size) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
 ```{r}
 results_train |> 
   filter(name == score) |> 
@@ -155,8 +171,8 @@ results_train |>
   arrange(desc(value))
 ```
 
-
 ### Other scores
+
 ```{r}
 score <- 'mae'
 
@@ -194,6 +210,7 @@ results |>
 ```
 
 ## Preferred Variant Best Model
+
 ```{r}
 best <- results |> 
   filter(name == 'r2') |> 
@@ -211,7 +228,9 @@ results |>
   theme_pres(base_size) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
 ## Linear
+
 ```{r}
 results |> 
   filter(model == 'linear') |> 
@@ -227,6 +246,7 @@ results |>
 ```
 
 # Distinct
+
 ```{r}
 variants_dist <- c('cal_fc',
                    'inst_adm_sep2',
@@ -254,6 +274,7 @@ results_dist
 ```
 
 ## Best
+
 ```{r}
 score <- 'r2'
 
@@ -283,7 +304,6 @@ results_dist |>
   mutate(rank = rank(desc(value)), .after = variant)
 ```
 
-
 ```{r}
 score <- 'mae'
 
@@ -321,6 +341,7 @@ results_dist |>
 ```
 
 ## Preferred Variant Best Model
+
 ```{r}
 best <- results_dist |> 
   filter(name == 'r2') |> 
@@ -338,7 +359,9 @@ results_dist |>
   theme_pres(base_size) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
 ## Linear
+
 ```{r}
 results_dist |> 
   filter(model == 'linear') |> 
@@ -353,13 +376,170 @@ results_dist |>
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
+# Calc + Distinct
+
+```{r}
+variants_calc <- c('cal_fc',
+                   paste0('disjoint_b', 2:5),
+                   'calc_dist',
+                   paste0('disjoint_b', 7:9)
+                   )
+
+names(variants_calc) <- read_csv(file.path(mltrackeddatapath, 'ML_FC_variants.csv'), show_col_types = FALSE) |> 
+  select(variable, disjoint_b, disjoint_b_name) |> 
+  drop_na(disjoint_b_name) |> 
+  mutate(disjoint_b_name = str_to_sentence(disjoint_b_name)) |> 
+  mutate(disjoint_b_name = str_replace(disjoint_b_name,
+                                       regex('instantaneous', ignore_case=TRUE),
+                                             'inst.')) |> 
+  mutate(disjoint_b_name = str_replace(disjoint_b_name,
+                                       regex('characteristics', ignore_case=TRUE),
+                                             'chars.')) |> 
+  mutate(disjoint_b_name = str_replace(disjoint_b_name,
+                                       regex('fuel consumption', ignore_case=TRUE),
+                                       'FC')) |> 
+  arrange(disjoint_b) |> 
+  distinct(disjoint_b_name) |> 
+  pull()
+
+variants_calc
+```
+
+```{r}
+results_calc <- lapply(variants_calc, read_results) |> 
+  bind_rows() |> 
+  mutate(variant = factor(variant, levels=variants_calc, ordered=TRUE)) |> 
+  select(-params) |> 
+  pivot_longer(c(-variant, -model, -class_name)) |> 
+  rename(Model = model) |> 
+  mutate(variant = factor(variant,
+                          levels = variants_calc,
+                          labels = names(variants_calc)))
+results_calc
+```
+
+## Best
+```{r}
+score <- 'r2'
+
+results_calc |> 
+  filter(Model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == max(value)) |> 
+  ungroup() |> 
+  mutate(variant = fct_reorder(variant, desc(value))) |> 
+  mutate(variant = fct_relevel(variant, 'Calculated FC')) |> 
+  ggplot(aes(x = variant, y = value, fill = Model)) +
+  geom_col() +
+  scale_fill_manual(values = python_palette,
+                    labels = model_names) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  labs(y = expression(R^2),
+       x = 'Feature Category (+ Calculated FC)') +
+  ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 55, hjust = 1),
+        axis.text=element_text(size=base_size))
+
+ggsave(file.path(imagepath, paste0(fileprefix, 'calc_distinct_r2.png')),
+       width = 9, height = 6)
+```
+
+```{r}
+results_calc |> 
+  filter(Model != 'eng',
+         name == score) |> 
+  filter(variant != 'cal_fc') |> 
+  group_by(variant) |> 
+  filter(value == max(value)) |> 
+  ungroup() |> 
+  arrange(desc(value)) |> 
+  mutate(rank = rank(desc(value)), .after = variant) |> 
+  mutate(rank = rank + 1)
+```
+
+```{r}
+score <- 'mae'
+
+results_calc |> 
+  filter(Model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == min(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = Model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  # ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+score <- 'mape'
+
+results_calc |> 
+  filter(Model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == min(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = Model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  # ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Preferred Variant Best Model
+
+```{r}
+best <- results_calc |> 
+  filter(name == 'r2') |> 
+  filter(value == max(value))
+
+results_calc |> 
+  filter(Model == best$Model) |> 
+  ggplot(aes(x = variant, y = value, fill = Model)) +
+  geom_col() +
+  scale_fill_manual(values = python_palette) +
+  geom_hline(aes(yintercept = value),
+             linetype = 'dashed',
+             data = eng |> rename(Model = model)) +
+  facet_wrap(~name, scales = 'free_y') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Linear
+
+```{r}
+results_calc |> 
+  filter(Model == 'linear') |> 
+  ggplot(aes(x = variant, y = value, fill = Model)) +
+  geom_col() +
+  # scale_fill_manual(values = pres_palette) +
+  geom_hline(aes(yintercept = value),
+             linetype = 'dashed',
+             data = eng) +
+  facet_wrap(~name, scales = 'free_y') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
 # Incremental Test
+
 ```{r}
 variants_incrTest <- c('cal_fc',
                        'calc_dist',
-                   'calc_agg_adm_sep1',
-                   'calc_agg_inst_adm_sep1',
-                   'preferred')
+                       'calc_agg_adm_sep1',
+                       'calc_agg_inst_adm_sep1',
+                       'preferred')
 
 variants_incrTest
 ```
@@ -380,8 +560,8 @@ eng <- results_incrTest |>
 eng
 ```
 
-
 ## Best
+
 ```{r}
 score <- 'r2'
 
@@ -437,6 +617,7 @@ results_incrTest |>
 ```
 
 ## Preferred Variant Best Model
+
 ```{r}
 best <- results_incrTest |> 
   filter(name == 'r2') |> 
@@ -457,8 +638,8 @@ results_incrTest |>
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-
 CatBoost
+
 ```{r}
 results_incrTest |> 
   filter(model == 'cb') |> 
@@ -474,17 +655,42 @@ results_incrTest |>
 ```
 
 # Incremental
+
 ```{r}
 # variants_incr <- c('cal_fc',
 #                    paste0('incr_a', 2:7),
 #                    'incr_a9',
 #                    'preferred')
 
+# variants_incr <- c('cal_fc',
+#                    paste0('incr_a', 2:3),
+#                    paste0('incr_b', 4:9),
+#                    'preferred')
+
 variants_incr <- c('cal_fc',
-                   paste0('incr_a', 2:7),
-                   'incr_a9',
-                   # paste0('incr_b', 4:4),
-                   'preferred')
+                   paste0('incr_a', 2:3),
+                   paste0('incr_b', 4:5),
+                   paste0('djbrank_', 6:9)
+                   # paste0('djbrank_', 7:9)
+                   # 'preferred'
+                   )
+
+names(variants_incr) <- read_csv(file.path(mltrackeddatapath, 'ML_FC_variants.csv'), show_col_types = FALSE) |> 
+  select(variable, djbrank, disjoint_b_name) |> 
+  drop_na(disjoint_b_name) |> 
+  mutate(disjoint_b_name = str_to_sentence(disjoint_b_name)) |> 
+  mutate(disjoint_b_name = str_replace(disjoint_b_name,
+                                       regex('instantaneous', ignore_case=TRUE),
+                                             'inst.')) |> 
+  mutate(disjoint_b_name = str_replace(disjoint_b_name,
+                                       regex('characteristics', ignore_case=TRUE),
+                                             'chars.')) |> 
+  mutate(disjoint_b_name = str_replace(disjoint_b_name,
+                                       regex('fuel consumption', ignore_case=TRUE),
+                                       'FC')) |> 
+  arrange(djbrank) |> 
+  distinct(disjoint_b_name) |> 
+  pull()
 
 variants_incr
 ```
@@ -494,40 +700,53 @@ results_incr <- lapply(variants_incr, read_results) |>
   bind_rows() |> 
   mutate(variant = factor(variant, levels=variants_incr, ordered=TRUE)) |> 
   select(-params) |> 
-  pivot_longer(c(-variant, -model, -class_name))
+  mutate(mape = 100*mape) |>  # convert to percent!
+  pivot_longer(c(-variant, -model, -class_name)) |> 
+  rename(Model = model) |> 
+  mutate(variant = factor(variant,
+                          levels = variants_incr,
+                          labels = names(variants_incr)))
+  
 results_incr
 ```
 
 ```{r}
 eng <- results_incr |> 
-  filter(model == 'eng', variant == first(variant)) |> 
+  filter(Model == 'eng', variant == first(variant)) |> 
   select(-variant)
 eng
 ```
 
-
 ## Best
+
 ```{r}
 score <- 'r2'
 
-results_incr |> 
-  filter(model != 'eng',
+results_incr |>
+  filter(Model != 'eng',
          name == score) |> 
   group_by(variant) |> 
-  filter(value == max(value)) |> 
-  ggplot(aes(x = variant, y = value, fill = model)) +
+  filter(value == max(value)) |>
+  ggplot(aes(x = variant, y = value, fill = Model)) +
   geom_col() +
-  # scale_fill_manual(values = pres_palette) +
+  scale_fill_manual(values = python_palette,
+                    labels = model_names) +
   geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
              linetype = 'dashed') +
   ylim(0, 1) +
+  labs(y = expression(R^2),
+       x = 'Cumulative Additional Feature Category') +
   theme_pres(base_size) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text=element_text(size=base_size))
+  
+ggsave(file.path(imagepath, paste0(fileprefix, 'incremental_r2.png')),
+       width = 9, height = 6)
 ```
 
 ```{r}
 results_incr |> 
-  filter(model != 'eng',
+  filter(Model != 'eng',
          name == score) |> 
   group_by(variant) |> 
   filter(value == max(value)) |> 
@@ -535,37 +754,72 @@ results_incr |>
   mutate(diff = value - lag(value))
 ```
 
-
-
 ```{r}
-score <- 'mae'
+score <- 'r2'
 
-results_incr |> 
-  filter(model != 'eng',
+results_incr |>
+  filter(Model != 'eng',
          name == score) |> 
-  group_by(variant) |> 
-  filter(value == min(value)) |> 
-  ggplot(aes(x = variant, y = value, fill = model)) +
-  geom_col() +
-  # scale_fill_manual(values = pres_palette) +
+  ggplot(aes(x = variant, y = value, fill = Model)) +
+  geom_col(position = 'dodge') +
+  scale_fill_manual(values = python_palette,
+                    labels = model_names) +
   geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
              linetype = 'dashed') +
-  # ylim(0, 1) +
+  ylim(0, 1) +
+  labs(y = expression(R^2),
+       x = 'Cumulative Additional Feature Category') +
   theme_pres(base_size) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+ggsave(file.path(imagepath, paste0(fileprefix, 'incremental_r2_allmodels.png')),
+       width = 10, height = 7)
+```
+
+```{r}
+score <- c('mae', 'mape')
+
+results_incr |> 
+  filter(Model != 'eng',
+         name %in% score) |> 
+  group_by(variant, name) |> 
+  filter(value == min(value)) |> 
+  mutate(name = factor(name,
+                       levels = c('mae', 'mape'),
+                       labels = c('MAE (t)', 'MAPE (%)'))) |> 
+  ggplot(aes(x = variant, y = value, fill = Model)) +
+  geom_col() +
+  scale_fill_manual(values = python_palette,
+                    labels = model_names) +
+  geom_hline(aes(yintercept = value),
+             linetype = 'dashed',
+             data = eng |>
+               filter(name %in% score) |>
+               mutate(name = factor(name,
+                       levels = c('mae', 'mape'),
+                       labels = c('MAE (t)', 'MAPE (%)')))) +
+  facet_wrap(~name, scales = 'free_y', ncol = 1) +
+  labs(y = NULL,
+       x = 'Cumulative Additional Feature Category') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 50, hjust = 1))
+
+ggsave(file.path(imagepath, paste0(fileprefix, 'incremental_maemape.png')),
+       width = 9, height = 7)
 ```
 
 ```{r}
 score <- 'mape'
 
 results_incr |> 
-  filter(model != 'eng',
+  filter(Model != 'eng',
          name == score) |> 
   group_by(variant) |> 
   filter(value == min(value)) |> 
-  ggplot(aes(x = variant, y = value, fill = model)) +
+  ggplot(aes(x = variant, y = value, fill = Model)) +
   geom_col() +
-  # scale_fill_manual(values = pres_palette) +
+  scale_fill_manual(values = python_palette,
+                    labels = model_names) +
   geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
              linetype = 'dashed') +
   # ylim(0, 1) +
@@ -574,18 +828,21 @@ results_incr |>
 ```
 
 ## Preferred Variant Best Model
+
 ```{r}
 best <- results_incr |> 
   filter(name == 'r2') |> 
+  filter(variant == last(variant)) |> 
   filter(value == max(value))
 
 print(paste('Best variant:', best$variant))
 
 results_incr |> 
-  filter(model == best$model) |> 
-  ggplot(aes(x = variant, y = value, fill = model)) +
+  filter(Model == best$Model) |> 
+  ggplot(aes(x = variant, y = value, fill = Model)) +
   geom_col() +
-  # scale_fill_manual(values = pres_palette) +
+  scale_fill_manual(values = python_palette,
+                    labels = model_names) +
   geom_hline(aes(yintercept = value),
              linetype = 'dashed',
              data = eng) +
@@ -594,15 +851,231 @@ results_incr |>
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-
 CatBoost
+
 ```{r}
 results_incr |> 
-  filter(model == 'cb') |> 
+  filter(Model == 'cb') |> 
   filter(name == 'r2') |> 
-  ggplot(aes(x = variant, y = value, fill = model)) +
+  ggplot(aes(x = variant, y = value, fill = Model)) +
   geom_col() +
-  # scale_fill_manual(values = pres_palette) +
+  scale_fill_manual(values = python_palette,
+                    labels = model_names) +
+  # geom_hline(aes(yintercept = value),
+  #            linetype = 'dashed',
+  #            data = eng) +
+  facet_wrap(~name, scales = 'free_y') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# Incremental Chars
+
+```{r}
+variants_inchars <- c('incr_b4',
+                   paste0('char', 0:10)
+                   )
+
+features_all_desc <- read_csv(
+  file.path(tablepath,
+            paste0(str_remove(fileprefix, '_features'),
+                   'all_feature_names_desc.csv')),
+  show_col_types = FALSE)
+
+names(variants_inchars) <- read_csv(file.path(mltrackeddatapath, 'ML_FC_variants.csv'), show_col_types = FALSE) |>
+  select(variable, djbrank, disjoint_b_name) |>
+  filter(djbrank == 5) |> 
+  left_join(features_all_desc, by = 'variable') |> 
+  # mutate(disjoint_b_name = str_to_sentence(disjoint_b_name)) |>
+  # mutate(disjoint_b_name = str_replace(disjoint_b_name,
+  #                                      regex('instantaneous', ignore_case=TRUE),
+  #                                            'inst.')) |>
+  # mutate(disjoint_b_name = str_replace(disjoint_b_name,
+  #                                      regex('characteristics', ignore_case=TRUE),
+  #                                            'chars.')) |>
+  # mutate(disjoint_b_name = str_replace(disjoint_b_name,
+  #                                      regex('fuel consumption', ignore_case=TRUE),
+  #                                      'FC')) |>
+  # arrange(djbrank) |>
+  # distinct(disjoint_b_name) |>
+  pull(name) %>%
+  c('incr_b4', .)
+
+variants_inchars
+```
+
+```{r}
+results_inchars <- lapply(variants_inchars, read_results) |> 
+  bind_rows() |> 
+  mutate(variant = factor(variant, levels=variants_inchars, ordered=TRUE)) |> 
+  select(-params) |> 
+  mutate(mape = 100*mape) |>  # convert to percent!
+  pivot_longer(c(-variant, -model, -class_name)) |> 
+  rename(Model = model) |> 
+  mutate(variant = factor(variant,
+                          levels = variants_inchars,
+                          labels = names(variants_inchars)))
+  
+results_inchars
+```
+
+```{r}
+eng <- results_inchars |> 
+  filter(Model == 'eng', variant == first(variant)) |> 
+  select(-variant)
+eng
+```
+
+## Best
+
+```{r}
+library(ggbreak)
+score <- 'r2'
+
+results_inchars |>
+  filter(variant != 'incr_b4',
+         Model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == max(value)) |>
+  ggplot(aes(x = fct_reorder(variant, desc(value)), y = value, fill = Model)) +
+  geom_col() +
+  scale_fill_manual(values = python_palette,
+                    labels = model_names) +
+  # geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+  #            linetype = 'dashed') +
+  geom_hline(aes(yintercept = value),
+             data = results_inchars |> 
+               filter(variant == 'incr_b4',
+                      name == score) |> 
+               filter(value == max(value)),
+             linetype = 'dashed') +
+  # scale_y_break(c(0.01, 0.89)) +
+  coord_cartesian(ylim = c(0.9, 1)) +
+  labs(y = expression(R^2),
+       x = 'Additional Ship Characteristic') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+ggsave(file.path(imagepath, paste0(fileprefix, 'chars_r2.png')),
+       width = 10, height = 7)
+```
+
+```{r}
+results_inchars |> 
+  filter(Model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == max(value))
+```
+
+```{r}
+score <- 'r2'
+
+results_inchars |>
+  filter(Model != 'eng',
+         name == score) |> 
+  ggplot(aes(x = variant, y = value, fill = Model)) +
+  geom_col(position = 'dodge') +
+  scale_fill_manual(values = python_palette,
+                    labels = model_names) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  ylim(0, 1) +
+  labs(y = expression(R^2),
+       x = 'Additional Ship Characteristic') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+ggsave(file.path(imagepath, paste0(fileprefix, 'chars_r2_allmodels.png')),
+       width = 10, height = 7)
+```
+
+```{r}
+score <- c('mae', 'mape')
+
+results_inchars |> 
+  filter(Model != 'eng',
+         name %in% score) |> 
+  group_by(variant, name) |> 
+  filter(value == min(value)) |> 
+  mutate(name = factor(name,
+                       levels = c('mae', 'mape'),
+                       labels = c('MAE (t)', 'MAPE (%)'))) |> 
+  ggplot(aes(x = variant, y = value, fill = Model)) +
+  geom_col() +
+  scale_fill_manual(values = python_palette,
+                    labels = model_names) +
+  geom_hline(aes(yintercept = value),
+             linetype = 'dashed',
+             data = eng |>
+               filter(name %in% score) |>
+               mutate(name = factor(name,
+                       levels = c('mae', 'mape'),
+                       labels = c('MAE (t)', 'MAPE (%)')))) +
+  facet_wrap(~name, scales = 'free_y', ncol = 1) +
+  labs(y = NULL,
+       x = 'Cumulative Additional Feature Category') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 50, hjust = 1))
+
+ggsave(file.path(imagepath, paste0(fileprefix, 'chars_maemape.png')),
+       width = 10, height = 7)
+```
+
+```{r}
+score <- 'mape'
+
+results_inchars |> 
+  filter(Model != 'eng',
+         name == score) |> 
+  group_by(variant) |> 
+  filter(value == min(value)) |> 
+  ggplot(aes(x = variant, y = value, fill = Model)) +
+  geom_col() +
+  scale_fill_manual(values = python_palette,
+                    labels = model_names) +
+  geom_hline(yintercept = eng |> filter(name == score) |> pull(value),
+             linetype = 'dashed') +
+  # ylim(0, 1) +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Preferred Variant Best Model
+
+```{r}
+best <- results_inchars |> 
+  filter(name == 'r2') |> 
+  filter(variant == last(variant)) |> 
+  filter(value == max(value))
+
+print(paste('Best variant:', best$variant))
+
+results_inchars |> 
+  filter(Model == best$Model) |> 
+  ggplot(aes(x = variant, y = value, fill = Model)) +
+  geom_col() +
+  scale_fill_manual(values = python_palette,
+                    labels = model_names) +
+  geom_hline(aes(yintercept = value),
+             linetype = 'dashed',
+             data = eng) +
+  facet_wrap(~name, scales = 'free_y') +
+  theme_pres(base_size) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+CatBoost
+
+```{r}
+results_inchars |> 
+  filter(Model == 'cb') |> 
+  filter(name == 'r2') |> 
+  ggplot(aes(x = variant, y = value, fill = Model)) +
+  geom_col() +
+  scale_fill_manual(values = python_palette,
+                    labels = model_names) +
   # geom_hline(aes(yintercept = value),
   #            linetype = 'dashed',
   #            data = eng) +
