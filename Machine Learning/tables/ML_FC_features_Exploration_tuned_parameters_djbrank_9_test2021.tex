@@ -1,0 +1,31 @@
+
+\begin{tabular}[t]{llr}
+\toprule
+\multicolumn{1}{l}{Model} & \multicolumn{1}{l}{Parameter} & \multicolumn{1}{l}{Value}\\
+\midrule
+ & depth & 6\\
+
+ & l2 leaf reg & 1\\
+
+\multirow[t]{-3}{*}{\raggedright\arraybackslash CatBoost Regressor} & learning rate & 0.05\\
+\cmidrule(lr){1-3}
+
+ & learning rate & 0.01\\
+
+\multirow[t]{-2}{*}{\raggedright\arraybackslash Gradient Boosting Regressor} & max depth & 4\\
+\cmidrule(lr){1-3}
+
+Lasso & alpha & 0.005\\
+\cmidrule(lr){1-3}
+
+Linear Regression & n/a & n/a\\
+\cmidrule(lr){1-3}
+
+ & max depth & 50\\
+
+\multirow[t]{-2}{*}{\raggedright\arraybackslash Random Forest Regressor} & n estimators & 1000\\
+\cmidrule(lr){1-3}
+
+Ridge Regression & alpha & 0.01\\
+\bottomrule
+\end{tabular}

@@ -1,0 +1,51 @@
+
+\begin{tabular}[t]{>{\raggedright\arraybackslash}p{16em}>{\raggedright\arraybackslash}p{30em}}
+\toprule
+Variable & Description\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{2}{l}{\textbf{1. Calculated Fuel Consumption}}\\
+\hspace{1em}Calculated Fuel Consumption & Theoretical fuel consumption, calculated as per (\ref{eqn:annual_fc})\\
+\addlinespace[0.3em]
+\multicolumn{2}{l}{\textbf{2. Admiralty Components}}\\
+\hspace{1em}Main Engine Power & Power rating of main engine (kilowatts)\\
+\hspace{1em}Relative Draft & Aggregation of relative draft, calculated as $\sum (t/t_{\textit{ref}})$\\
+\hspace{1em}Relative Speed & Aggregation of relative speed, calculated as $\sum (v/v_{\textit{ref}})$\\
+\addlinespace[0.3em]
+\multicolumn{2}{l}{\textbf{3. Admiralty Instantaneous Component}}\\
+\hspace{1em}Admiralty Instantaneous Term & Aggregation of instantaneous term of (\ref{eqn:admiralty}), calculated as $\sum t^{0.66} \cdot v^3$\\
+\addlinespace[0.3em]
+\multicolumn{2}{l}{\textbf{4. Calculation Characteristics}}\\
+\hspace{1em}Admiralty Static Term & Static term of (\ref{eqn:admiralty}), calculated as $C / (t_{\textit{ref}}^{0.66} \cdot v_{\textit{ref}}^3)$\\
+\hspace{1em}Draft & Maximum draft (meters)\\
+\hspace{1em}Speed & Representative speed from \ac{WFR} (service or average observed) (knots)\\
+\addlinespace[0.3em]
+\multicolumn{2}{l}{\textbf{5. Additional Characteristics}}\\
+\hspace{1em}Age & Age at observation (years)\\
+\hspace{1em}Beam Moulded & Maximum width (meters)\\
+\hspace{1em}Deadweight Tonnage & Capacity (tonnes)\\
+\hspace{1em}Gross Tonnage & Nonlinear measure of internal volume\\
+\hspace{1em}Length Between Perpendiculars & Length between the forward and aft perpendiculars (meters)\\
+\hspace{1em}Length Overall & Total length (meters)\\
+\hspace{1em}Light Displacement Tonnage & Weight excluding most contents (tonnes)\\
+\hspace{1em}Main Bunker Capacity & Fuel capacity (cubic meters)\\
+\hspace{1em}Net Tonnage & Dimensionless index based on the total volume of cargo spaces\\
+\hspace{1em}Size Category & e.g., Handymax, Panamax, etc.\\
+\hspace{1em}Tonnage Per Centimeter & Load change required to change draft by one centimeter (tonnes/cm)\\
+\addlinespace[0.3em]
+\multicolumn{2}{l}{\textbf{6. Admiralty Terms}}\\
+\hspace{1em}Admiralty Draft Term & Aggregation of draft term of (\ref{eqn:admiralty}), calculated as $\sum (t/t_{\textit{ref}})^{0.66}$\\
+\hspace{1em}Admiralty Speed Term & Aggregation of speed term of (\ref{eqn:admiralty}), calculated as $\sum (v/v_{\textit{ref}})^{3}$\\
+\addlinespace[0.3em]
+\multicolumn{2}{l}{\textbf{7. Distance Travelled}}\\
+\hspace{1em}Distance Travelled & Distance calculated from AIS data (nautical miles)\\
+\addlinespace[0.3em]
+\multicolumn{2}{l}{\textbf{8. Activity}}\\
+\hspace{1em}At-Port Fraction & Fraction of hourly observations with operational phase ‘at-port’\\
+\hspace{1em}Number Of Trips & Number of trips detected from AIS data\\
+\addlinespace[0.3em]
+\multicolumn{2}{l}{\textbf{9. Data Quality}}\\
+\hspace{1em}Infeasible Distance & Sum of infeasible distances between consecutive locations after interpolation (nautical miles)\\
+\hspace{1em}Interpolated Fraction At-Sea & Fraction of hourly observations with operational phase ‘at-sea’ that are interpolated\\
+\bottomrule
+\end{tabular}

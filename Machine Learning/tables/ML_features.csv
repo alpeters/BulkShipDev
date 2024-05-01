@@ -1,4 +1,4 @@
-"variable","name","type","group","in_calc","source","calc_type","definition","description","unit","unit.abbr"
+"variable","name","type","group","in_calc","source","type","definition","description","unit","unit.abbr"
 "CVN","Clarksons Vehicle Number",,"characteristic","no","WFR","raw",,"Clarksons internal identifier",,
 "IMO.Number","IMO Number",,"characteristic","no","WFR","raw",,"Unique registration number",,
 "Name","Ship name",,"characteristic","no","WFR","raw",,"Ship name",,
@@ -12,7 +12,7 @@
 "Built.Year",,,"characteristic","indirectly","WFR","raw",,,,
 "Keel.Laid.Date",,,"characteristic","indirectly","WFR","raw",,,,
 "Contract.Date",,,"characteristic","no","WFR","raw",,,,
-"LDT","Light displacement tonnage","numnonneg","characteristic","no","WFR","raw",,"Weight excluding most contents","tonnes","t"
+"LDT",,"numnonneg","characteristic","no","WFR","raw",,,,
 "Demo.Price.LDT",,,"characteristic","no","WFR","raw",,,,
 "Demo.Date",,,"characteristic","no","WFR","raw",,,,
 "Dwt","Deadweight tonnage","numnonneg","characteristic","no","WFR","raw",,"Capacity","tonnes","t"
@@ -42,7 +42,7 @@
 "Owner.Nationality.Region",,,"characteristic","no","WFR","raw",,,,
 "Builder",,,"characteristic","no","WFR","raw",,,,
 "Status",,,"characteristic","no","WFR","raw",,,,
-"GT","Gross tonnage","numnonneg","characteristic","no","WFR","raw",,"Nonlinear measure of internal volume",,
+"GT",,"numnonneg","characteristic","no","WFR","raw",,,,
 "Year.Rebuilt.Convert",,,"characteristic","no","WFR","raw",,,,
 "Old.Type",,,"characteristic","no","WFR","raw",,,,
 "Main.Bunker.Capacity..m3.","Main Bunker Capacity","numnonneg","characteristic","no","WFR","raw",,"Fuel capacity","cubic meters","m^3"
@@ -204,12 +204,12 @@
 "MRV.ship.type","Ship type",,,,"MRV","raw",,,,
 "timestamp_count","Number of observations",,"quality","no","AIS","aggregated",,,,
 "distance_sum","Distance travelled","numnonneg","activity","no","AIS","aggregated",,"Distance calculated from AIS data","nautical miles","nm"
-"work_sum","Travel work","numnonneg","calc","variant","AIS","derived","$\sum v^2 \cdot d$","Energy required to overcome drag","nm^3/h^2",
+"work_sum","Travel work","numnonneg","calc","variant","AIS","derived","$V^2 \cdot d$",,"nm^3/h^2",
 "trip_nunique","Number of trips","numnonneg","activity","no","AIS","aggregated",,"Number of trips detected from AIS data",,
 "interpolated_sum","Number of interpolated observations",,"quality","no","AIS","aggregated",,,,
-"W_component_first","Admiralty static term","numnonneg","calc","directly","AIS+WFR","derived","$C / (t_{\textit{ref}}^{0.66} \cdot v_{\textit{ref}}^3)$","Static term of (\ref{eqn:admiralty})","$\text{kilowatts}/(\text{meters}^{0.66} \cdot \text{knots}^3)$",
+"W_component_first","Admiralty static component","numnonneg","calc","directly","AIS+WFR","derived","$C / (t_{\textit{ref}}^{0.66} \cdot v_{\textit{ref}}^3)$","Static component of (\ref{eqn:admiralty})","$\text{kilowatts}/(\text{meters}^{0.66} \cdot \text{knots}^3)$",
 "ME_W_ref_first","Main Engine Power","numnonneg","characteristic","directly","WFR","raw",,"Power rating of main engine","kilowatts","kW"
-"t_m_times_v_n_sum","Admiralty instantaneous term","numnonneg","calc","variant","AIS","derived","$\sum t^{0.66} \cdot v^3$","Aggregation of instantaneous term of (\ref{eqn:admiralty})","$\text{meters}^{0.66} \cdot \text{knots}^3$",
+"t_m_times_v_n_sum","Admiralty instantaneous component","numnonneg","calc","variant","AIS","derived","$\sum t^{0.66} \cdot v^3$","Aggregation of instantaneous component of (\ref{eqn:admiralty})","$\text{meters}^{0.66} \cdot \text{knots}^3$",
 "t_over_t_ref_with_m_sum","Admiralty draft term","numnonneg","calc","directly","AIS+WFR","derived","$\sum (t/t_{\textit{ref}})^{0.66}$","Aggregation of draft term of (\ref{eqn:admiralty})",,
 "t_over_t_ref_without_m_sum","Relative draft","numnonneg","calc","variant","AIS+WFR","derived","$\sum (t/t_{\textit{ref}})$","Aggregation of relative draft",,
 "v_over_v_ref_with_n_sum","Admiralty speed term","numnonneg","calc","directly","AIS+WFR","derived","$\sum (v/v_{\textit{ref}})^{3}$","Aggregation of speed term of (\ref{eqn:admiralty})",,
@@ -225,8 +225,7 @@
 "log_cal_fc","Log annual calculated fuel consumption",,"calc",,"AIS","derived",,"Log (log1p) calculated fuel consumption",,
 "distance_difference","Log annual reported fuel consumption",,"quality","no","AIS+MRV","derived",,,,
 "distance_difference_rel",,,"quality","no","AIS+MRV","derived",,,,
-"total_jump_distance","Infeasible distance","numnonneg","quality","no","AIS","aggregated",,"Sum of infeasible distances between consecutive locations after interpolation","nautical miles","nm"
+"total_jump_distance","Cumula","numnonneg","quality","no","AIS","aggregated",,"Sum of infeasible distances between consecutive locations after interpolation","nautical miles","nm"
 "jump_distance_frac",,,"quality","no","AIS","aggregated",,,,
 "within_tol_jumps",,,"quality","no","AIS","aggregated",,,,
 "cubic_meter","Ship volume","numnonneg","characteristic","indirectly","WFR","derived","$\text{beam}\cdot\text{draft}\cdot\text{length}$","Rectangular volume of hull ","cubic meters","M^3"
-"draught_mean","Average draft","numnonneg","activity","variant","AIS","aggregated",,"Average observed draft after interpolation","meters","m"
