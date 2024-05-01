@@ -15,9 +15,12 @@ import os, time
 # from dask.distributed import Client, LocalCluster
 # cluster = LocalCluster(n_workers=1)
 
-filepath = '/scratch/petersal/ShippingEmissions/src/data/AIS'
-# filepath = 'src/data/AIS'
-ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers'))
+# filepath = 'AIS'
+# filepath = '/media/apeters/Extreme SSD/imo_match'
+# filepath = '/scratch/petersal/ShippingEmissions/src/data/AIS'
+filepath = 'src/data/AIS'
+
+ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_tz'))
 unique_mmsi = ais_bulkers['mmsi'].unique().compute()
 unique_mmsi = unique_mmsi.sort_values(ignore_index = True)
 # Need to set divisions because automatic algorithm seems to give floats

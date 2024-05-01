@@ -28,6 +28,7 @@ ids_df <- read_csv("data/ais_ids.csv",
 
 load("data/All_join.Rda")
 ```
+
 ```{r}
 if(
   0 != ids_df %>% 
@@ -43,151 +44,60 @@ if(
 ```
 
 ```{r}
-str(ids_df)
-```
-# Doubled MMSI in WFR
-How many bulk ships have non-unique MMSI?
-```{r}
-bulkers_mmsi <- fleet_df %>% 
-  filter(Fleet.Type == 'Bulkers') %>% 
-  distinct(MMSI) %>% 
-  drop_na() %>% 
-  pull(MMSI)
-
-bulkers_mmsi_df <- fleet_df %>% 
-  filter(MMSI %in% bulkers_mmsi) %>%  
-  select(MMSI, IMO.Number, Name, Alternative.Name, Ex.Name, Fleet.Type, Dwt, LOA..m.) %>% 
-  group_by(MMSI) %>% 
-  mutate(MMSI.Count = n()) %>% 
-  ungroup()
-```
-
-How many?
-```{r}
-bulkers_mmsi_df %>% 
-  distinct(MMSI, MMSI.Count) %>% 
-  group_by(MMSI.Count > 1) %>% 
-  summarise(n())
-```
-
-Which ones?
-```{r}
-bulkers_mmsi_df %>% 
-  filter(MMSI.Count > 1) %>% 
-  arrange(MMSI)
-```
-What is min length difference between pairs?
-```{r}
-bulkers_mmsi_df %>% 
-  filter(MMSI.Count > 1) %>% 
-  group_by(MMSI) %>% 
-  summarise(length.diff = max(LOA..m.) - min(LOA..m.)) %>% 
-  arrange(length.diff)
-```
-```{r}
-nonunique_mmsi <- bulkers_mmsi_df %>% 
-  filter(MMSI.Count > 1) %>% 
-  distinct(MMSI) %>% 
-  pull(MMSI)
+ids_df |>
+  arrange(mmsi)
 ```
 
 
-# Count unique IDs observed
-MMSI
 ```{r}
-ids_df %>% 
-  distinct(mmsi) %>% 
-  nrow()
-```
-How do these match with WFR?
-```{r}
-ids_df %>% 
-  ungroup() %>% 
-  distinct(mmsi) %>% 
-  inner_join(bulkers_mmsi_df,
-            by = c('mmsi' = 'MMSI')) %>% 
-  distinct(mmsi) %>% 
-  nrow()
-```
-All have matches in WFR!
-
-IMO
-```{r}
-ids_df %>% 
-  distinct(imo) %>% 
-  nrow()
-```
-# Drop MMSI with a significant fraction of IMO, name, or length reports conflicting
-Treat empty name, imo == 0, or length outside of max range as reporting error and thus not conflicting.
-```{r}
-mmsi_matches_df <- ids_df %>%
-  filter(!(mmsi %in% nonunique_mmsi)) %>% 
-  left_join(fleet_df %>% 
-              select(MMSI, Name, Alternative.Name, Ex.Name, IMO.Number, LOA..m., Built.Year, CVN) %>% 
-              mutate(Alternative.Name = replace(Alternative.Name, Alternative.Name == "", NA_character_)) %>% 
-              mutate(Ex.Name = replace(Ex.Name, Ex.Name == "", NA_character_)),
-            by = c('mmsi' = 'MMSI')) %>% 
-  select(mmsi, Obs.Count, contains('name'), contains('imo'), LOA..m., length, CVN) %>% 
-  mutate(Length.Difference = abs(length/LOA..m.-1), .after = length) %>% 
-  mutate(name.compare = name %>% 
-           str_replace_all("[^[:alnum:]]", " ") %>% 
-           str_squish(),
-         name.compare = ifelse(startsWith(name.compare, "MV"), str_remove(name.compare, "MV"), name.compare),
-         name.compare = ifelse(startsWith(name.compare, "M V"), str_remove(name.compare, "M V"), name.compare),
-         across(c(Name, Alternative.Name, Ex.Name), ~ str_squish(str_replace_all(.x, "[^[:alnum:]]", " ")))) %>% 
-  rowwise() %>% 
-  mutate(IMO.Difference = adist(as.character(imo), as.character(IMO.Number)),
-         Name.Difference = adist(name.compare, Name, ignore.case = TRUE),
-         Alt.Name.Difference = adist(name.compare, Alternative.Name, ignore.case = TRUE),
-         Ex.Name.Difference = adist(name.compare, Ex.Name, ignore.case = TRUE)) %>% 
-  mutate(Names.Difference = min.na(c(Name.Difference, Alt.Name.Difference, Ex.Name.Difference))) %>% 
-  relocate(Names.Difference, IMO.Difference, Length.Difference, .after = mmsi) %>% 
-  mutate(Bad.Match = (Names.Difference >= 4 & name != "") |
-                     (IMO.Difference != 0 & imo != 0) |
-                     (Length.Difference > 0.1 & !between(length, 100, 370)),
-         Bad.Match = replace_na(Bad.Match, FALSE))
-```
-could also allow IMO.Difference up to 3 if nchar(imo) != 7
-
-Calculate fraction of observations considered a bad match (verifiably wrong)
-```{r}
-notbad_id_matches_df <- mmsi_matches_df %>% 
-  group_by(mmsi, Bad.Match) %>% 
-  summarise(Obs.Count = sum(Obs.Count)) %>% 
-  group_by(mmsi) %>% 
-  mutate(Obs.Count.Prop = Obs.Count/sum(Obs.Count)) %>% 
-  filter(!Bad.Match & (Obs.Count.Prop > 0.9))
+ids_df |> 
+  filter(imo > 0) |> 
+  group_by(mmsi, imo) |> 
+  summarise(Obs.Count = sum(Obs.Count)) |> 
+  ungroup() |> 
+  count(imo)
+  # count(n)
+  # arrange(desc(n))
+  # ggplot(aes(x=n)) +
+  # geom_histogram()
 ```
 
-Inner join retains well matched observations for MMSI that have less than 10% observations from other ships
+Verify 
 ```{r}
-notbad_ids_df <- inner_join(mmsi_matches_df,
-                            notbad_id_matches_df %>% select(-Obs.Count),
-                            by = c('mmsi', 'Bad.Match')) %>% 
-  select(mmsi, imo, name, length, CVN, Obs.Count)
+IMO_checksum <- function(imo){
+  digits_sum = 0
+  n_digits = nchar(imo)
+  if(n_digits > 7){
+    valid = FALSE
+  }else{
+    imo = str_pad(imo, width = 7, side = 'left', pad = '0')
+    for(i in 1:6){
+      digits_sum = digits_sum + (8-i)*as.integer(str_sub(imo, i, i))
+    }
+    digits_sum = as.character(digits_sum)
+    valid = str_sub(imo, 7, 7) == str_sub(digits_sum, -1)
+  }
+  return(valid)
+}
 ```
 
-How many observations get lost?
+Check invalid
 ```{r}
-print(paste0('Retains ',
-            sum(notbad_ids_df$Obs.Count),
-            ' of ',
-            sum(mmsi_matches_df$Obs.Count),
-            ' (',
-            round(sum(notbad_ids_df$Obs.Count)/sum(mmsi_matches_df$Obs.Count), 3),
-            ') observations.'))
+IMO_checksum(9834203)
 ```
+
+Check valid (example from https://en.wikipedia.org/wiki/IMO_number)
 ```{r}
-print(paste0('Retains ',
-            length(unique(notbad_ids_df$mmsi)),
-            ' of ',
-            length(unique(mmsi_matches_df$mmsi)),
-            ' (',
-            round(length(unique(notbad_ids_df$mmsi))/length(unique(mmsi_matches_df$mmsi)), 3),
-            ') MMSI.'))
+IMO_checksum(9074729)
 ```
+
+
 ```{r}
-write_csv(notbad_ids_df, file = 'data/ais_notbad_ids.csv')
+ids_df |> 
+  rowwise() |> 
+  mutate(Valid.IMO = IMO_checksum(imo))
 ```
+
+
 
 # END

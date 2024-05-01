@@ -25,16 +25,21 @@ py_run_file('AIS_PreData_Ingest.py')
 MMSI lists by ship type for subsetting AIS data:
 ```{r eval = FALSE}
 load("data/bulkers_WFR.Rda")
-bulkers_mmsi <- bulkers_df %>% 
-  distinct(MMSI) %>% 
-  drop_na() %>% 
-  write_csv("data/bulkers_mmsi.csv")
+```
 
-load("data/containerships_WFR.Rda")
-containerships_mmsi <- containerships_df %>% 
-  distinct(MMSI) %>% 
+```{r}
+bulkers_imo <- bulkers_df %>% 
+  distinct(IMO.Number) %>% 
   drop_na() %>% 
-  write_csv("data/containerships_mmsi.csv")
+  write_csv("data/bulkers_imo.csv")
+```
+
+```{r}
+# load("data/containerships_WFR.Rda")
+# containerships_mmsi <- containerships_df %>% 
+#   distinct(MMSI) %>% 
+#   drop_na() %>% 
+#   write_csv("data/containerships_mmsi.csv")
 ```
 
 ```{r, eval = FALSE}
