@@ -11,5 +11,5 @@ PyYAML==6.0
 toolz==0.12.1
 
 # add locally
-dask[distributed]==2023.2.1
+distributed==2023.2.1
 pyarrow==7.0.0
