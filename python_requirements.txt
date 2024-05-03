@@ -1,0 +1,15 @@
+# from CC
+click==8.1.7
+cloudpickle==3.0.0
+dask==2023.2.1
+fsspec==2024.3.1
+locket==1.0.0
+numpy==1.24.2
+pandas==1.5.3
+partd==1.4.1
+PyYAML==6.0
+toolz==0.12.1
+
+# add locally
+dask[distributed]==2023.2.1
+pyarrow==7.0.0
