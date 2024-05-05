@@ -12,7 +12,8 @@ import os, time
 
 start = time.time()
 # filepath = './data/AIS'
-filepath = '/scratch/petersal/ShippingEmissions/src/data/AIS'
+# filepath = '/scratch/petersal/ShippingEmissions/src/data/AIS'
+filepath = 'AIS'
 ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_indexed'))
 
 ais_bulkers.map_partitions(
