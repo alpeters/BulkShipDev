@@ -13,8 +13,8 @@ import numpy as np
 from dask.distributed import Client, LocalCluster
 
 
-datapath = 'src/data'
-filepath = os.path.join(datapath, 'AIS')
+datapath = 'src/data/'
+filepath = os.path.join(datapath, 'AIS/imo_match')
 
 #%%
 ais_bulkers = dd.read_parquet(
@@ -22,6 +22,8 @@ ais_bulkers = dd.read_parquet(
     columns = ['msg_type', 'imo', 'name', 'length', 'draught'] 
     )
 ais_bulkers.dtypes
+# ais_bulkers = ais_bulkers.partitions[0:2]
+ais_bulkers['name'] = ais_bulkers['name'].fillna('NA')
 
 #%%
 with LocalCluster(
@@ -52,12 +54,11 @@ with LocalCluster(
 ) as cluster, Client(cluster) as client:
     ids = (
         ais_bulkers
-        # .partitions[0]
         .loc[ais_bulkers['msg_type'] == 5]
-        .drop('msg_type', axis = 'columns')
-        .groupby(['mmsi', 'imo', 'length'], dropna = False)
+        .drop('msg_type', axis='columns')
+        .groupby(['mmsi', 'imo', 'length'], dropna=False)
         .name
-        .apply(lambda x: x.value_counts(dropna = False))
+        .value_counts()
         .compute()
     )
 

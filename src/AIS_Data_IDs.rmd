@@ -23,11 +23,51 @@ max.na <- function(x){
 ```{r}
 ids_df <- read_csv("data/ais_ids.csv",
                    col_types = "innci") %>% 
-  rename(Obs.Count = name,
-         name = ...4)
+  rename(Obs.Count = name...5,
+         name = name...4)
 
 load("data/All_join.Rda")
 ```
+
+```{r}
+ids_df |> distinct(mmsi) |> nrow()
+```
+
+How many mmsi-imo combinations?
+```{r}
+ids_df |> 
+  group_by(mmsi, imo) |> 
+  summarise(Obs.Count = sum(Obs.Count))
+```
+
+How many mmsi associated with each imo?
+```{r}
+ids_df |> 
+  filter(imo != 0) |> 
+  group_by(mmsi, imo) |> 
+  summarise(Obs.Count = sum(Obs.Count)) |> 
+  filter(Obs.Count > 10) |> 
+  group_by(mmsi) |> 
+  mutate(n = n()) |> 
+  filter(n == 2) |>
+  arrange(mmsi)
+```
+
+```{r}
+ids_df |> 
+  
+```
+
+
+
+```{r}
+ids_df |> 
+  filter(Obs.Count > 2) |> 
+  ggplot(aes(x = Obs.Count)) +
+  geom_histogram()
+```
+
+
 
 ```{r}
 if(

@@ -36,7 +36,7 @@ def filter_calc_static(df, filter_df):
     df['draught'] = df.draught.replace(0, np.NaN)
     df = (
         df
-        .dropna(subset = 'draught')
+        # .dropna(subset = 'draught') # Keep these, because might have IMO number information
         .set_index(['imo', 'name', 'length'], append = True)
         .join(filter_df, how='inner', on=['mmsi', 'imo', 'name', 'length'])
         .reset_index(level = ['imo', 'name', 'length'])
