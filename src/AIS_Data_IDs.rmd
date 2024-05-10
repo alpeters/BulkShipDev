@@ -9,26 +9,55 @@ library(tidyverse)
 options(dplyr.summarise.inform = FALSE)
 ```
 
+# Functions
 ```{r}
-min.na <- function(x){
-  ifelse(all(is.na(x)), NA_real_, min(x, na.rm = TRUE))
+IMO_checksum <- function(imo){
+  digits_sum = 0
+  n_digits = nchar(imo)
+  if((n_digits > 7) | (imo == 0)){
+    valid = FALSE
+  }else{
+    imo = str_pad(imo, width = 7, side = 'left', pad = '0')
+    for(i in 1:6){
+      digits_sum = digits_sum + (8-i)*as.integer(str_sub(imo, i, i))
+    }
+    digits_sum = as.character(digits_sum)
+    valid = str_sub(imo, 7, 7) == str_sub(digits_sum, -1)
+  }
+  return(valid)
 }
 
-max.na <- function(x){
-  ifelse(all(is.na(x), NA_real_, max(x, na.rm = TRUE)))
-}
+# min.na <- function(x){
+#   ifelse(all(is.na(x)), NA_real_, min(x, na.rm = TRUE))
+# }
+# 
+# max.na <- function(x){
+#   ifelse(all(is.na(x), NA_real_, max(x, na.rm = TRUE)))
+# }
 ```
 
-
+# Read file
 ```{r}
 ids_df <- read_csv("data/ais_ids.csv",
-                   col_types = "innci") %>% 
+                   col_types = "iddci") %>% 
   rename(Obs.Count = name...5,
          name = name...4)
 
-load("data/All_join.Rda")
+# load("data/All_join.Rda")
 ```
 
+IMO number seems to have digits after decimal. Check these are all zero
+```{r}
+if(!all(ids_df$imo %% 1 == 0)){
+  stop('IMO numbers are not integers!')
+}else{
+  ids_df <- ids_df |> 
+    mutate(imo = as.integer(imo))
+}
+```
+
+# Raw data summary stats
+How many mmsi?
 ```{r}
 ids_df |> distinct(mmsi) |> nrow()
 ```
@@ -53,91 +82,88 @@ ids_df |>
   arrange(mmsi)
 ```
 
+## IMO checksum
+Function check
 ```{r}
-ids_df |> 
-  
-```
-
-
-
-```{r}
-ids_df |> 
-  filter(Obs.Count > 2) |> 
-  ggplot(aes(x = Obs.Count)) +
-  geom_histogram()
-```
-
-
-
-```{r}
-if(
-  0 != ids_df %>% 
-    mutate(imo_decimals = imo %% 1) %>% 
-    filter(imo_decimals > 0) %>% 
-    nrow() |
-  0 != ids_df %>% 
-    mutate(length_decimals = length %% 1) %>% 
-    filter(length_decimals > 0) %>% 
-    nrow()
-){stop('Either imo or length has non-zero decimal digits.')}
-
-```
-
-```{r}
-ids_df |>
-  arrange(mmsi)
-```
-
-
-```{r}
-ids_df |> 
-  filter(imo > 0) |> 
-  group_by(mmsi, imo) |> 
-  summarise(Obs.Count = sum(Obs.Count)) |> 
-  ungroup() |> 
-  count(imo)
-  # count(n)
-  # arrange(desc(n))
-  # ggplot(aes(x=n)) +
-  # geom_histogram()
-```
-
-Verify 
-```{r}
-IMO_checksum <- function(imo){
-  digits_sum = 0
-  n_digits = nchar(imo)
-  if(n_digits > 7){
-    valid = FALSE
-  }else{
-    imo = str_pad(imo, width = 7, side = 'left', pad = '0')
-    for(i in 1:6){
-      digits_sum = digits_sum + (8-i)*as.integer(str_sub(imo, i, i))
-    }
-    digits_sum = as.character(digits_sum)
-    valid = str_sub(imo, 7, 7) == str_sub(digits_sum, -1)
-  }
-  return(valid)
+if(IMO_checksum(9834203)){ #invalid
+  stop('checksum function not working')
 }
+if(!IMO_checksum(9074729)){ #valid (example from https://en.wikipedia.org/wiki/IMO_number)
+  stop('checksum function not working')
+}
+
 ```
 
-Check invalid
+Check all IMO
 ```{r}
-IMO_checksum(9834203)
-```
-
-Check valid (example from https://en.wikipedia.org/wiki/IMO_number)
-```{r}
-IMO_checksum(9074729)
-```
-
-
-```{r}
-ids_df |> 
+ids_df <- ids_df |> 
   rowwise() |> 
   mutate(Valid.IMO = IMO_checksum(imo))
 ```
 
+```{r}
+ids_df |> 
+  group_by(mmsi) |>
+  distinct(imo, Valid.IMO) |> 
+  summarise(valid.imos = sum(Valid.IMO, na.rm = TRUE)) |> 
+  count(valid.imos)
+```
+Almost 3000 have two valid IMO numbers, 651 have three.
+
+Which have many? (seems implausible)
+```{r}
+ids_df |> 
+  group_by(mmsi) |>
+  distinct(imo, Valid.IMO) |> 
+  summarise(valid.imos = sum(Valid.IMO, na.rm = TRUE)) |> 
+  filter(valid.imos == 5)
+```
+
+Any better if I fix as IMO does, removing extra digits?
+```{r}
+ids_df <- ids_df |> 
+  mutate(imo.truncated = ifelse(nchar(imo) > 7, as.integer(imo/10^(nchar(imo)-7)), imo)) |> 
+  rowwise() |>
+  mutate(Valid.IMO.corrected = IMO_checksum(imo.truncated))
+```
+
+```{r}
+ids_df |> 
+  group_by(mmsi) |>
+  distinct(imo, Valid.IMO.corrected) |> 
+  summarise(valid.corrected.imos = sum(Valid.IMO.corrected, na.rm = TRUE)) |> 
+  count(valid.corrected.imos)
+```
+
+How many fixed?
+```{r}
+ids_df |> 
+  filter(Valid.IMO != Valid.IMO.corrected)
+```
+2181 rows!
+
+```{r}
+ids_df <- ids_df |> 
+  mutate(imo.corrected = ifelse(Valid.IMO.corrected, imo.truncated, NA_integer_))
+```
+
+# Save corrected list
+```{r}
+ids_df |> 
+  write_csv(ais_corrected.csv)
+```
+
+
+
+# Check manually
+```{r}
+ids_df |> 
+  filter(mmsi == 311000099)
+```
+
+```{r}
+
+```
 
 
 # END
