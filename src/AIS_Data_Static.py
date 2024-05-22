@@ -19,43 +19,125 @@ filepath = os.path.join(datapath, 'AIS')
 ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_indexed_sorted'),
     columns = ['timestamp', 'msg_type', 'imo', 'name', 'draught', 'length'])
 ais_bulkers.dtypes
-# ais_bulkers = ais_bulkers.partitions[0]
+# ais_bulkers = ais_bulkers.partitions[0:2]
 
 #%%
 ais_notbad_ids = pd.read_csv(os.path.join(datapath, 'ais_notbad_ids.csv'),
     usecols = ['mmsi', 'imo', 'name', 'length'],
     index_col = ['mmsi', 'imo', 'name', 'length'])
+ais_corrected_imo = pd.read_csv(os.path.join(datapath, 'ais_corrected_imo.csv'),
+    usecols = ['mmsi', 'imo', 'imo_corrected'],
+    index_col = ['mmsi', 'imo'])
 
+# #%%
+# def filter_calc_static(df, filter_df):
+#     df = (
+#         df
+#         .loc[df['msg_type'] == 5]
+#         .drop('msg_type', axis = 'columns')
+#         )
+#     df['draught'] = df.draught.replace(0, np.NaN)
+#     df = (
+#         df
+#         # .dropna(subset = 'draught') # Keep these, because might have IMO number information
+#         # .set_index(['imo', 'name', 'length'], append = True)
+#         # .join(filter_df, how='inner', on=['mmsi', 'imo', 'name', 'length'])
+#         # .reset_index(level = ['imo', 'name', 'length'])
+#         .set_index(['imo'], append = True)
+#         .join(filter_df, how='left', on=['mmsi', 'imo'])
+#         .reset_index(level = ['imo'])
+#         )
+#     # df['draught_max'] = df.groupby('mmsi').draught.quantile(0.99) # don't do any modifications for now
+#     # df['laden'] = (df.draught / df.draught_max) > 0.75 # unused
+#     df['hour'] = df['timestamp'].dt.floor('H')
+#     df = df[['timestamp', 'imo', 'name', 'draught', 'length', 'imo_corrected', 'hour']]
+#     df = df.sort_values(['mmsi', 'hour'])
+#     return df
+
+
+# #%%
+# meta_dict = ais_bulkers.dtypes.to_dict()
+# meta_dict.pop('msg_type')
+# # meta_dict['laden'] = 'bool'
+# meta_dict['imo_corrected'] = 'Int64'
+# meta_dict['hour'] = 'datetime64[ns, UTC]'
+
+# #%%
+# with LocalCluster(
+#     n_workers=2,
+#     threads_per_worker=2
+# ) as cluster, Client(cluster) as client:
+#     (
+#         ais_bulkers
+#             .map_partitions(filter_calc_static,
+#                 # ais_notbad_ids,
+#                 ais_corrected_imo,
+#                 meta = meta_dict,
+#                 transform_divisions = False,
+#                 align_dataframes = False)
+#             .to_parquet(
+#             os.path.join(filepath, 'ais_bulkers_static'),
+#             append = False,
+#             overwrite = True,
+#             engine = 'fastparquet')
+#     )
+
+# # #%%
+# ais_bulkers_static = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_static'))
+# ais_bulkers_static.dtypes
+# ais_bulkers_static.head()
+# ais_bulkers_static = ais_bulkers_static.partitions[0]
+
+
+# Check how messy IMO numbers are
+## Quantify contiguity of IMO reports
 #%%
-def filter_calc_static(df, filter_df):
+def static_contig_imo(df, corrected_df):
+    """
+        1. Select only static messages
+        2. Try to correct (truncate) invalid IMO numbers
+        3. Drop any that are still invalid
+        4. Count number of switches and define instances as:
+            a contiguous set of a given IMO number,
+            e.g. 1, 1, 1, 2, 1, 2 has two instances of each
+    """
     df = (
         df
         .loc[df['msg_type'] == 5]
         .drop('msg_type', axis = 'columns')
         )
-    df['draught'] = df.draught.replace(0, np.NaN)
     df = (
         df
-        # .dropna(subset = 'draught') # Keep these, because might have IMO number information
-        .set_index(['imo', 'name', 'length'], append = True)
-        .join(filter_df, how='inner', on=['mmsi', 'imo', 'name', 'length'])
-        .reset_index(level = ['imo', 'name', 'length'])
+        .set_index(['imo'], append = True)
+        .join(corrected_df, how='left', on=['mmsi', 'imo'])
+        .reset_index(level = ['imo'])
+        .dropna(subset = 'imo_corrected')
         )
-    df['draught_max'] = df.groupby('mmsi').draught.quantile(0.99)
-    df['laden'] = (df.draught / df.draught_max) > 0.75
-    df['hour'] = df['timestamp'].dt.floor('H')
-    df = df[['timestamp', 'imo', 'name', 'draught', 'length', 'laden', 'hour']]
-    df = df.sort_values(['mmsi', 'hour'])
+    df['imo_instance'] = df.groupby('mmsi').imo_corrected.diff().ne(0).cumsum()
+    df = df[['timestamp', 'imo', 'name', 'draught', 'length', 'imo_corrected', 'imo_instance']]
+    df = df.sort_values(['mmsi', 'timestamp'])
     return df
 
-#%%
-# filter_static(ais_bulkers.compute(), ais_notbad_ids)
+
 
 #%%
+# test = ais_bulkers.partitions[0].compute()
+# testout = static_contig_imo(test, ais_corrected_imo)
+# testout.head()
+# meta_dict_test = testout.dtypes.to_dict()
+
+#%%
+# meta_dict = {
+#     'mmsi': 'Int64',  # index
+#     'imo_corrected': 'float64',
+#     'imo_instance': 'Int64',
+#     # 'n_obs': 'Int64'
+# }
+
 meta_dict = ais_bulkers.dtypes.to_dict()
 meta_dict.pop('msg_type')
-meta_dict['laden'] = 'bool'
-meta_dict['hour'] = 'datetime64[ns, UTC]'
+meta_dict['imo_corrected'] = 'int'
+meta_dict['imo_instance'] = 'int'
 
 #%%
 with LocalCluster(
@@ -64,76 +146,64 @@ with LocalCluster(
 ) as cluster, Client(cluster) as client:
     (
         ais_bulkers
-            .map_partitions(filter_calc_static,
-                ais_notbad_ids,
+            .map_partitions(
+                static_contig_imo,
+                ais_corrected_imo,
                 meta = meta_dict,
+                # meta = meta_dict_test,
                 transform_divisions = False,
-                align_dataframes = False)
+                align_dataframes = False
+                )
             .to_parquet(
-            os.path.join(filepath, 'ais_bulkers_static'),
+            os.path.join(filepath, 'ais_bulkers_static_contig'),
             append = False,
             overwrite = True,
             engine = 'fastparquet')
     )
 
 #%%
-ais_bulkers_static = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_static'))
+ais_bulkers_static = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_static_contig'))
 ais_bulkers_static.dtypes
 ais_bulkers_static.head()
-# ais_bulkers_static = ais_bulkers_static.partitions[0]
 
-# #%% Check how NAs and non unique match in pandas
-# df = pd.DataFrame({'key': ['K0', 'K1', 'K2', 'K0', 'NaN', 'NaN'],
-#                    'A': ['A0', 'A1', 'A2', 'A3', 'A4', 'A5']}).set_index('key')
+# Simple count
+# n_obs = ais_bulkers_static.groupby(['mmsi', 'imo_corrected', 'imo_instance']).size().compute()
+#%% Get start and end timestamp as well as number of observations in each instance
+n_obs = (
+    ais_bulkers_static
+    .groupby(['mmsi', 'imo_corrected', 'imo_instance'])
+    .agg(n_obs = ('timestamp', 'size'),
+         first_obs = ('timestamp', 'min'),
+         last_obs = ('timestamp', 'max'))
+    .sort_values(['mmsi', 'first_obs'])
+).compute()
 
-# other = pd.DataFrame({'key': ['K0', 'NaN', 'NaN'],
-#                       'B': ['B0', 'B1', 'B2']}).set_index('key')
+n_obs.head(30)
+n_obs.loc[n_obs.index.get_level_values('mmsi') != 200000000].head(30)
 
-# df.join(other, how = 'inner', on='key')
-# # All NA match with all NA and nonunique get duplicated. Good.
+# Simple count. Variable will equal one if no flipflopping
+# contig_obs = n_obs.groupby(['mmsi', 'imo_corrected']).size().rename('n_instances')
+contig_obs = (
+    n_obs
+    .groupby(['mmsi', 'imo_corrected'])
+    .agg(n_instances = ('n_obs', 'size'),
+         first_obs = ('first_obs', 'min'),
+         last_obs = ('last_obs', 'max'))
+    .sort_values(['mmsi', 'first_obs'])
+)
 
-
-#%% Explore draught quantiles
-
-def draught_quantiles(df):
-    df = (
-        df
-        .draught
-        .replace(0, np.NaN)
-        .dropna()
-        .groupby('mmsi')
-        .quantile(q = [0, 0.01, 0.05, 0.1, 0.9, 0.95, 0.99, 1])
-        )
-    df.index.rename(['mmsi', 'quantile'], inplace = True)
-    return df
-
-#%%
-with LocalCluster(
-    n_workers=2,
-    threads_per_worker=2
-) as cluster, Client(cluster) as client:
-    draught_quantiles = ais_bulkers_static.map_partitions(
-        draught_quantiles).compute()
-
-draught_quantiles.to_csv(os.path.join(datapath, 'draught_quantiles.csv'))
-
-# draught_quantiles.unstack()
+contig_obs.head(30)
+contig_obs.loc[contig_obs.index.get_level_values('mmsi') != 200000000].head(30)
 
 
-# #%% Plot draught histograms for a random sample of ships
-# import matplotlib.pyplot as plt
-# import random
+# How many are always the same IMO number?
+contig_obs.groupby('mmsi').size().value_counts()
+# 9895 have only one IMO number
+# 3440 have two IMO numbers
+# 1046 have three...
 
-# mmsi = ais_bulkers_static.index.unique().compute()
-# sample_mmsi = random.sample(list(mmsi), 20)
+# How many don't flip flop?
+contig_obs['n_instances'].groupby('mmsi').apply(lambda x: all(x == 1)).value_counts()
+# 10391 do not have flip flopping IMO numbers, while 4329 do 
 
-# sample = ais_bulkers_static.loc[sample_mmsi].replace(0, np.NaN).dropna().compute()
-# sample['draught_max'] = sample.groupby('mmsi').draught.quantile(0.99)
-# sample['draught_min'] = sample.groupby('mmsi').draught.quantile(0.01)
-# sample['draught_norm2'] = (sample.draught - sample.draught_min) / (sample.draught_max - sample.draught_min)
-# sample['draught_norm1'] = sample.draught / sample.draught_max
-# sample.index.get_level_values(0).nunique()
-
-# # sample.reset_index().pivot(columns='mmsi', values='draught_norm2').plot(kind='hist', subplots=True, rwidth=1, bins = 44, align='mid', range = [0, 1.1], legend = None)
-# sample.reset_index().pivot(columns='mmsi', values='draught_norm1').plot(kind='hist', subplots=True, rwidth=1, bins = 44, align='mid', range = [0, 1.1], legend = None)
-# plt.show()
+contig_obs.to_csv(os.path.join(datapath, 'contig_obs.csv'))
