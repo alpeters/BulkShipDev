@@ -1,8 +1,12 @@
 """
-Filter out explicitly bad ID matches from static AIS and calculate ship draught percentiles.
-Input(s): ais_bulkers_indexed_sorted.parquet, ais_notbad_ids.csv
-Output(s): ais_bulkers_static.parquet, draught_quantiles.csv
-Runtime: 431s CPU time
+Replace IMO numbers with corrected ones, drop any obs with still invalid IMO numbers,
+create df of IMO number changes.
+Also output summary file of changes for analysis in AIS_Data_IDs.rmd
+Input(s): ais_bulkers_indexed_sorted.parquet, ais_corrected_imo.csv
+Output(s): ais_bulkers_static_contig.parquet (only used here), contig_obs.csv
+Runtime: 
+
+TODO: Need to finish outputting df of changes
 """
 
 #%%
@@ -17,77 +21,14 @@ filepath = os.path.join(datapath, 'AIS')
 
 #%%
 ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_indexed_sorted'),
-    columns = ['timestamp', 'msg_type', 'imo', 'name', 'draught', 'length'])
+    columns = ['timestamp', 'msg_type', 'imo'])
 ais_bulkers.dtypes
 # ais_bulkers = ais_bulkers.partitions[0:2]
 
 #%%
-ais_notbad_ids = pd.read_csv(os.path.join(datapath, 'ais_notbad_ids.csv'),
-    usecols = ['mmsi', 'imo', 'name', 'length'],
-    index_col = ['mmsi', 'imo', 'name', 'length'])
 ais_corrected_imo = pd.read_csv(os.path.join(datapath, 'ais_corrected_imo.csv'),
     usecols = ['mmsi', 'imo', 'imo_corrected'],
     index_col = ['mmsi', 'imo'])
-
-# #%%
-# def filter_calc_static(df, filter_df):
-#     df = (
-#         df
-#         .loc[df['msg_type'] == 5]
-#         .drop('msg_type', axis = 'columns')
-#         )
-#     df['draught'] = df.draught.replace(0, np.NaN)
-#     df = (
-#         df
-#         # .dropna(subset = 'draught') # Keep these, because might have IMO number information
-#         # .set_index(['imo', 'name', 'length'], append = True)
-#         # .join(filter_df, how='inner', on=['mmsi', 'imo', 'name', 'length'])
-#         # .reset_index(level = ['imo', 'name', 'length'])
-#         .set_index(['imo'], append = True)
-#         .join(filter_df, how='left', on=['mmsi', 'imo'])
-#         .reset_index(level = ['imo'])
-#         )
-#     # df['draught_max'] = df.groupby('mmsi').draught.quantile(0.99) # don't do any modifications for now
-#     # df['laden'] = (df.draught / df.draught_max) > 0.75 # unused
-#     df['hour'] = df['timestamp'].dt.floor('H')
-#     df = df[['timestamp', 'imo', 'name', 'draught', 'length', 'imo_corrected', 'hour']]
-#     df = df.sort_values(['mmsi', 'hour'])
-#     return df
-
-
-# #%%
-# meta_dict = ais_bulkers.dtypes.to_dict()
-# meta_dict.pop('msg_type')
-# # meta_dict['laden'] = 'bool'
-# meta_dict['imo_corrected'] = 'Int64'
-# meta_dict['hour'] = 'datetime64[ns, UTC]'
-
-# #%%
-# with LocalCluster(
-#     n_workers=2,
-#     threads_per_worker=2
-# ) as cluster, Client(cluster) as client:
-#     (
-#         ais_bulkers
-#             .map_partitions(filter_calc_static,
-#                 # ais_notbad_ids,
-#                 ais_corrected_imo,
-#                 meta = meta_dict,
-#                 transform_divisions = False,
-#                 align_dataframes = False)
-#             .to_parquet(
-#             os.path.join(filepath, 'ais_bulkers_static'),
-#             append = False,
-#             overwrite = True,
-#             engine = 'fastparquet')
-#     )
-
-# # #%%
-# ais_bulkers_static = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_static'))
-# ais_bulkers_static.dtypes
-# ais_bulkers_static.head()
-# ais_bulkers_static = ais_bulkers_static.partitions[0]
-
 
 # Check how messy IMO numbers are
 ## Quantify contiguity of IMO reports
@@ -95,7 +36,7 @@ ais_corrected_imo = pd.read_csv(os.path.join(datapath, 'ais_corrected_imo.csv'),
 def static_contig_imo(df, corrected_df):
     """
         1. Select only static messages
-        2. Try to correct (truncate) invalid IMO numbers
+        2. Join corrected (valid truncated) IMO numbers
         3. Drop any that are still invalid
         4. Count number of switches and define instances as:
             a contiguous set of a given IMO number,
@@ -187,6 +128,7 @@ contig_obs = (
     n_obs
     .groupby(['mmsi', 'imo_corrected'])
     .agg(n_instances = ('n_obs', 'size'),
+         n_obs = ('n_obs', 'sum'),
          first_obs = ('first_obs', 'min'),
          last_obs = ('last_obs', 'max'))
     .sort_values(['mmsi', 'first_obs'])
