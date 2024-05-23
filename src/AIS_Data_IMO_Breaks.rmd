@@ -1,0 +1,411 @@
+---
+title: "AIS Data IMO Breaks"
+output: html_document
+---
+
+Analyze MMSI-IMO pairings from AIS static messages and WFR Bulk Carrier Register
+Input(s): ais_corrected_imo.csv, contig_obs.csv, ais_bulkers_potbreaks.csv
+Output(s): 
+
+# START
+```{r}
+library(tidyverse)
+options(dplyr.summarise.inform = FALSE)
+library("tabulapdf")
+```
+
+# Load WFR
+## Functions
+
+```{r}
+extract_fleet_page <- function(x){
+  df <- str_split(x, '\n')[[1]] %>% 
+    as_tibble()
+  
+  df_out <- df %>%
+    rowid_to_column('Row') %>%
+    filter(str_detect(value, 'DWT|built'))
+  # second_rows <- df[df_out$Row + 1,]
+  # colnames(second_rows) <- 'Second.Row'
+  imo_rows <- df %>% 
+    filter(str_detect(value, 'IMO')) %>% 
+    rename(IMO.Row = value)
+  mmsi_rows <- df |> 
+    filter(str_detect(value, 'MMSI')) |> 
+    rename(MMSI.Row = value)
+  df_out <- bind_cols(df_out, imo_rows, mmsi_rows) %>% 
+    select(-Row)
+  return(df_out)
+}
+```
+
+```{r}
+extract_fleet_register <- function(scrape){
+  register_df <- lapply(scrape, extract_fleet_page) %>% 
+    bind_rows(.id = "Page") %>% 
+    mutate(value = ifelse(value == "Bulk Carrier, 74,483 DWT, built 5/2006 at Hudong Zhonghua , IMO 9358838 ",
+                      "Nan Xin 27  Bulk Carrier, 74,483 DWT, built 5/2006 at Hudong Zhonghua , IMO 9358838",
+                      value),
+       value = ifelse(value == "Open Hatch Carrier, 32,259 DWT, built 2/2002 at Saiki Hvy. Ind. , IMO 9246308 ",
+                      "Singapore Spirit  Open Hatch Carrier, 32,259 DWT, built 2/2002 at Saiki Hvy. Ind. , IMO 9246308",
+                      value),
+       value = ifelse(value == "Bulk Carrier, 81,702 DWT, built 11/2008 at Mitsui SB (Tamano) , IMO 9389239 ",
+                      "YM Effort  Bulk Carrier, 81,702 DWT, built 11/2008 at Mitsui SB (Tamano) , IMO 9389239",
+                      value)) %>% 
+    mutate(IMO = str_extract(IMO.Row, '(?<=IMO\\s)[:digit:]+'),
+           MMSI = str_extract(MMSI.Row, '(?<=MMSI\\s)[:digit:]+')) %>% 
+    select(-IMO.Row, -MMSI.Row) %>% 
+  return(register_df)
+}
+```
+
+```{r}
+extract_fleet_registers <- function (row, page_index){
+  year <- page_index$Issue[row]
+  start_page <- page_index$Start.Page[row]
+  end_page <- page_index$End.Page[row]
+  file_prefix <- page_index$File.Prefix[row]
+  print(year)
+  register_df <- extract_text(file.path(registerpath, paste0(file_prefix, year, '.pdf')),
+                                pages = start_page:end_page) %>% 
+    # str_remove_all(paste0('(\nOwned/Managed by|\nLast ex name( |):) .* \n(?=', shiptypes, ')')) %>% 
+    extract_fleet_register() %>% 
+    mutate(Issue = year)
+  return(register_df)
+}
+```
+
+
+## Extract IDs from BCR pdfs
+```{r}
+registerpath <- file.path("data", "WFR", "Bulk_Carrier_Register")
+```
+
+```{r}
+page_index <- tribble(
+  ~Issue, ~Start.Page, ~End.Page, ~Split, ~OCR, ~File.Prefix,
+    # 2006,         171,       873, FALSE, FALSE, 'The Bulk Carrier Register ',
+    # 2013,         204,      1271, FALSE, FALSE, 'The Bulk Carrier Register ',
+    # 2014,         202,      1316, FALSE, FALSE, 'The Bulk Carrier Register ',
+    # 2015,         200,      1358, TRUE,  TRUE, 'BCR_fleet_OCR_',
+    # 2016,         196,      1391, FALSE, FALSE, 'The Bulk Carrier Register ',
+    # 2017,         195,      1419, FALSE, FALSE, 'The Bulk Carrier Register ',
+    # 2018,         191,      1216, FALSE, FALSE, 'The Bulk Carrier Register ',
+    # 2019,         195,      1227, TRUE,  TRUE, 'BCR_fleet_OCR_',
+    # 2019,         195,      1227, FALSE,  FALSE, 'The Bulk Carrier Register '
+    2019,             1,      1033, FALSE,  FALSE, 'BCR_fleet_',
+    2020,         207,      1204, FALSE, FALSE, 'The Bulk Carrier Register ',
+    2021,         205,      1231, FALSE, FALSE, 'The Bulk Carrier Register ',
+    2022,         225,      1283, FALSE, FALSE, 'The Bulk Carrier Register ',
+)
+
+page_index <- page_index |> 
+  rowwise() |> 
+  mutate(n.files = list.files(registerpath) |> 
+           str_detect(paste0(File.Prefix, '[:digit:]_')) |> 
+           which() |>
+           length()) |> 
+  ungroup() |> 
+  mutate(n.files = replace(n.files, n.files == 0, 1)) |> 
+  uncount(n.files) |> 
+  group_by(Issue) |> 
+  mutate(split.index = row_number(),
+         File.Prefix = replace(File.Prefix, Split, paste0(File.Prefix, split.index, '_')),
+         Start.Page = replace(Start.Page, Split, 1),
+         End.Page = replace(End.Page, Split, 250)) |> 
+  select(-split.index)
+
+page_index
+```
+
+```{r}
+register_df <- lapply(1:nrow(page_index),
+                      extract_fleet_registers, page_index = page_index) %>% 
+  bind_rows()
+```
+
+```{r}
+save(register_df, file = "data/wfr_bulkers_mmsi_register.Rda")
+load("data/wfr_bulkers_mmsi_register.Rda")
+```
+
+
+How many ships per year?
+```{r}
+register_df |> 
+  select(Issue, Page, IMO, MMSI) |>
+  count(Issue)
+```
+
+How many have multiple mmsi?
+```{r}
+register_df |> 
+  select(Issue, Page, IMO, MMSI) |>
+  drop_na(IMO, MMSI) |> 
+  distinct(IMO, MMSI) |> 
+  count(IMO, name = 'n.MMSI') |>
+  count(n.MMSI)
+```
+About 11%
+
+```{r}
+register_df |> 
+  select(Issue, Page, IMO, MMSI) |>
+  drop_na(IMO, MMSI) |> 
+  distinct(IMO, MMSI) |>
+  group_by(IMO) |> 
+  mutate(n.MMSI = n()) |> 
+  arrange(IMO)
+```
+
+### MMSI-based
+How many imo per mmsi?
+```{r}
+register_df |> 
+  select(Issue, Page, IMO, MMSI) |>
+  drop_na(IMO, MMSI) |> 
+  distinct(IMO, MMSI) |> 
+  count(MMSI, name = 'n.IMO') |>
+  count(n.IMO)
+```
+There shouldn't be many with multiple IMO per MMSI
+
+```{r}
+mmsi_imo_wfr_df <- register_df |> 
+  select(Issue, Page, IMO, MMSI) |>
+  drop_na(IMO, MMSI) |> 
+  distinct(IMO, MMSI) |> 
+  mutate(across(everything(), as.integer))
+```
+
+
+# Join and Compare
+```{r}
+mmsi_imo_ais_df <- read_csv("data/ais_corrected_imo.csv")
+mmsi_imo_ais_df <- mmsi_imo_ais_df |> 
+  distinct(mmsi, imo_corrected) |> 
+  drop_na(imo_corrected)
+mmsi_imo_ais_df
+```
+How many valid imo per mmsi?
+```{r}
+mmsi_imo_ais_df |> 
+  count(mmsi, name = 'n.IMO') |> 
+  count(n.IMO)
+```
+
+How many valid mmsi per imo?
+```{r}
+mmsi_imo_ais_df |> 
+  count(imo_corrected, name = 'n.MMSI') |> 
+  count(n.MMSI)
+```
+
+```{r}
+mmsi_imo_compare_df <- full_join(mmsi_imo_ais_df |> rename(imo = imo_corrected) |> mutate(ais = TRUE),
+          mmsi_imo_wfr_df |> rename(imo = IMO, mmsi = MMSI) |>  mutate(wfr = TRUE),
+          by = c('mmsi', 'imo')) |> 
+  mutate(across(c(ais, wfr), \(x) replace_na(x, FALSE))) |> 
+  mutate(both = ais & wfr)
+```
+
+```{r}
+mmsi_imo_compare_df |> 
+  count(ais, wfr)
+```
+```{r}
+mmsi_imo_compare_df |> 
+  arrange(mmsi) |> 
+  group_by(mmsi) |> 
+  summarise(n.ais = sum(ais, na.rm = TRUE),
+            n.wfr = sum(wfr, na.rm = TRUE),
+            n.both = sum(both, na.rm = TRUE),
+            n = n(),
+            all.match = n.both == n,
+            .groups = 'drop') |> 
+  count(all.match)
+```
+
+
+What would I get the original way (on WFR mmsi from 2021 only)? (not sure if I used 2021)
+```{r}
+imo_mmsi_wfr_2021_df <- register_df |> 
+  filter(Issue == 2022) |> 
+  select(IMO, MMSI)
+```
+
+```{r}
+mmsi_imo_ais_df |> 
+  filter(mmsi %in% imo_mmsi_wfr_2021_df$MMSI) |> 
+  count(mmsi, name = "n.imo") |> 
+  count(n.imo)
+```
+With 2021, should cleanly get 7424 (1 IMO associated), and some fraction of the 2722 that have 2 IMO's associated.
+With 2022, should cleanly get 7919, and some of 2567 with 2 IMO's.
+
+How many could I potentially improve matching for?
+
+Strategy 1:
+1. match on mmsi and year
+```{r}
+mmsi_imo_ais_df |> 
+  filter(mmsi %in% mmsi_imo_wfr_df$MMSI) |> 
+  count(mmsi, name = "n.imo") |> 
+  count(n.imo)
+```
+Almost 1000 more clean matches! This could be worthwhile.
+```{r}
+(1 - 7424/8366)*100
+```
+
+However, need to detect when the change occurs.
+
+To get a sense of how many mmsi with multiple imo's associated in tracking data that I might be able to separate,
+can try to check contiguous imo numbers. Do this in AIS_Data_IDs.py
+
+# Check ordered
+```{r}
+mmsi_imo_ais_ordered_df <- read_csv("data/contig_obs.csv")
+mmsi_imo_ais_ordered_df 
+mmsi_imo_ais_ordered_df |> filter(imo_corrected == 9168348)
+```
+
+How many have only a few observations?
+```{r}
+mmsi_imo_ais_ordered_df |> 
+  ggplot(aes(x = n_obs)) +
+  geom_histogram(binwidth = 1) +
+  xlim(NA, 10)
+```
+```{r}
+mmsi_imo_ais_ordered_df |> 
+  filter(n_obs == 2) |> 
+  mutate(time_sep_days = (last_obs - first_obs)/(60*24)) |> 
+  ggplot(aes(x = time_sep_days)) +
+  geom_histogram() +
+  facet_wrap(~n_instances, scales = 'free_x')
+```
+
+
+```{r}
+mmsi_imo_ais_ordered_df |> 
+  relocate(imo_corrected, .before = mmsi) |> 
+  group_by(mmsi) |> 
+  arrange(imo_corrected, first_obs) |> 
+  View()
+```
+
+
+```{r}
+imo_mmsi_ais_df <- mmsi_imo_ais_ordered_df |> 
+  group_by(mmsi) |> 
+  filter(all(n_instances == 1)) |>
+  arrange(imo_corrected, first_obs) |>
+  select(imo_corrected, mmsi) |> 
+  group_by(imo_corrected) |> 
+  summarise(mmsi.list = list(mmsi))
+```
+
+
+### Join with WFR
+```{r}
+imo_mmsi_wfr_df <- register_df |> 
+  select(Issue, IMO, MMSI) |>
+  drop_na(IMO, MMSI) |> 
+  arrange(Issue) |> 
+  distinct(IMO, MMSI) |> 
+  mutate(across(everything(), as.integer)) |> 
+  group_by(IMO) |>
+  summarise(mmsi.list = list(MMSI))
+imo_mmsi_wfr_df
+```
+
+
+```{r}
+# imo_mmsi_wfr_df <- 
+mmsi_imo_wfr_df #|>
+  # group_by(IMO) |>
+  # summarise(mmsi.list = list(MMSI))
+```
+
+```{r}
+imo_mmsi_ordered_compare_df <- full_join(imo_mmsi_ais_df,
+                                         imo_mmsi_wfr_df,
+                                         by = c('imo_corrected' = 'IMO'),
+                                         suffix = c('.ais', '.wfr')) |> 
+  rowwise() |> 
+  mutate(ais.notin.wfr = sum(!(mmsi.list.ais %in% mmsi.list.wfr)),
+         wfr.in.ais = sum(mmsi.list.wfr %in% mmsi.list.ais),
+         ais.in.wfr = sum(mmsi.list.ais %in% mmsi.list.wfr),
+         same.length = length(mmsi.list.ais) == length(mmsi.list.wfr),
+         all.ais.in.wfr = all(mmsi.list.ais %in% mmsi.list.wfr)) |> 
+  ungroup()
+
+imo_mmsi_ordered_compare_df
+```
+
+Probably hopeless if many ais mmsi not in wfr
+```{r}
+imo_mmsi_ordered_compare_df |> 
+  count(ais.notin.wfr)
+```
+Most are accounted for actually!
+
+
+```{r}
+imo_mmsi_ordered_compare_df |> 
+  count(wfr.in.ais, ais.in.wfr, same.length, all.ais.in.wfr) |> 
+  arrange(all.ais.in.wfr, same.length)
+```
+
+```{r}
+imo_mmsi_ordered_compare_df |> 
+  count(all.ais.in.wfr) |> 
+  arrange(all.ais.in.wfr)
+```
+
+
+It seems there is progress to be made here.
+But how to split AIS paths at the proper time?
+
+
+# Join breaks
+Strategy 1: 
+  -x find start and end dates in static data
+  - look for nearest begin, end, or jump in mmsi paths and split here (create path column)
+    - how best to look for these points?
+    - start by using current path splitting function to create df of jump times
+    - just use static mmsi with 1 or 2 instances (include n_obs to drop 1 or 2 obs ones e.g. row 10198, 12198)
+  - assign IMO (most frequent?) and re-index to it
+  - re-sort by IMO and timestamp
+  - remove skips and jumps as before
+
+```{r}
+breaks_df <- read_csv("data/ais_bulkers_potbreaks.csv")
+breaks_df |> filter(mmsi != 200000000)
+```
+
+```{r}
+mmsi_imo_ais_ordered_df |> filter(mmsi != 200000000)
+```
+```{r}
+# mmsi_index <- 14093
+# mmsi_imo_ais_ordered_df |> filter(mmsi == unique(mmsi_imo_ais_ordered_df$mmsi)[mmsi_index])
+mmsi_imo_ais_ordered_df |> filter(mmsi == 536957165)
+```
+
+
+```{r}
+# breaks_df |> filter(mmsi == unique(mmsi_imo_ais_ordered_df$mmsi)[mmsi_index])
+breaks_df |> filter(mmsi == 536957165)
+```
+
+
+```{r}
+imo_mmsi_ais_all_df <- mmsi_imo_ais_ordered_df |> 
+  group_by(mmsi) |> 
+  arrange(imo_corrected, first_obs) |> 
+  relocate(imo_corrected, .before = mmsi)
+imo_mmsi_ais_all_df
+```
+
