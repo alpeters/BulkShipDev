@@ -1,8 +1,8 @@
 """
-Select unique IDs in AIS data for cleaning out incorrect ones.
+Extract unique IDs (IMO, MMSI, etc. combos) in AIS data for cleaning out incorrect ones.
 Input(s): ais_bulkers_indexed_sorted.parquet
 Output(s): ais_ids.csv
-Runtime: 
+Runtime: Takes a few minutes (normal to get garbage collection warnings)
 """
 
 #%%
@@ -14,18 +14,18 @@ from dask.distributed import Client, LocalCluster
 
 
 datapath = 'src/data/'
-filepath = os.path.join(datapath, 'AIS/imo_match')
+filepath = os.path.join(datapath, 'AIS')
 
 #%%
 ais_bulkers = dd.read_parquet(
     os.path.join(filepath, 'ais_bulkers_indexed_sorted'),
-    columns = ['msg_type', 'imo', 'name', 'length', 'draught'] 
+    columns = ['msg_type', 'imo', 'name', 'length'] 
     )
 ais_bulkers.dtypes
 # ais_bulkers = ais_bulkers.partitions[0:2]
 ais_bulkers['name'] = ais_bulkers['name'].fillna('NA')
 
-#%%
+#%% Check for missing data
 with LocalCluster(
     n_workers=1,
     threads_per_worker=2
