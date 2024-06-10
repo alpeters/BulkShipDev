@@ -3,13 +3,14 @@ Hourly interpolation and detect trip phases from cleaned dynamic AIS data.
 Input(s): ais_bulkers_calcs.parquet
 Output(s): ais_bulkers_interp.parquet
 Runtime: 23m local
+
+TODO: fix so exactly one observation per hour
 """
 
 running_on = 'local'  # 'local' or 'hpc'
 
 #%%
 import os, time
-import timeit
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -28,7 +29,7 @@ def interpolate_missing_hours(group):
     Interpolate missing observations in the time series at roughly hourly intervals.
 
     Args:
-        group (pd.DataFrame): group of dataframe (grouped by mmsi) with columns latitude, longitude, timestamp
+        group (pd.DataFrame): group of dataframe (grouped by imo) with columns latitude, longitude, timestamp
 
     Returns:
         pd.DataFrame: input group with additional interpolated rows and column indicating whether the row is interpolated
@@ -59,9 +60,10 @@ def interpolate_missing_hours(group):
     group.reset_index(inplace=True)
     group.set_index('timestamp_hour', inplace=True)
     group = group.resample('H').asfreq()
-    group.mmsi.ffill(inplace=True)
+    group.imo.ffill(inplace=True)
+    group.path.ffill(inplace=True)
     group.reset_index(inplace=True)
-    group.set_index('mmsi', inplace=True)
+    group.set_index('imo', inplace=True)
     group.index = group.index.astype(int)
     group.timestamp.ffill(inplace=True)
     group.time_interval.bfill(inplace=True)
@@ -138,7 +140,7 @@ def process_group(group):
     Performs interpolation and phase assignment group-wise.
     
     Args:
-        group (pd.DataFrame): group of ais dataframe (grouped by mmsi)
+        group (pd.DataFrame): group of ais dataframe (grouped by imo)
 
     Returns:
         pd.DataFrame: input group with additional interpolated rows and columns 'interpolated' and 'phase'
@@ -151,12 +153,12 @@ def process_group(group):
     return group
 
 def process_partition(df):
-    print(f"Processing partition with first mmsi {df.index[0]}")
+    print(f"Processing partition with first imo {df.index[0]}")
     # df = df.loc[205041000]
     print(f"Time: {time.time() - start_time}")
     df = (
         df
-        .groupby('mmsi', group_keys=False)
+        .groupby(['imo','path'], group_keys=False)
         .apply(process_group)
     )
     return df
@@ -170,6 +172,7 @@ filepath = os.path.join(datapath, 'AIS')
 #%%
 ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs'))
 # ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs')).get_partition(0)
+ais_bulkers = ais_bulkers.partitions[0:10]
 
 #%%
 # Load the buffered mapfile (can be done by python or use QGIS directly)

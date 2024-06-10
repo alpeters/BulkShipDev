@@ -13,3 +13,7 @@ toolz==0.12.1
 # add locally
 distributed==2023.2.1
 pyarrow==7.0.0
+pyreadr==0.5.0
+geopandas==0.13.2
+dask_jobqueue==0.8.5
+scipy==1.10.1

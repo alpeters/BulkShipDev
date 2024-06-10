@@ -63,19 +63,26 @@ py_run_file('AIS_Data_IDs.py')
 ```{r, child = 'AIS_Data_IDs.rmd', eval = FALSE}
 ```
 
-```{r}
-py_run_file('AIS_Data_Static.py')
-```
-
 ```{r, eval = FALSE}
-py_run_file('AIS_Data_PotBreaks.py')
-```
-
-```{r, child = 'AIS_Data_IMO_Breaks.rmd', eval = FALSE}
+py_run_file('AIS_Data_CombinePrep.py')
 ```
 
 ```{r, eval = FALSE}
 py_run_file('AIS_Data_Combine.py')
+```
+
+High memory requirements, use Compute Canada
+```{r, eval = FALSE}
+py_run_file('AIS_Data_Index_IMO.py')
+```
+
+High memory requirements, use Compute Canada
+```{r, eval = FALSE}
+py_run_file('AIS_Data_Sort_IMO.py')
+```
+
+```{r, eval = FALSE}
+py_run_file('AIS_Data_Clean.py')
 ```
 
 # Fixed ship component of power consumption

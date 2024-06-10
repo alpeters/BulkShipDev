@@ -1,10 +1,9 @@
 """
 Combine dynamic and static message by ship-hour.
-Input(s): ais_bulkers_indexed_sorted.parquet
+Input(s): ais_bulkers_sepsegments.parquet
 Output(s): ais_bulkers_merged.parquet
-Runtime: 
+Runtime: ~3min
 
-TODO: Change name of IMO merged here
 ***May want to drop data if time difference is too large!
 """
 
@@ -35,14 +34,16 @@ def fill_static(part):
     # part.loc[part['time_diff']>(24*60*60), ['draught', 'imo']] = np.nan # drop data if time difference is too large
     # part = part.loc[part['msg_type'] != 5, part.columns.drop('time_diff')]
     part = part.loc[part['msg_type'] != 5]
+    part['imo'] = part.groupby(['mmsi', 'segment'])['imo'].transform(lambda x: x.fillna(x.mode()[0] if not x.mode().empty else np.nan))
     return part
 
 
 # ['timestamp', 'mmsi', 'msg_type', 'latitude', 'longitude', 'speed', 'course', 'heading', 'imo', 'name', 'draught', 'length', 'collection_type']
 
-ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_indexed_sorted'),
-    columns = ['timestamp', 'msg_type', 'latitude', 'longitude', 'speed', 'course', 'draught', 'imo'])
-# ais_bulkers = ais_bulkers.partitions[0:1]
+ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_sepsegments'),
+    columns = ['timestamp', 'msg_type', 'latitude', 'longitude', 'speed', 'course', 'draught', 'imo_corrected', 'segment'])
+ais_bulkers = ais_bulkers.rename(columns = {'imo_corrected': 'imo'})
+# ais_bulkers = ais_bulkers.partitions[0:2]
 
 # ais_bulkers.groupby('msg_type').count().compute() 
 # 115002699 non-missing static messages
@@ -58,18 +59,21 @@ with LocalCluster(
         .map_partitions(fill_static, meta=meta_dict)
         .to_parquet(
             os.path.join(filepath, 'ais_bulkers_merged'),
-            append = False,
-            overwrite = True,
+            # append = False,
+            # overwrite = True,
             engine = 'fastparquet')
     )
 
 
 #%% Check
-ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_merged'),
-    columns = ['timestamp', 'msg_type', 'latitude', 'longitude', 'speed', 'course', 'draught', 'imo'])
-ais_bulkers.head()
+ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_merged'))
+    # columns = ['timestamp', 'msg_type', 'latitude', 'longitude', 'speed', 'course', 'draught', 'imo'])
+# ais_bulkers.loc[215066000].head()
+ais_bulkers.loc[373302000].head(n=60, npartitions=-1)
+ais_bulkers.loc[229902000].head(n=60, npartitions=-1)
+ais_bulkers.partitions[1].head(30)
 
-# nobs = ais_bulkers.count().compute()
+nobs = ais_bulkers.count().compute()
 # Dropping time_diff over 24h:
 # draught      104717744
 # imo          105165578
@@ -79,6 +83,18 @@ ais_bulkers.head()
 # Not much difference.
 # Losing around 10 million static observations, but these must be at end of sample.
 
+# Which obs don't get IMO filled?
+missing_imo = ais_bulkers.loc[ais_bulkers['imo'].isna()].compute()
+missing_imo['timestamp'].groupby('mmsi').count().sort_values(ascending=False).pipe(lambda x: x[x>10])
+# 354524 observations don't get IMO filled
+# 202914668 total observations
+# 0.175 % of observations don't get IMO filled
+
+missing_imo_lengths = missing_imo.groupby(['mmsi', 'segment'])['segment'].agg('count')
+missing_imo_lengths.sort_values(ascending=False).head(60)
+
+ais_bulkers.loc[352422000].head(n=1000, npartitions=-1).tail(60)
+missing_imo.loc[413225790]
 
 # #########################
 # # Summary stats and plots
