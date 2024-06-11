@@ -43,14 +43,14 @@ ais_bulkers.columns
 # No, almost all do not change path
 
 #%% Count the number of each value of path
-ais_bulkers['path'].value_counts().compute()
+# ais_bulkers['path'].value_counts().compute()
 
 #%%
 ais_bulkers['year'] = ais_bulkers.timestamp.dt.year
 
 yearly_stats = (
     ais_bulkers
-    .groupby(['mmsi', 'year', 'interpolated', 'phase'])
+    .groupby(['imo', 'year', 'interpolated', 'phase'])
     .agg({
         'timestamp': ['size', 'count'],
         'time_interval': ['size', 'count', 'sum', 'mean', 'min', 'max'],
@@ -58,8 +58,8 @@ yearly_stats = (
         'distance': ['size', 'count', 'sum', 'mean', 'min', 'max'],
         'draught': ['size', 'count'],
         'draught_interpolated': ['size', 'count', 'sum'],
-        'interpolated': ['size', 'count', 'sum'],
-        'phase': ['size', 'count']
+        'interpolated': ['size', 'count', 'sum']
+        # 'phase': ['size', 'count']
         })).compute()
 
 # Collapse multi columns

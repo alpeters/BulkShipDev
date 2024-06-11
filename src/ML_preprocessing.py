@@ -48,9 +48,11 @@ mrv_df['IMO.Number'] = mrv_df['IMO.Number'].astype(int)
 #%% Join bulkers_wfr_df with mrv_df on 'IMO.Number' and 'Year'
 merged_df = pd.merge(bulkers_wfr_df, mrv_df, how='inner', on='IMO.Number')
 merged_df['year'] = merged_df['year'].astype('int64')
+merged_df = merged_df.rename(columns={'IMO.Number': 'imo'})
+merged_df = pd.concat([merged_df, merged_df.assign(imo = merged_df['imo']*-1)])
 
 #%% Merge the resulting df with ais_eu_df on 'MMSI' and 'Year'
-final_df = pd.merge(merged_df, ais_eu_df, how='inner', on=['mmsi', 'year'])
+final_df = pd.merge(merged_df, ais_eu_df, how='inner', on=['imo', 'year'])
 
 #%% Rename fuel consumption columns for clarity 
 final_df = final_df.rename(columns={'total.fc': 'report_fc', 'FC_sum': 'cal_fc'})
@@ -178,7 +180,7 @@ train_abs_df['outlier'] = ~train_abs_df['residual'].between(
 train_abs_df['outlier'].value_counts()
 
 #%%
-train_abs_df.loc[train_abs_df['outlier'], ['mmsi', 'year', 'IMO.Number']].sort_values(['mmsi', 'year']).to_csv(os.path.join(trackeddatapath, 'outliers_train_abs.csv'), index=False)
+# train_abs_df.loc[train_abs_df['outlier'], ['mmsi', 'year', 'IMO.Number']].sort_values(['mmsi', 'year']).to_csv(os.path.join(trackeddatapath, 'outliers_train_abs.csv'), index=False)
 
 #%%
 train_rel_df = final_df[final_df['within_tol_rel'] & (final_df['set'] == 'train')].copy()

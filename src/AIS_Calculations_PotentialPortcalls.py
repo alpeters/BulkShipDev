@@ -28,14 +28,14 @@ ais_bulkers.head()
 # Trip detection
 def pd_detect_trips_speed(df, time_window = '12H', speed_threshold = 1):
     df = df.copy() # was getting warning about writing to slice
-    # Need to swap index from mmsi to timestamp for time rolling operation
-    df['mmsi'] = df.index.get_level_values('mmsi')
+    # Need to swap index from imo to timestamp for time rolling operation
+    df['imo'] = df.index.get_level_values('imo')
     df.set_index('timestamp', inplace = True)
 
     ## Potential in-port detection
     df['pot_in_port'] = (
         df
-        .groupby('mmsi')
+        .groupby('imo')
         .speed
         .transform(lambda x: x.rolling(
             window = time_window,
@@ -47,9 +47,9 @@ def pd_detect_trips_speed(df, time_window = '12H', speed_threshold = 1):
             .gt(0) # Flag only in-port detection, not exit
             ))
 
-    df['pot_trip'] = df.groupby('mmsi').pot_in_port.cumsum()
+    df['pot_trip'] = df.groupby('imo').pot_in_port.cumsum()
     df.insert(0, 'timestamp', df.index.get_level_values('timestamp'))
-    df.set_index('mmsi', inplace = True)
+    df.set_index('imo', inplace = True)
     return df
 
 

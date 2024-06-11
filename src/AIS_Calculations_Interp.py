@@ -4,7 +4,9 @@ Input(s): ais_bulkers_calcs.parquet
 Output(s): ais_bulkers_interp.parquet
 Runtime: 23m local
 
-TODO: fix so exactly one observation per hour
+TODO: 
+    - fix so exactly one observation per hour
+    - include implied_speed when reading file
 """
 
 running_on = 'local'  # 'local' or 'hpc'
@@ -35,7 +37,12 @@ def interpolate_missing_hours(group):
         pd.DataFrame: input group with additional interpolated rows and column indicating whether the row is interpolated
     """
     group['interpolated'] = False
-    
+
+    # Create hourly timestamp column
+    group['timestamp_hour'] = group.timestamp.dt.floor('H')
+    # Remove duplicate hours (gives error on resample if not removed)
+    group = group.loc[~group['timestamp_hour'].duplicated(keep='first')].copy()
+
     # Calculate slerp location interpolation function
     lat_rad = np.radians(group['latitude'])
     long_rad = np.radians(group['longitude'])
@@ -44,24 +51,20 @@ def interpolate_missing_hours(group):
     col3 = np.sin(lat_rad)
     rotation = R.from_rotvec(np.column_stack([col1,col2,col3]))
     if len(rotation) < 2:
-        return group
+        return group.drop(columns=['timestamp_hour'])
     slerp = Slerp(np.arange(0, len(rotation)), rotation)
 
     # Create row number column of type int
     group['data_counter'] = np.arange(len(group))
-
-    # Calculate step size for timestamp interpolation
-    # group['interp_steps'] = round(group.time_interval).clip(lower=1)
-    group['timestamp_hour'] = group.timestamp.dt.floor('H')
+    # Calculate step size for timestamp interpolation 
     group['interp_steps'] = group.timestamp_hour.diff().dt.total_seconds().div(3600).fillna(1)
     group['interp_step'] = (group.time_interval.clip(lower=1)/group.interp_steps).shift(-1).fillna(1)
-
     # Create interpolated rows
     group.reset_index(inplace=True)
     group.set_index('timestamp_hour', inplace=True)
     group = group.resample('H').asfreq()
     group.imo.ffill(inplace=True)
-    group.path.ffill(inplace=True)
+    # group.path.ffill(inplace=True)
     group.reset_index(inplace=True)
     group.set_index('imo', inplace=True)
     group.index = group.index.astype(int)
@@ -69,7 +72,7 @@ def interpolate_missing_hours(group):
     group.time_interval.bfill(inplace=True)
     group.interp_step.ffill(inplace=True)
     group['interp_steps'] = group.interp_steps.bfill().astype(int)
-    group['path'] = group.path.astype(bool)
+    # group['path'] = group.path.astype(bool)
     group['interpolated'] = group['interpolated'].astype(bool)
     # Interpolate timestamps
     group['interp_counter'] = (np.ceil((group.timestamp_hour - group.timestamp).dt.total_seconds() / 3600).astype(int))
@@ -118,7 +121,7 @@ def impute_speed(df):
 
 def infill_draught_partition(df):
     """ Forward fill draught and then backward fill in case the first row is missing."""
-    df['draught_interpolated'] = df['draught'].isna() # TODO Clarifying what this is checking
+    df['draught_interpolated'] = df['draught'].isna()
     df['draught'] = df['draught'].ffill()
     df['draught'] = df['draught'].bfill()
     # df['draught'].bfill(inplace=True) if df['draught'].isna().iloc[0] else df['draught'].ffill(inplace=True) # this will lead to inconsistent filling strategy
@@ -158,7 +161,7 @@ def process_partition(df):
     print(f"Time: {time.time() - start_time}")
     df = (
         df
-        .groupby(['imo','path'], group_keys=False)
+        .groupby('imo', group_keys=False)
         .apply(process_group)
     )
     return df
@@ -170,9 +173,10 @@ datapath = 'src/data/'
 filepath = os.path.join(datapath, 'AIS')
 
 #%%
-ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs'))
+ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs'),
+                              columns = ['timestamp', 'latitude', 'longitude', 'speed', 'draught', 'distance', 'time_interval'])
 # ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs')).get_partition(0)
-ais_bulkers = ais_bulkers.partitions[0:10]
+# ais_bulkers = ais_bulkers.partitions[0:5]
 
 #%%
 # Load the buffered mapfile (can be done by python or use QGIS directly)
@@ -181,7 +185,7 @@ buffered_coastline = gpd.read_file(os.path.join(datapath, 'land_split_buffered_0
 #%%
 meta_dict = ais_bulkers.dtypes.to_dict()
 meta_dict['interpolated'] = 'bool'
-meta_dict['draught_interpolated'] = 'bool' # TODO clarify what this is checking
+meta_dict['draught_interpolated'] = 'bool'
 meta_dict['phase'] = 'string'
 
 #%%
@@ -223,4 +227,7 @@ print(f"Time: {time.time() - start_time}")
 client.close()
 cluster.close()
 
-# %%
+
+# Check
+ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_interp'))
+ais_bulkers.head()

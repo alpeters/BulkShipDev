@@ -129,6 +129,7 @@ def pd_clean_diff_haversine(df):
     df = pd_split_jumps(df)
     # df = pd_select_path(df)
     df = df.sort_values(['imo', 'path', 'timestamp'])
+    # Distinguish paths by making IMO negative for one
     index_name = df.index.name
     df.index = df.index * ((-1) ** df['path'].astype(int))
     df.index.name = index_name
