@@ -12,6 +12,7 @@ Output(s):
 library(tidyverse)
 options(dplyr.summarise.inform = FALSE)
 library("tabulapdf")
+library(fuzzyjoin)
 ```
 
 # Load WFR
@@ -381,13 +382,16 @@ Strategy 1:
   - remove skips and jumps as before
 
 ```{r}
-breaks_df <- read_csv("data/ais_bulkers_potbreaks.csv")
+breaks_df <- read_csv("data/ais_bulkers_potbreaks.csv") |> 
+  # select(mmsi, timestamp, distance, time_interval, implied_speed, type)
+  select(mmsi, timestamp, type)
 breaks_df |> filter(mmsi != 200000000)
 ```
 
 ```{r}
 mmsi_imo_ais_ordered_df |> filter(mmsi != 200000000)
 ```
+
 ```{r}
 # mmsi_index <- 14093
 # mmsi_imo_ais_ordered_df |> filter(mmsi == unique(mmsi_imo_ais_ordered_df$mmsi)[mmsi_index])
@@ -407,5 +411,124 @@ imo_mmsi_ais_all_df <- mmsi_imo_ais_ordered_df |>
   arrange(imo_corrected, first_obs) |> 
   relocate(imo_corrected, .before = mmsi)
 imo_mmsi_ais_all_df
+```
+
+
+## Load IMO changes
+```{r}
+imo_instances_df <- read_csv("data/imo_instances.csv") |> 
+  pivot_longer(cols = c('first_obs', 'last_obs'),
+               names_to = 'type',
+               values_to = 'timestamp')
+imo_instances_df
+```
+
+```{r}
+join_gt <- imo_instances_df |> 
+  left_join(breaks_df,
+            by = join_by(mmsi, closest(timestamp <= timestamp)),
+            suffix = c('', '.breaks')) |> 
+  mutate(time_diff = timestamp.breaks - timestamp)
+
+join_lt <- imo_instances_df |> 
+  left_join(breaks_df,
+            by = join_by(mmsi, closest(timestamp >= timestamp)),
+            suffix = c('', '.breaks')) |> 
+  mutate(time_diff = timestamp - timestamp.breaks)
+  
+bind_rows(join_gt, join_lt) |> 
+  arrange(mmsi, imo_corrected, imo_instance, type)
+```
+
+```{r}
+join_gt <- breaks_df |> 
+  left_join(imo_instances_df,
+            by = join_by(mmsi, closest(timestamp <= timestamp)),
+            suffix = c('', '.instances'),
+            multiple = 'first') |> 
+  mutate(time_diff = timestamp.instances - timestamp)
+
+join_gt
+```
+
+
+```{r}
+join_lt <- breaks_df |> 
+  left_join(imo_instances_df,
+            by = join_by(mmsi, closest(timestamp >= timestamp)),
+            suffix = c('', '.instances'),
+            multiple = 'first') |> 
+  mutate(time_diff = timestamp - timestamp.instances)
+
+join_lt
+```
+
+
+```{r}
+bind_rows(join_gt, join_lt) |> 
+  group_by(mmsi, timestamp, type) |> 
+  filter(time_diff == min(time_diff, na.rm = TRUE)) |> 
+  distinct()
+```
+
+### Just on start of instance
+```{r}
+imo_instances_df <- read_csv("data/imo_instances.csv")
+```
+
+
+```{r}
+imo_instances_df |> 
+  ggplot(aes(x=n_obs)) +
+  geom_histogram(binwidth = 1) +
+  xlim(0, 20)
+```
+
+
+```{r}
+imo_instances_df<- imo_instances_df |> 
+  filter(n_obs > 5)
+```
+
+```{r}
+imo_instances_df |> 
+  group_by(mmsi, imo_corrected) |> 
+  summarise(imo_instance = max(imo_instance),
+            n_obs = sum(n_obs),
+            first_obs = min(first_obs),
+            last_obs = max(last_obs))
+```
+
+
+```{r}
+break_timestamps_df <- imo_instances_df |> 
+  group_by(mmsi) |> 
+  mutate(last_obs_prev = lag(last_obs)) |> 
+  left_join(breaks_df |> rename(timestamp_lt = timestamp, type_lt = type),
+            by = join_by(mmsi, closest(first_obs >= timestamp_lt))) |> 
+  left_join(breaks_df |> rename(timestamp_gt = timestamp, type_gt = type),
+            by = join_by(mmsi, closest(first_obs <= timestamp_gt))) |> 
+  mutate(across(c(timestamp_lt, timestamp_gt),
+                \(x) replace(x, x < last_obs_prev, NA_Date_)) |> 
+                # .names = "{.col}_rep"))
+  mutate(timestamp.break = )
+
+  # mutate(across(c(timestamp_lt, timestamp_gt),
+  #               \(x) abs(first_obs - x),
+  #               .names = "{.col}_diff")) |> 
+  # mutate(timestamp.break = )
+break_timestamps_df
+```
+
+```{r}
+closest_break_df |> 
+  arrange(mmsi, timestamp) |> 
+  filter(mmsi != 200000000) |> 
+  select(-imo_instance, -type)
+  # filter(mmsi == 205602000)
+```
+
+```{r}
+breaks_df |> filter(mmsi == 205395000)
 ```
 

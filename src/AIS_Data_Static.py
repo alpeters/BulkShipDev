@@ -4,9 +4,7 @@ create df of IMO number changes.
 Also output summary file of changes for analysis in AIS_Data_IDs.rmd
 Input(s): ais_bulkers_indexed_sorted.parquet, ais_corrected_imo.csv
 Output(s): ais_bulkers_static_contig.parquet (only used here), contig_obs.csv
-Runtime: 
-
-TODO: Need to finish outputting df of changes
+Runtime:
 """
 
 #%%
@@ -21,9 +19,9 @@ filepath = os.path.join(datapath, 'AIS')
 
 #%%
 ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_indexed_sorted'),
-    columns = ['timestamp', 'msg_type', 'imo'])
+    columns = ['timestamp', 'msg_type', 'imo', 'draught'])
 ais_bulkers.dtypes
-# ais_bulkers = ais_bulkers.partitions[0:2]
+ais_bulkers = ais_bulkers.partitions[0:2]
 
 #%%
 ais_corrected_imo = pd.read_csv(os.path.join(datapath, 'ais_corrected_imo.csv'),
@@ -55,7 +53,8 @@ def static_contig_imo(df, corrected_df):
         .dropna(subset = 'imo_corrected')
         )
     df['imo_instance'] = df.groupby('mmsi').imo_corrected.diff().ne(0).cumsum()
-    df = df[['timestamp', 'imo', 'name', 'draught', 'length', 'imo_corrected', 'imo_instance']]
+    # df = df[['timestamp', 'imo', 'name', 'draught', 'length', 'imo_corrected', 'imo_instance']]
+    df = df[['timestamp', 'imo', 'draught', 'imo_corrected', 'imo_instance']]
     df = df.sort_values(['mmsi', 'timestamp'])
     return df
 
@@ -110,6 +109,7 @@ ais_bulkers_static.head()
 # Simple count
 # n_obs = ais_bulkers_static.groupby(['mmsi', 'imo_corrected', 'imo_instance']).size().compute()
 #%% Get start and end timestamp as well as number of observations in each instance
+# will merge to jumps from dynamic data
 n_obs = (
     ais_bulkers_static
     .groupby(['mmsi', 'imo_corrected', 'imo_instance'])
@@ -121,7 +121,11 @@ n_obs = (
 
 n_obs.head(30)
 n_obs.loc[n_obs.index.get_level_values('mmsi') != 200000000].head(30)
+n_obs.to_csv(os.path.join(datapath, 'imo_instances.csv'))
 
+###
+# Summary stats to check data quality
+###
 # Simple count. Variable will equal one if no flipflopping
 # contig_obs = n_obs.groupby(['mmsi', 'imo_corrected']).size().rename('n_instances')
 contig_obs = (
