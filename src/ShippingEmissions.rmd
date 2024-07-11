@@ -114,6 +114,8 @@ py_run_file('AIS_Calculations_Interp_Stats.py')
 ```
 
 ```{r, child = 'AIS_Calculations_Interp_Stats_Explore.qmd', eval = FALSE}
+# This has not be modified to work with imo indexed version (imo_match branch)
+# TODO: this should be updated to work with the imo indexed version
 ```
 
 

@@ -132,6 +132,7 @@ def assign_phase(df):
     gdf = gpd.sjoin(buffered_coastline, gdf, how="right", predicate='contains')
     gdf['phase'] = pd.cut(gdf['speed'], [-np.inf, 3, 5, np.inf], right=True, include_lowest=True, labels=['Anchored', 'Manoeuvring', 'Sea'])
     gdf.loc[(gdf['phase'] == 'Manoeuvring') & (gdf['index_left'].isna()), 'phase'] = 'Sea'
+    gdf = gdf.drop_duplicates('timestamp') # in case of overlapping geometry causing double matches
     return gdf[df.columns.tolist() + ['phase']]
 
 def process_group(group):

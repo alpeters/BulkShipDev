@@ -45,6 +45,21 @@ ais_bulkers.columns
 #%% Count the number of each value of path
 # ais_bulkers['path'].value_counts().compute()
 
+#%% Check one obs per hour
+all_stats = (
+    ais_bulkers
+    .groupby(['imo'])
+    .agg({
+        'timestamp': ['size', 'count', 'min', 'max']
+    })
+).compute()
+
+
+all_stats['hours_spanned'] = (all_stats['timestamp']['max'].dt.floor('H') - all_stats['timestamp']['min'].dt.floor('H')).dt.total_seconds()/3600
+
+all(all_stats['hours_spanned']+1 == all_stats['timestamp']['size'])
+# This should be true if everything worked correctly
+
 #%%
 ais_bulkers['year'] = ais_bulkers.timestamp.dt.year
 
