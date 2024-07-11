@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 import pyreadr
 import seaborn as sns
-import matplotlib.pyplot as plt
 
 datapath = 'src/data'
 trackeddatapath = 'src/tracked_data'
@@ -190,6 +189,7 @@ train_abs_df[['outlier', 'MRV.ship.type', 'Type']].value_counts()
 
 
 #### JUMP DISTANCE #####
+import matplotlib.pyplot as plt
 # %%
 sns.histplot(data=train_abs_df.loc[train_abs_df['total_jump_distance'] > 10], x='total_jump_distance', hue='outlier', bins=100)
 plt.title('Total jump distance')

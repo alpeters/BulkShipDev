@@ -260,14 +260,22 @@ joined_df['FC_Boiler'] = joined_df['Boiler_W']*joined_df['Boiler_SFC_base']
 joined_df['FC'] = joined_df['FC_ME'] + joined_df['FC_AE'] + joined_df['FC_Boiler']
 
 # Additional quantities to use as predictive variables for fuel consumption
-## Instantatneous component of power demanded (t_i^m*v_i^n in IMO4 Eqn 8)
+## Instantaneous component of power demanded (t_i^m*v_i^n in IMO4 Eqn 8)
 joined_df['t_m_times_v_n'] = joined_df['draught']**0.66 * joined_df['speed']**3
+joined_df['t_m_times_v_n_squared'] = joined_df['t_m_times_v_n']**2
+joined_df['t_m_times_v_n_cubed'] = joined_df['t_m_times_v_n']**3
 ## Instantaneous draft relative to the reference draft, with and without exponent ((t_i/t_ref) in IMO4 Eqn 8)
 joined_df['t_over_t_ref_with_m'] = joined_df['draught']**0.66 / joined_df['Draught..m.']**0.66
 joined_df['t_over_t_ref_without_m'] = joined_df['draught'] / joined_df['Draught..m.']
 ## Instantaneous speed relative to the reference speed, with and without exponent ((v_i/v_ref) in IMO4 Eqn 8)
 joined_df['v_over_v_ref_with_n'] = joined_df['speed']**3 / joined_df['Service.Speed..knots.']**3
 joined_df['v_over_v_ref_without_n'] = joined_df['speed'] / joined_df['Service.Speed..knots.']
+
+## Draught, speed terms of Admiralty equation
+## aka ship-specific terms (without C) of relative power W_i/W_ref
+joined_df['rel_power_ship'] = joined_df['t_over_t_ref_with_m'] * joined_df['v_over_v_ref_with_n']
+joined_df['rel_power_ship_squared'] = joined_df['rel_power_ship']**2
+joined_df['rel_power_ship_cubed'] = joined_df['rel_power_ship']**3
 
 
 joined_df.head()
@@ -296,10 +304,15 @@ yearly_stats = (
         'W_component': ['first'],
         'ME_W_ref': ['first'],
         't_m_times_v_n': ['sum'],
+        't_m_times_v_n_squared': ['sum'],
+        't_m_times_v_n_cubed': ['sum'],
         't_over_t_ref_with_m': ['sum'],
         't_over_t_ref_without_m': ['sum'],
         'v_over_v_ref_with_n': ['sum'],
         'v_over_v_ref_without_n': ['sum'],
+        'rel_power_ship': ['sum'],
+        'rel_power_ship_squared': ['sum'],
+        'rel_power_ship_cubed': ['sum'],
         'FC': ['sum'],
         'speed': ['mean'],
         'draught': ['mean']
