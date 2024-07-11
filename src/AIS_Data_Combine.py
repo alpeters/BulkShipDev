@@ -92,6 +92,11 @@ missing_imo['timestamp'].groupby('mmsi').count().sort_values(ascending=False).pi
 
 missing_imo_lengths = missing_imo.groupby(['mmsi', 'segment'])['segment'].agg('count')
 missing_imo_lengths.sort_values(ascending=False).head(60)
+# 88633 paths have no IMO assigned
+ais_bulkers[['imo', 'segment']].drop_duplicates().shape[0].compute()
+# 128650 paths total using IMO
+ais_bulkers.reset_index()[['mmsi', 'segment']].drop_duplicates().shape[0].compute()
+# 196317 paths total using MMSI (this makes more sense)
 
 ais_bulkers.loc[352422000].head(n=1000, npartitions=-1).tail(60)
 missing_imo.loc[413225790]

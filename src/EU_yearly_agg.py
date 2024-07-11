@@ -6,7 +6,6 @@ referenced as 'IMO4' in the code.
 Input(s): portcalls_'callvariant'_EU.csv, ais_bulkers_potportcalls_'callvariant'.parquet
 Output(s): ais_bulkers_pottrips.parquet, ais_bulkers_trips.parquet, ais_bulkers_trips_EU.parquet, ais_bulkers_trips_EU_power.parquet, AIS_..._EU_yearly_stats.csv
 Runtime: 4m48 + 8m59 + 1m43 + 8m? + 1m15
-TODO: fix observed_large_distances
 """
 
 #%%
@@ -354,8 +353,7 @@ def observed_large_distances(df):
          np.cos(np.radians(df['latitude'])) *
          np.sin(lng_diff * 0.5) ** 2)
     df['distance'] = 2 * 6371.0088 * np.arcsin(np.sqrt(d))
-    df = df[df['speed'] > 25]
-    # df = df[df['implied_speed'] > 25] # TODO: this is the correct one, need to include IS
+    df = df[df['implied_speed'] > 25]
     return df
 
 yearly_stats['total_jump_distance'] = (

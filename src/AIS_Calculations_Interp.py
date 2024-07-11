@@ -3,10 +3,6 @@ Hourly interpolation and detect trip phases from cleaned dynamic AIS data.
 Input(s): ais_bulkers_calcs.parquet
 Output(s): ais_bulkers_interp.parquet
 Runtime: 23m local
-
-TODO: 
-    - fix so exactly one observation per hour
-    - include implied_speed when reading file
 """
 
 running_on = 'local'  # 'local' or 'hpc'
@@ -174,7 +170,7 @@ filepath = os.path.join(datapath, 'AIS')
 
 #%%
 ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs'),
-                              columns = ['timestamp', 'latitude', 'longitude', 'speed', 'draught', 'distance', 'time_interval'])
+                              columns = ['timestamp', 'latitude', 'longitude', 'speed', 'implied_speed', 'draught', 'distance', 'time_interval'])
 # ais_bulkers = dd.read_parquet(os.path.join(filepath, 'ais_bulkers_calcs')).get_partition(0)
 # ais_bulkers = ais_bulkers.partitions[0:5]
 
