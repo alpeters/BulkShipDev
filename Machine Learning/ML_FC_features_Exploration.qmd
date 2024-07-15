@@ -6,7 +6,7 @@ editor: visual
 
 ```{r}
 library(tidyverse)
-library(kableExtra)
+# library(kableExtra)
 library(readr)
 ```
 
@@ -40,7 +40,7 @@ python_palette <- c('cb' = "#0072B2", 'lasso' = "#E69F00", 'ridge' = "#56B4E9", 
 # Functions
 
 ```{r}
-read_results <- function(variant, set = 'test_fc'){
+read_results <- function(variant, set = 'fast_test_fc'){
   df <- read_csv(file.path(mltrackeddatapath,
                            paste0('ML_FC_features_F',
                                   variant,
@@ -54,8 +54,9 @@ read_results <- function(variant, set = 'test_fc'){
 ```
 
 # Model names for plots
+
 ```{r}
-model_names_df <- read_results('cal_fc') |> 
+model_names_df <- read_results('calc') |> 
   distinct(model, class_name) |> 
   mutate(model_name = str_replace_all(class_name, regex('(?<!^)(([A-Z][a-z]|(?<=[a-z]))[A-Z])'), ' \\1'),
          model_name = str_replace_all(model_name, c('Cat Boost' = 'CatBoost',
@@ -66,28 +67,30 @@ model_names
 ```
 
 # All
+
 ```{r}
-variants <- c('cal_fc',
-              'agg_adm_sep1',
-              'calc_agg_adm_sep1',
-              'calc_agg_inst_adm_sep1',
-              'agg_adm_sep2',
-              # 'calc_agg_adm_sep2',
-              'inst_adm_sep1',
-              'ME_W_ref_first',
-              'inst_adm_noW',
-              'inst_adm_sep2',
-              'inst_adm_fund',
-              'add_chars',
-              # 'add_chars_plus',
-              'work',
-              'work_fundamentals',
-              # 'work_add_chars',
-              'preferred'
-              # 'pref_noWork'
-              # 'all'
-              )
-# variants
+# variants <- c('cal_fc',
+#               'agg_adm_sep1',
+#               'calc_agg_adm_sep1',
+#               'calc_agg_inst_adm_sep1',
+#               'agg_adm_sep2',
+#               # 'calc_agg_adm_sep2',
+#               'inst_adm_sep1',
+#               'ME_W_ref_first',
+#               'inst_adm_noW',
+#               'inst_adm_sep2',
+#               'inst_adm_fund',
+#               'add_chars',
+#               # 'add_chars_plus',
+#               'work',
+#               'work_fundamentals',
+#               # 'work_add_chars',
+#               'preferred'
+#               # 'pref_noWork'
+#               # 'all'
+#               )
+variants <- c('calc',
+              paste0('djdrank', 2:10))
 ```
 
 ```{r}
@@ -107,7 +110,7 @@ eng
 ```
 
 ```{r}
-results_train <- lapply(variants, \(x) read_results(x, set='train')) |> 
+results_train <- lapply(variants, \(x) read_results(x, set='fast_train')) |> 
   bind_rows() |> 
   mutate(variant = factor(variant, levels=variants, ordered=TRUE)) |> 
   select(-params) |> 
@@ -379,27 +382,34 @@ results_dist |>
 # Calc + Distinct
 
 ```{r}
-variants_calc <- c('cal_fc',
-                   paste0('disjoint_b', 2:5),
-                   'calc_dist',
-                   paste0('disjoint_b', 7:9)
+order_col <- 'djdrank'
+name_col <- 'djdname'
+
+variants_calc <- c('calc',
+                   paste0(order_col, 'seppluscal', 2:10)
                    )
 
-names(variants_calc) <- read_csv(file.path(mltrackeddatapath, 'ML_FC_variants.csv'), show_col_types = FALSE) |> 
-  select(variable, disjoint_b, disjoint_b_name) |> 
-  drop_na(disjoint_b_name) |> 
-  mutate(disjoint_b_name = str_to_sentence(disjoint_b_name)) |> 
-  mutate(disjoint_b_name = str_replace(disjoint_b_name,
+names(variants_calc) <- read_csv(file.path(mltrackeddatapath, 'ML_FC_variants.csv'),
+                                 show_col_types = FALSE) |> 
+  select(variable, {{order_col}}, {{name_col}}) |> 
+  rename(cat_names = {{name_col}},
+         cat_order = {{order_col}}) |> 
+  drop_na(cat_names) |> 
+  mutate(cat_names = str_to_sentence(cat_names)) |> 
+  mutate(cat_names = str_replace(cat_names,
                                        regex('instantaneous', ignore_case=TRUE),
                                              'inst.')) |> 
-  mutate(disjoint_b_name = str_replace(disjoint_b_name,
+  mutate(cat_names = str_replace(cat_names,
                                        regex('characteristics', ignore_case=TRUE),
                                              'chars.')) |> 
-  mutate(disjoint_b_name = str_replace(disjoint_b_name,
+  mutate(cat_names = str_replace(cat_names,
                                        regex('fuel consumption', ignore_case=TRUE),
                                        'FC')) |> 
-  arrange(disjoint_b) |> 
-  distinct(disjoint_b_name) |> 
+  mutate(cat_names = str_replace(cat_names,
+                                       regex('Sfc', ignore_case=TRUE),
+                                       'SFC')) |> 
+  arrange(cat_order) |> 
+  distinct(cat_names) |> 
   pull()
 
 variants_calc
@@ -419,6 +429,7 @@ results_calc
 ```
 
 ## Best
+
 ```{r}
 score <- 'r2'
 
@@ -667,29 +678,38 @@ results_incrTest |>
 #                    paste0('incr_b', 4:9),
 #                    'preferred')
 
-variants_incr <- c('cal_fc',
-                   paste0('incr_a', 2:3),
-                   paste0('incr_b', 4:5),
-                   paste0('djbrank_', 6:9)
-                   # paste0('djbrank_', 7:9)
-                   # 'preferred'
+# variants_incr <- c('cal_fc',
+#                    paste0('incr_a', 2:3),
+#                    paste0('incr_b', 4:5),
+#                    paste0('djbrank_', 6:9)
+#                    # paste0('djbrank_', 7:9)
+#                    # 'preferred'
+#                    )
+
+order_col <- 'djdrank'
+name_col <- 'djdname'
+
+variants_incr <- c('calc',
+                   paste0(order_col, 2:10)
                    )
 
 names(variants_incr) <- read_csv(file.path(mltrackeddatapath, 'ML_FC_variants.csv'), show_col_types = FALSE) |> 
-  select(variable, djbrank, disjoint_b_name) |> 
-  drop_na(disjoint_b_name) |> 
-  mutate(disjoint_b_name = str_to_sentence(disjoint_b_name)) |> 
-  mutate(disjoint_b_name = str_replace(disjoint_b_name,
+  select(variable, {{order_col}}, {{name_col}}) |> 
+  rename(cat_names = {{name_col}},
+         cat_order = {{order_col}}) |> 
+  drop_na(cat_names) |> 
+  mutate(cat_names = str_to_sentence(cat_names)) |> 
+  mutate(cat_names = str_replace(cat_names,
                                        regex('instantaneous', ignore_case=TRUE),
                                              'inst.')) |> 
-  mutate(disjoint_b_name = str_replace(disjoint_b_name,
+  mutate(cat_names = str_replace(cat_names,
                                        regex('characteristics', ignore_case=TRUE),
                                              'chars.')) |> 
-  mutate(disjoint_b_name = str_replace(disjoint_b_name,
+  mutate(cat_names = str_replace(cat_names,
                                        regex('fuel consumption', ignore_case=TRUE),
                                        'FC')) |> 
-  arrange(djbrank) |> 
-  distinct(disjoint_b_name) |> 
+  arrange(cat_order) |> 
+  distinct(cat_names) |> 
   pull()
 
 variants_incr

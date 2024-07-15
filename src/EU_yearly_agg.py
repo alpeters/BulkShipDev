@@ -303,6 +303,7 @@ yearly_stats = (
         'interpolated' : ['sum'],
         'W_component': ['first'],
         'ME_W_ref': ['first'],
+        'ME_SFC_base': ['first', 'mean'],
         't_m_times_v_n': ['sum'],
         't_m_times_v_n_squared': ['sum'],
         't_m_times_v_n_cubed': ['sum'],

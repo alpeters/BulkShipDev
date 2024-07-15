@@ -6,7 +6,7 @@ editor: visual
 
 ```{r}
 library(tidyverse)
-library(kableExtra)
+# library(kableExtra)
 library(readr)
 ```
 
@@ -18,7 +18,7 @@ tablepath = "tables"
 mltrackeddatapath = "tracked_data"
 trackeddatapath = "../src/tracked_data"
 fileprefix = "ML_FC_Exploration_"
-set <- 'djbrank_9_test2021' #'m5dd_rel'
+set <- 'djdrank10_test2021_fast' # 'djbrank_9_test2021' #'m5dd_rel'
 # fileprefix = "ML_FC_features_Exploration_"
 # set <- 'djbrank_9_test2021' #'m5dd_rel'
 
@@ -188,7 +188,7 @@ features_set_desc_table |>
       booktabs = TRUE) |>
   column_spec(1, width = "16em") |>
   column_spec(2, width = "30em") |> 
-  pack_rows(index = index) |> 
+  pack_rows(index = index) |>
   save_kable(file.path(tablepath, paste0(fileprefix, 'features_', set, ".tex")),
              float = FALSE)
 
@@ -300,6 +300,7 @@ showtext makes fonts work properly for png's, but don't use because not consiste
 ```
 
 # Tables
+
 ## Optimal parameters table
 
 ```{r}

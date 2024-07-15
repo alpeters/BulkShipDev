@@ -1,6 +1,6 @@
 variable
 CVN
-IMO.Number
+imo
 Name
 mmsi
 Ex.Name
@@ -209,11 +209,18 @@ trip_nunique
 interpolated_sum
 W_component_first
 ME_W_ref_first
+ME_SFC_base_first
+ME_SFC_base_mean
 t_m_times_v_n_sum
+t_m_times_v_n_squared_sum
+t_m_times_v_n_cubed_sum
 t_over_t_ref_with_m_sum
 t_over_t_ref_without_m_sum
 v_over_v_ref_with_n_sum
 v_over_v_ref_without_n_sum
+rel_power_ship_sum
+rel_power_ship_squared_sum
+rel_power_ship_cubed_sum
 cal_fc
 speed_mean
 draught_mean

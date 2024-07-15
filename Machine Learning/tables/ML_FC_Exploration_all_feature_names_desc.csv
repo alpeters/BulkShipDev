@@ -230,3 +230,9 @@
 "within_tol_jumps",,,"quality","no","AIS","aggregated",,,,
 "cubic_meter","Ship volume","numnonneg","characteristic","indirectly","WFR","derived","$\text{beam}\cdot\text{draft}\cdot\text{length}$","Rectangular volume of hull ","cubic meters","M^3"
 "draught_mean","Average draft","numnonneg","activity","variant","AIS","aggregated",,"Average observed draft after interpolation","meters","m"
+"t_m_times_v_n_squared_sum","Admiralty instantaneous term squared","numnonneg","calc","variant","AIS","derived","$(\sum t^{0.66} \cdot v^3)^2$","Aggregation of instantaneous term of (\ref{eqn:admiralty}) squared","$(\text{meters}^{0.66} \cdot \text{knots}^3)^2$",
+"t_m_times_v_n_cubed_sum","Admiralty instantaneous term cubed","numnonneg","calc","variant","AIS","derived","$(\sum t^{0.66} \cdot v^3)^3$","Aggregation of instantaneous term of (\ref{eqn:admiralty}) cubed","$(\text{meters}^{0.66} \cdot \text{knots}^3)^3$",
+"rel_power_ship_sum","Admiralty rel power","numnonneg","calc","variant","AIS+WFR","derived",,"Aggregation of relative power term of (\ref{eqn:admiralty})",,
+"rel_power_ship_squared_sum","Admiralty rel power squared","numnonneg","calc","variant","AIS+WFR","derived",,"Aggregation of relative power term of (\ref{eqn:admiralty}) squared",,
+"rel_power_ship_cubed_sum","Admiralty rel power cubed","numnonneg","calc","variant","AIS+WFR","derived",,"Aggregation of relative power term of (\ref{eqn:admiralty}) cubed",,
+"ME_SFC_base_first","Main Engine Reference Specific Fuel Consumption","numnonneg","calc","directly","WFR","derived",,"Base value of fuel consumption rating of main engine as per IMO",,"g/kWh"

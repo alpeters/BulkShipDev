@@ -18,61 +18,39 @@ variants = feature_sets_df.select_dtypes(include=bool).columns.tolist()
 print(variants)
 
 #%% Create combined features sets
-feature_sets_df['calc_agg_adm_sep1'] = (feature_sets_df['variable'] == 'cal_fc') | feature_sets_df['agg_adm_sep1']
-
-feature_sets_df['calc_agg_adm_sep2'] = (feature_sets_df['variable'] == 'cal_fc') | feature_sets_df['agg_adm_sep2']
-
-feature_sets_df['calc_agg_inst_adm_sep1'] = (feature_sets_df['variable'] == 'cal_fc') | feature_sets_df['agg_adm_sep1'] | feature_sets_df['inst_adm_sep1']
-
-feature_sets_df['calc_agg_inst_adm_sep1_chars'] = (feature_sets_df['variable'] == 'cal_fc') | feature_sets_df['agg_adm_sep1'] | feature_sets_df['inst_adm_sep1'] | feature_sets_df['add_chars']
-
-feature_sets_df['calc_inst_adm_fund_chars'] = (feature_sets_df['variable'] == 'cal_fc') | feature_sets_df['inst_adm_fund'] | feature_sets_df['add_chars']
+# feature_sets_df['calc_agg_adm_sep1'] = (feature_sets_df['variable'] == 'cal_fc') | feature_sets_df['agg_adm_sep1']
 
 #%% Create disjoint feature sets
-for i in feature_sets_df['disjoint'].unique():
-    feature_sets_df[str(i)] = feature_sets_df['disjoint'] == i
+# for i in feature_sets_df['disjoint'].unique():
+#     feature_sets_df[str(i)] = feature_sets_df['disjoint'] == i
 
-#%% All characteristics not in calcs
-feature_sets_df['add_chars_plus'] = feature_sets_df['add_chars'] | (feature_sets_df['disjoint'] == 99)
+#%% Incremental 
+name = 'djdrank'
+feature_count = 10
+feature_sets_df[name + '1'] = feature_sets_df['variable'] == 'cal_fc'
 
-#%%
-feature_sets_df['incr2'] = (feature_sets_df['variable'] == 'cal_fc') | feature_sets_df['4']
-
-feature_sets_df['incr3'] = feature_sets_df['incr2'] | feature_sets_df['6']
-
-#%% Everything except work and its components
-feature_sets_df['pref_noWork'] = (feature_sets_df['preferred'] & ~feature_sets_df['work'])
-
-#%% Incremental a
-feature_sets_df['incr_a1'] = feature_sets_df['variable'] == 'cal_fc'
-
-for i in range(2, 11):
-    feature_sets_df['incr_a' + str(i)] = feature_sets_df['incr_a' + str(i-1)] | (feature_sets_df['incr_a'] == i)
-
-#%% Incremental b
-feature_sets_df['incr_b1'] = feature_sets_df['variable'] == 'cal_fc'
-
-for i in range(2, 10):
-    feature_sets_df['incr_b' + str(i)] = feature_sets_df['incr_b' + str(i-1)] | (feature_sets_df['incr_b'] == i)
-
-#%%
-feature_sets_df['calc_dist'] = (feature_sets_df['variable'] == 'cal_fc') | (feature_sets_df['variable'] == 'distance_sum')
+for i in range(2, feature_count+1):
+    feature_sets_df[name + str(i)] = feature_sets_df[name + str(i-1)] | (feature_sets_df[name] == i)
 
 #%% Create disjoint feature sets on top of cal_fc
-for i in feature_sets_df['disjoint_b'].unique():
-    feature_sets_df['disjoint_b' + str(i)] = (feature_sets_df['disjoint_b'] == i) | (feature_sets_df['variable'] == 'cal_fc')
+name = 'djdrank'
 
-#%% Create incremental sets from disjoint on top of cal_fc rank
-feature_sets_df['djbrank_1'] = feature_sets_df['variable'] == 'cal_fc'
+for i in feature_sets_df[name].unique():
+    feature_sets_df[name + 'seppluscal' + str(i)] = (feature_sets_df[name] == i) | (feature_sets_df['variable'] == 'cal_fc')
 
-for i in range(2,11):
-    feature_sets_df['djbrank_' + str(i)] = feature_sets_df['djbrank_' + str(i-1)] | (feature_sets_df['djbrank'] == i)
+#%% Create defined feature sets on top of cal_fc
+# base_name = 'decomp'
+# set_count = 3
+
+# for i in range(1, set_count+1):
+#     feature_sets_df['cal' + base_name + str(i)] = feature_sets_df[base_name + str(i)] | (feature_sets_df['variable'] == 'cal_fc')
+
 
 #%% Create single char feature sets on top of incr_b4
-add_chars = feature_sets_df.loc[feature_sets_df['incr_b'] == 5]['variable']
-#%%
-for i, char in enumerate(add_chars):
-    feature_sets_df['char' + str(i)] = feature_sets_df['djbrank_4'] | (feature_sets_df['variable'] == char)
+# add_chars = feature_sets_df.loc[feature_sets_df['incr_b'] == 5]['variable']
+# #%%
+# for i, char in enumerate(add_chars):
+#     feature_sets_df['char' + str(i)] = feature_sets_df['djbrank_4'] | (feature_sets_df['variable'] == char)
 
 #%%
 variants = feature_sets_df.select_dtypes(include=bool).columns.tolist()
@@ -83,8 +61,9 @@ feature_sets_df.to_csv(trackeddatapath + 'ML_FC_variants_generated.csv')
 #%%
 pm.inspect_notebook(notebookpath + '.ipynb')
 # %%
-fast_only = False
-feature_sets = ['char' + str(i) for i in range(0, 11)]
+fast_only = True
+# feature_sets = ['incr_c' + str(i) for i in range(1, 4)]
+feature_sets = ['djdrank' + str(i) for i in range(2, 11)]
 print(feature_sets)
 
 #%%
