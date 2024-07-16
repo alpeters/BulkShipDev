@@ -1,0 +1,7 @@
+variable
+cal_fc
+ME_W_ref_first
+ME_SFC_base_first
+rel_power_ship_sum
+rel_power_ship_squared_sum
+rel_power_ship_cubed_sum

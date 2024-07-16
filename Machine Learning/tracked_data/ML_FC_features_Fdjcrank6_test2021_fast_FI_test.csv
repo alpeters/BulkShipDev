@@ -1,0 +1,11 @@
+,gb,lasso,linear,ridge,mean,sd
+v_over_v_ref_without_n_sum,1,1,1,1,1.0,0.0
+Draught..m.,3,2,4,4,3.25,0.82915619758885
+cal_fc,2,7,2,2,3.25,2.165063509461097
+ME_W_ref_first,6,4,3,3,4.0,1.224744871391589
+t_over_t_ref_without_m_sum,4,3,6,6,4.75,1.299038105676658
+rel_power_ship_sum,5,7,5,5,5.5,0.8660254037844386
+Speed..knots.,8,5,8,8,7.25,1.299038105676658
+rel_power_ship_cubed_sum,7,10,7,7,7.75,1.299038105676658
+ME_SFC_base_first,10,7,9,9,8.75,1.0897247358851685
+rel_power_ship_squared_sum,9,7,10,10,9.0,1.224744871391589

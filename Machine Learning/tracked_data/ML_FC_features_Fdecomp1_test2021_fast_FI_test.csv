@@ -1,0 +1,6 @@
+,gb,lasso,linear,ridge,mean,sd
+rel_power_ship_squared_sum,2,2,1,1,1.5,0.5
+rel_power_ship_sum,1,1,2,2,1.5,0.5
+ME_W_ref_first,3,3,4,4,3.5,0.5
+rel_power_ship_cubed_sum,4,5,3,3,3.75,0.82915619758885
+ME_SFC_base_first,5,4,5,5,4.75,0.4330127018922193
