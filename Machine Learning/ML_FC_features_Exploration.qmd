@@ -40,7 +40,7 @@ python_palette <- c('cb' = "#0072B2", 'lasso' = "#E69F00", 'ridge' = "#56B4E9", 
 # Functions
 
 ```{r}
-read_results <- function(variant, set = 'fast_test_fc'){
+read_results <- function(variant, set = 'test_fc'){
   df <- read_csv(file.path(mltrackeddatapath,
                            paste0('ML_FC_features_F',
                                   variant,
@@ -708,6 +708,9 @@ names(variants_incr) <- read_csv(file.path(mltrackeddatapath, 'ML_FC_variants.cs
   mutate(cat_names = str_replace(cat_names,
                                        regex('fuel consumption', ignore_case=TRUE),
                                        'FC')) |> 
+  mutate(cat_names = str_replace(cat_names,
+                                       regex('Sfc', ignore_case=TRUE),
+                                       'SFC')) |> 
   arrange(cat_order) |> 
   distinct(cat_names) |> 
   pull()

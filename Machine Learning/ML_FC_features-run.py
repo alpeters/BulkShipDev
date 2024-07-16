@@ -61,7 +61,7 @@ feature_sets_df.to_csv(trackeddatapath + 'ML_FC_variants_generated.csv')
 #%%
 pm.inspect_notebook(notebookpath + '.ipynb')
 # %%
-fast_only = True
+fast_only = False
 # feature_sets = ['incr_c' + str(i) for i in range(1, 4)]
 feature_sets = ['djdrank' + str(i) for i in range(2, 11)]
 print(feature_sets)
