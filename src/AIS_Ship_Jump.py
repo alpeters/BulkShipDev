@@ -1,8 +1,8 @@
 def assign_jump_id(df):
    
-    suffix = 0  # Start with zero; increment at the first jump point encountered
+    suffix = 0  
     new_data = []
-    include_current = True  # Flag to control inclusion of current row
+    include_current = True  
     
     for index, row in df.iterrows():
         if row['is_jump_point']:
