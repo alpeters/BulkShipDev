@@ -374,7 +374,6 @@ yearly_stats['total_jump_distance'] = (
     joined_df
     .map_partitions(lambda part: part.groupby(['imo', 'year']).apply(lambda df: observed_large_distances(df).distance.sum()))).compute()
 
-
 # Flatten the multi-index columns
 yearly_stats_flat = yearly_stats.rename(columns = {"invalid_speed": ("invalid", "speed")})
 yearly_stats_flat.columns = ['_'.join(col) for col in yearly_stats_flat.columns.values]
@@ -388,7 +387,17 @@ interpolated_sea = (
 ).compute()
 missing_frac_sea = (interpolated_sea['sum'] / interpolated_sea['count']).rename('missing_frac_sea')
 
+# Calculate average speed and variance of speed while at sea
+speed_sea = (
+    joined_df[joined_df['phase'] == 'Sea']
+    .groupby(['imo', 'year'])
+    .speed
+    .agg(['mean', 'var'])
+).compute()
+speed_sea.columns = ['speed_sea_' + col for col in speed_sea.columns.values]
+
 yearly_stats_flat = yearly_stats_flat.join(missing_frac_sea, on = ['imo', 'year'])
+yearly_stats_flat = yearly_stats_flat.join(speed_sea, on = ['imo', 'year'])
 yearly_stats_flat = yearly_stats_flat.rename(columns={
     'port_frac_':'port_frac',
     'longest_jump_':'longest_jump',

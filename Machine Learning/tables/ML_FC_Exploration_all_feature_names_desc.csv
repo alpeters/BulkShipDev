@@ -236,3 +236,5 @@
 "rel_power_ship_squared_sum","Admiralty rel power squared","numnonneg","calc","variant","AIS+WFR","derived",,"Aggregation of relative power term of (\ref{eqn:admiralty}) squared",,
 "rel_power_ship_cubed_sum","Admiralty rel power cubed","numnonneg","calc","variant","AIS+WFR","derived",,"Aggregation of relative power term of (\ref{eqn:admiralty}) cubed",,
 "ME_SFC_base_first","Main Engine Reference Specific Fuel Consumption","numnonneg","calc","directly","WFR","derived",,"Base value of fuel consumption rating of main engine as per IMO",,"g/kWh"
+"speed_sea_mean","Average speed at sea","numnonneg","activity","no","AIS","aggregated",,,"knots","kn"
+"speed_sea_var","Variance of speed at sea","numnonneg","activity","no","AIS","aggregated",,,"$\text{knots}^{2}$","kn^2"
