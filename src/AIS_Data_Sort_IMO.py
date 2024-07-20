@@ -1,7 +1,7 @@
 """
 Sort each partition by imo, timestamp
-Input(s): ais_bulkers_imo_indexed.parquet
-Output(s): ais_bulkers_imo_indexed_sorted.parquet
+Input(s): ais_bulkers_merged_indexed.parquet
+Output(s): ais_bulkers_merged_indexed_sorted.parquet
 Runtime:
     CC: 129s
 """
