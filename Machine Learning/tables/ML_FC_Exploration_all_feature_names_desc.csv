@@ -238,3 +238,7 @@
 "ME_SFC_base_first","Main Engine Reference Specific Fuel Consumption","numnonneg","calc","directly","WFR","derived",,"Base value of fuel consumption rating of main engine as per IMO",,"g/kWh"
 "speed_sea_mean","Average speed at sea","numnonneg","activity","no","AIS","aggregated",,,"knots","kn"
 "speed_sea_var","Variance of speed at sea","numnonneg","activity","no","AIS","aggregated",,,"$\text{knots}^{2}$","kn^2"
+"cal_fe","Calculated fuel efficiency","numnonneg","calc","directly","AIS+WFR","derived",,"Theoretical fuel efficiency","million tonnes/nautical mile","Mt/nm"
+"report_fe","reported annual fuel efficiency","numnonneg",,,"MRV","raw",,,"million tonnes/nautical mile","Mt/nm"
+"log_report_fe","Log reported fuel efficiency",,,,"MRV","raw",,"Log (log1p) reported fuel efficiency",,
+"log_cal_fe","Log annual calculated fuel efficiency",,"calc",,"AIS","derived",,"Log (log1p) calculated fuel efficiency",,
