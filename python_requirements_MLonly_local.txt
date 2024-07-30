@@ -1,0 +1,14 @@
+# existing for data
+numpy==1.24.2
+pandas==1.5.3
+
+# additional
+matplotlib==3.7.5
+scikit-learn==1.3.1
+xgboost==2.0.3
+catboost==1.2.2
+lightgbm==4.2.0
+ipykernel==6.29.4
+seaborn==0.13.2
+papermill==2.5.0
+
