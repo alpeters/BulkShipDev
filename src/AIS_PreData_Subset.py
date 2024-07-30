@@ -1,6 +1,6 @@
 """
 Subset AIS parquet file by ship type to have manageable files for indexing
-Input(s): ais_raw.parquet
+Input(s): ais_raw.parquet, bulkers_imo.csv
 Output(s): ais_bulkers.parquet, ais_containerships.parquet
 Runtime: about 10m
 """
