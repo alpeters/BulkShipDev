@@ -34,76 +34,58 @@ theme_pres <- function(base_size){
 pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a")
 ```
 
-# FC
+
 ```{r}
+target_vars <- c('fc', 'fe')
+targets <- c('', 'linear')
+names(targets) <- target_vars
 split_feature <- 'relseaspeed' #'dwt' #
 # sets <- c('djdrank4', 'speeddist')
 sets <- c('djdrank10', 'oecd')
 # sets <- c('djdrank4', 'speeddist', 'work', 'djdrank10') #, 'oecd')
 ```
 
-
 ```{r}
-metric_table_fc <- tibble()
+filenames_df <- tribble(
+  ~target, ~transform, ~set, ~split_feature1, ~splits1, ~split_feature2, ~splits2, ~csv_file,
+  'fc', '', 'djdrank10', 'relseaspeed', paste0("quart", c(1,4)), 'draught', c('high', 'low'), 'test_target',
+  'fe', 'linear', 'djdrank10', 'relseaspeed', paste0("quart", c(1,4)), 'draught', c('high', 'low'), 'test_fc',
+#   'fc', '', 'djdrank10', 'relseaspeed', paste0("quart", 1:4), NA, NA, 'test_fc',
+#   'fe', 'linear', 'djdrank10', 'relseaspeed', paste0("quart", 1:4), NA, NA, 'test_fc',
+)
 
-for(set in sets){
-  # read csv file for each quartile test set
-  for(quart in 1:4){
-    df <- read_csv(file.path(mltrackeddatapath,
-                             paste0("ML_FC_F",
-                                    set,
-                                    "_testquart",
-                                    quart,
-                                    split_feature,
-                                    "_test_fc.csv")),
-                   show_col_types = FALSE) |> 
-      select(-params) |> 
-      pivot_longer(-c(model, class_name), names_to = 'metric') |> 
-      mutate(set = set,
-             quartile = quart)
-    metric_table_fc <- bind_rows(metric_table_fc, df)
-  }
-  
-}
-
-metric_table_fc <- metric_table_fc |> 
-  mutate(target = 'fc')
+filenames_df <- filenames_df |> 
+  unnest(splits1) |> 
+  unnest(splits2) |> 
+  # mutate(csv_file = ifelse(target == 'fc', 'test_target', 'test_fc')) |> 
+  mutate(filename = paste("ML",
+                          str_to_upper(target),
+                          paste0("F", set),
+                          paste0("test", splits1, split_feature1, "test", splits2, split_feature2),
+                          transform,
+                          paste0(csv_file, '.csv'),
+                          sep = '_') |> 
+           str_remove_all('NA') |> 
+           str_replace_all('__', '_'),
+         split = paste(splits1, splits2, sep = ', ') |> str_remove_all(', NA'))
 ```
 
-
-# FE
+# Generalized
 ```{r}
-metric_table_fe <- tibble()
+metric_table <- tibble()
 
-for(set in sets){
-  # read csv file for each quartile test set
-  for(quart in 1:4){
-    df <- read_csv(file.path(mltrackeddatapath,
-                             paste0("ML_FE_F",
-                                    set,
-                                    "_testquart",
-                                    quart,
-                                    split_feature,
-                                    "_linear",
-                                    "_test_fc.csv")),
-                   show_col_types = FALSE) |> 
-      select(-params) |> 
-      pivot_longer(-c(model, class_name), names_to = 'metric') |> 
-      mutate(set = set,
-             quartile = quart)
-    metric_table_fe <- bind_rows(metric_table_fe, df)
-  }
-  
+for(i in 1:nrow(filenames_df)){
+      row <- filenames_df[i, ]
+      df <- read_csv(file.path(mltrackeddatapath, row$filename),
+                     show_col_types = FALSE) |> 
+        select(-params) |> 
+        pivot_longer(-c(model, class_name), names_to = 'metric') |> 
+        bind_cols(row |> select(set, split, target, transform))
+      metric_table <- bind_rows(metric_table, df)
 }
 
-metric_table_fe <- metric_table_fe |> 
-  mutate(target = 'fe')
-```
-
-
-```{r}
-metric_table <- bind_rows(metric_table_fc, metric_table_fe) |> 
-  mutate(set = paste0(set, '_', target)) |>
+metric_table <- metric_table |> 
+  mutate(set = paste(set, target, sep = '_')) |>
   mutate(set = factor(set,
                       levels = c('speeddist_fe', 'djdrank4_fe', 'work_fe', 'oecd_fe', 'djdrank10_fe',
                                  'speeddist_fc', 'djdrank4_fc', 'work_fc', 'oecd_fc', 'djdrank10_fc'),
@@ -122,6 +104,8 @@ best_stat_function <- function(stat, value){
 }
 ```
 
+
+# Functions
 ```{r}
 stat_plot_best <- function(metric_table, stat, ylims = c(NA, NA)){
   
@@ -136,15 +120,15 @@ stat_plot_best <- function(metric_table, stat, ylims = c(NA, NA)){
   }
   
   stat_table <- stat_table |>
-    group_by(set, quartile) |> 
+    group_by(set, split) |> 
     filter(value == best_stat_function(stat, value)) |> 
     ungroup() |> 
-    select(set, quartile, value) 
-    # pivot_wider(names_from = quartile, values_from = value, names_prefix = 'quart') %>%
+    select(set, split, value) 
+    # pivot_wider(names_from = split, values_from = value, names_prefix = 'quart') %>%
     # mutate(mean = rowMeans(select(., starts_with('quart'))))
     
   stat_plot <- stat_table |> 
-    ggplot(aes(x = quartile, y = value, fill = set)) +
+    ggplot(aes(x = split, y = value, fill = set)) +
     geom_col(position = 'dodge') +
     geom_hline(aes(yintercept = mean, color = set),
                linetype = 'dashed',
@@ -153,10 +137,11 @@ stat_plot_best <- function(metric_table, stat, ylims = c(NA, NA)){
     scale_color_manual(values = pres_palette) +
     theme_pres(base_size) +
     labs(y = str_to_upper(stat),
-         x = 'Test quartile',
+         x = 'Test split',
          fill = 'Feature set',
          color = 'Feature set') +
-    coord_cartesian(ylim = ylims)
+    coord_cartesian(ylim = ylims) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
   # display plot
   return(stat_plot)
 }
@@ -177,10 +162,10 @@ stat_plot_model <- function(metric_table, stat, plotmodel, ylims = c(NA, NA)){
   
   stat_table <- stat_table |>
     filter(model == plotmodel) |>  
-    select(model, set, quartile, value)
+    select(model, set, split, value)
     
   stat_plot <- stat_table |> 
-    ggplot(aes(x = quartile, y = value, fill = set)) +
+    ggplot(aes(x = split, y = value, fill = set)) +
     geom_col(position = 'dodge') +
     geom_hline(aes(yintercept = mean, color = set),
                linetype = 'dashed',
@@ -189,17 +174,18 @@ stat_plot_model <- function(metric_table, stat, plotmodel, ylims = c(NA, NA)){
     scale_color_manual(values = pres_palette) +
     theme_pres(base_size) +
     labs(y = str_to_upper(stat),
-         x = 'Test quartile',
+         x = 'Test split',
          fill = 'Feature set',
          color = 'Feature set',
          title = plotmodel) +
-    coord_cartesian(ylim = ylims)
+    coord_cartesian(ylim = ylims) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
   # display plot
   return(stat_plot)
 }
 ```
 
-# Best model performance by test quartile
+# Best model performance by test split
 
 ```{r}
 stat_plot_best(metric_table, 'mape') |> print()
@@ -217,7 +203,7 @@ stat_plot_best(metric_table, 'r2', ylims = c(0.8, 1)) |> print()
 stat_plot_best(metric_table, 'te') |> print()
 ```
 
-# Model Performance by test quartile
+# Model Performance by test split
 
 ## Calculation
 
@@ -257,7 +243,7 @@ stat_table <- metric_table |>
   }
   
   stat_table |> 
-    ggplot(aes(x = quartile, y = value, fill = set)) +
+    ggplot(aes(x = split, y = value, fill = set)) +
     geom_col(position = 'dodge') +
     geom_hline(aes(yintercept = mean, color = set),
                linetype = 'dashed',
@@ -266,7 +252,7 @@ stat_table <- metric_table |>
     scale_color_manual(values = pres_palette) +
     theme_pres(base_size) +
     labs(y = str_to_upper(stat),
-         x = 'Test quartile',
+         x = 'Test split',
          fill = 'Feature set',
          color = 'Feature set') +
     facet_wrap(~model)
