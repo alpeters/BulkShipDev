@@ -9,22 +9,32 @@ import pandas as pd
 import papermill as pm
 import time
 
-notebookpath = 'Machine Learning/ML'
-notebookoutpath = 'Machine Learning/data/ML'
+# # paths for local
+# notebookpath = 'Machine Learning/ML'
+# notebookoutpath = 'Machine Learning/data/ML'
+
+# paths for CC
+notebookpath = 'ML'
+notebookoutpath = 'data/ML'
+
 
 #%%
 random_seed = 2652124
 target = 'fe'
 no_transform = True
 fast_only = True
-feature_sets = ['speeddist'] #['djdrank4']
-# feature_sets = ['speeddist', 'djdrank4', 'djdrank10', 'oecd']
+# feature_sets = ['speeddist'] #['djdrank4']
+feature_sets = ['speeddist'] #, 'djdrank4', 'djdrank10', 'oecd']
 # feature_sets = ['djdrank4', 'speeddist'] #, 'work', 'djdrank10', 'oecd', 'djdrank7']
 # split_feature = "relseaspeed" # "dwt" #
 # # test_sets = [["testquart" + str(quart) + split_feature] for quart in list(range(1,5))]
 # test_sets = [["testquart" + str(quart) + split_feature] for quart in list(range(1,2))]
 
 test_sets = [["testquart4relseaspeed", "testhighdraught"]]
+# test_sets = [["testquart4relseaspeed", "testhighdraught"],
+#              ["testquart1relseaspeed", "testhighdraught"],
+#              ["testquart4relseaspeed", "testlowdraught"],
+#              ["testquart1relseaspeed", "testlowdraught"],]
 
 #%%
 pm.inspect_notebook(notebookpath + '.ipynb')
@@ -32,7 +42,7 @@ pm.inspect_notebook(notebookpath + '.ipynb')
 #%%
 for feature_set in feature_sets:
     for test_set_criteria in test_sets:
-        out_suffix = feature_set + '_' + ''.join(test_set_criteria)
+        out_suffix = target + '_' + feature_set + '_' + ''.join(test_set_criteria)
         if fast_only:
             out_suffix += '_fast'
         print(f'Running {out_suffix}...')
@@ -41,6 +51,9 @@ for feature_set in feature_sets:
                 notebookpath + '.ipynb',
                 notebookoutpath + '_' + out_suffix + '.ipynb',
                 parameters=dict(
+                    random_seed=random_seed,
+                    target=target,
+                    no_transform=no_transform,
                     feature_set=feature_set,
                     fast_only=fast_only,
                     test_set_criteria=test_set_criteria)
