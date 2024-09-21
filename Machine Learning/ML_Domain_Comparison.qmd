@@ -140,61 +140,15 @@ metric_table <- metric_table |>
 
 ```{r}
 best_stat_function <- function(stat, value){
-  if (stat %in% c('mae', 'mape', 'rmse', 'ate')) {
+  if (stat %in% c('mae', 'mape', 'rmse', 'mse', 'ate')) {
     min(value)
   } else if(stat %in% c('r2')) {
     max(value)
   } else {
-    stop(paste(stat, "is an unknown statistic"))
+    warning(paste(stat, "is an unknown statistic"))
+    NA_real_
   }
 }
-```
-
-```{r}
-# stat_plot_best <- function(
-#     metric_table,
-#     trans_error_stat = "transfer_error",
-#     pred_error_stat = "mae",
-#     models = "all",
-#     ylims = c(NA, NA)
-#   ){
-#   
-#   stat_table <- metric_table |> 
-#     filter(metric == stat)
-#   
-#   if (stat == 'te') {
-#     stat_table <- stat_table |>
-#       rename('te' = value) |>
-#       mutate(value = abs(te))
-#     stat <- 'ate'
-#   }
-#   
-#   stat_table <- stat_table |>
-#     group_by(set, split) |> 
-#     filter(value == best_stat_function(stat, value)) |> 
-#     ungroup() |> 
-#     select(set, split, value) 
-#     # pivot_wider(names_from = split, values_from = value, names_prefix = 'quart') %>%
-#     # mutate(mean = rowMeans(select(., starts_with('quart'))))
-#     
-#   stat_plot <- stat_table |> 
-#     ggplot(aes(x = split, y = value, fill = set)) +
-#     geom_col(position = 'dodge') +
-#     geom_hline(aes(yintercept = mean, color = set),
-#                linetype = 'dashed',
-#                data = stat_table |> group_by(set) |> summarise(mean = mean(value))) +
-#     scale_fill_manual(values = pres_palette) +
-#     scale_color_manual(values = pres_palette) +
-#     theme_pres(base_size) +
-#     labs(y = str_to_upper(stat),
-#          x = 'Test split',
-#          fill = 'Feature set',
-#          color = 'Feature set') +
-#     coord_cartesian(ylim = ylims) +
-#     theme(axis.text.x = element_text(angle = 45, hjust = 1))
-#   # display plot
-#   return(stat_plot)
-# }
 ```
 
 ```{r}
@@ -257,10 +211,17 @@ stat_plot_model <- function(
     scale_fill_manual(values = pres_palette) +
     scale_color_manual(values = pres_palette) +
     theme_pres(base_size) +
-    labs(y = str_to_upper(pred_error_stat),
-         x = 'Test split',
-         fill = 'Feature set',
-         color = 'Feature set') +
+    labs(
+      y = paste0(
+        str_to_title(str_replace_all(trans_error_stat, "_", " ")),
+        " (",
+        str_to_upper(pred_error_stat),
+        ")"
+      ),
+      x = 'Test split',
+      fill = 'Feature set',
+      color = 'Feature set'
+    ) +
     coord_cartesian(ylim = ylims) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
@@ -376,7 +337,7 @@ stat_plot_model(
 ```
 
 # Normalization Calculations
-
+### Load within domain data
 ```{r}
 metric_table_within <- tibble()
 
@@ -426,18 +387,20 @@ metric_table_within <- metric_table_within |>
   )
 ```
 
+### Calcs
 ```{r}
 metric_table <- metric_table |>
+  filter(model != "cb") |>
+  # filter(!(metric %in% c("r2", "te"))) |> 
   left_join(metric_table_within,
     by = c("model", "class_name", "metric", "set", "split", "target", "transform")
   ) |> 
-  # filter(model != "cb") |>
   mutate(transfer_deterioration = transfer_error/within_error) |> 
-  group_by(metric, split) |> 
-  mutate(min_within_error = min(within_error)) |> 
+  group_by(metric, split) |>
+  mutate(best_within_error = best_stat_function(first(metric), within_error)) |> 
+  # mutate(correct = min(within_error)) |> 
   mutate(norm_transfer_error = transfer_error/min(within_error))
 ```
-
 
 ### Calc checks
 ```{r}
@@ -527,8 +490,29 @@ stat_plot_model(
   print()
 ```
 
+```{r}
+stat_plot_model(
+  metric_table,
+  "norm_transfer_error",
+  "r2",
+  "all"
+) |> 
+  print()
+```
+
 # Transfer Deterioration
 ## Model-wise performance by test domain
+### Ridge
+```{r}
+stat_plot_model(
+  metric_table,
+  "transfer_deterioration",
+  "mape",
+  "ridge"
+) |> 
+  print()
+```
+
 
 ### Gradient Boost
 ```{r}
