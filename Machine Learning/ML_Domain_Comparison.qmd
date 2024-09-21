@@ -1,23 +1,24 @@
 ---
-title: "ML FC Domain Comparison"
-format: html
+title: "ML Domain Comparison"
+format: pdf
 editor: visual
 ---
 
 ```{r}
 library(tidyverse)
-# library(kableExtra)
+library(kableExtra)
 library(readr)
+library(plotly)
 ```
 
 # Global params
 
-```{r}
+```{r include = FALSE}
 imagepath = "plots"
 tablepath = "tables"
 mltrackeddatapath = "tracked_data"
 trackeddatapath = "../src/tracked_data"
-fileprefix = "ML_FE_Domain_Comparison_"
+fileprefix = "ML_Domain_Comparison_"
 
 # update_geom_defaults("text", list(size = 20))
 base_size <- 18
@@ -31,259 +32,525 @@ theme_pres <- function(base_size){
           strip.text = element_text(size=1.03*base_size),
           legend.text = element_text(size=1.1*base_size))
 }
-pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a")
-```
-
-
-```{r}
-target_vars <- c('fc', 'fe')
-targets <- c('', 'linear')
-names(targets) <- target_vars
-split_feature <- 'relseaspeed' #'dwt' #
-# sets <- c('djdrank4', 'speeddist')
-sets <- c('djdrank10', 'oecd')
-# sets <- c('djdrank4', 'speeddist', 'work', 'djdrank10') #, 'oecd')
+pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a", "#0072B2", "#F0E442", "#D55E50", "#CC79A7")
 ```
 
 ```{r}
 filenames_df <- tribble(
-  ~target, ~transform, ~set, ~split_feature1, ~splits1, ~split_feature2, ~splits2, ~csv_file,
-  'fc', '', 'djdrank10', 'relseaspeed', paste0("quart", c(1,4)), 'draught', c('high', 'low'), 'test_target',
-  'fe', 'linear', 'djdrank10', 'relseaspeed', paste0("quart", c(1,4)), 'draught', c('high', 'low'), 'test_fc',
-#   'fc', '', 'djdrank10', 'relseaspeed', paste0("quart", 1:4), NA, NA, 'test_fc',
-#   'fe', 'linear', 'djdrank10', 'relseaspeed', paste0("quart", 1:4), NA, NA, 'test_fc',
+  ~target, ~transform,        ~set, ~split_feature1,                ~splits1, ~split_feature2,         ~splits2,     ~csv_file,   ~csv_file_within,
+     # 'fc',         "", 'djdrank10',   'relseaspeed', paste0("quart", c(1,4)),       'draught', c('high', 'low'), 'test_target',     'train_target',
+     # 'fe',   'linear', 'djdrank10',   'relseaspeed', paste0("quart", c(1,4)),       'draught', c('high', 'low'),     'test_fc',         'train_fc',
+     'fc',         "", 'djdrank10',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',
+     'fe',   'linear', 'djdrank10',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',
+     'fc',         '',      'oecd',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',
+     'fe',   'linear',      'oecd',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',
+     'fc',         '',  'djdrank4',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',
+     'fc',         '', 'speeddist',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',
+     'fe',   'linear',  'djdrank4',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',
+     'fe',   'linear', 'speeddist',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',
 )
 
 filenames_df <- filenames_df |> 
   unnest(splits1) |> 
   unnest(splits2) |> 
-  # mutate(csv_file = ifelse(target == 'fc', 'test_target', 'test_fc')) |> 
-  mutate(filename = paste("ML",
-                          str_to_upper(target),
-                          paste0("F", set),
-                          paste0("test", splits1, split_feature1, "test", splits2, split_feature2),
-                          transform,
-                          paste0(csv_file, '.csv'),
-                          sep = '_') |> 
-           str_remove_all('NA') |> 
-           str_replace_all('__', '_'),
-         split = paste(splits1, splits2, sep = ', ') |> str_remove_all(', NA'))
+  mutate(
+    testsplit1 = str_c("test", splits1, split_feature1),
+    testsplit2 = str_c("test", splits2, split_feature2),
+    filename_base = str_c(
+      "ML",
+      str_to_upper(target),
+      str_c("F", set),
+      str_c(
+        coalesce(str_c(testsplit1, testsplit2), testsplit1),
+        ifelse(transform == "", "", str_c("_", transform))
+      ),
+      sep = '_'
+    ),
+    split = coalesce(
+      str_c(splits1, splits2, sep = ', '),
+      splits1
+    ),
+    filename = str_c(
+      filename_base,
+      str_c(csv_file, '.csv'),
+      sep = '_'
+    ),
+    filename_within = str_c(
+      filename_base |> str_replace_all('test', 'train'),
+      str_c(csv_file_within, '.csv'),
+      sep = '_'
+    )
+  )
+
+filenames_df |> select(filename_base, split, filename, filename_within)
 ```
 
-# Generalized
+# Load out of domain data
+
 ```{r}
 metric_table <- tibble()
 
 for(i in 1:nrow(filenames_df)){
       row <- filenames_df[i, ]
-      df <- read_csv(file.path(mltrackeddatapath, row$filename),
-                     show_col_types = FALSE) |> 
-        select(-params) |> 
-        pivot_longer(-c(model, class_name), names_to = 'metric') |> 
+      df <- read_csv(
+        file.path(mltrackeddatapath, row$filename),
+        show_col_types = FALSE,
+        col_select = -params
+      ) |> 
+        pivot_longer(
+          -c(model, class_name),
+          names_to = "metric",
+          values_to = "transfer_error") |> 
         bind_cols(row |> select(set, split, target, transform))
       metric_table <- bind_rows(metric_table, df)
 }
 
 metric_table <- metric_table |> 
-  mutate(set = paste(set, target, sep = '_')) |>
-  mutate(set = factor(set,
-                      levels = c('speeddist_fe', 'djdrank4_fe', 'work_fe', 'oecd_fe', 'djdrank10_fe',
-                                 'speeddist_fc', 'djdrank4_fc', 'work_fc', 'oecd_fc', 'djdrank10_fc'),
-                      labels = c('FE Speed & Distance', 'FE Calc Components', 'FE Work', 'FE OECD', 'FE Preferred',
-                                 'FC Speed & Distance', 'FC Calc Components', 'FC Work', 'FC OECD', 'FC Preferred'),
-                      ordered = TRUE))
-```
-
-```{r}
-best_stat_function <- function(stat, value){
-  if(stat %in% c('mae', 'mape', 'rmse', 'ate')){
-    return(min(value))
-  }else if(stat %in% c('r2')){
-    return(max(value))
-  }
-}
+  mutate(
+    set = as_factor(str_c(set, target, sep = '_')),
+    set = fct_recode(set,
+      "FE Speed & Distance" = "speeddist_fe",
+      "FE Calc Components" = "djdrank4_fe",
+      "FE Work" = "work_fe",
+      "FE OECD" = "oecd_fe",
+      "FE Preferred" = "djdrank10_fe",
+      "FC Speed & Distance" = "speeddist_fc",
+      "FC Calc Components" = "djdrank4_fc",
+      "FC Work" = "work_fc",
+      "FC OECD" = "oecd_fc",
+      "FC Preferred" = "djdrank10_fc"
+    ),
+    set = fct_relevel(set,
+      "FE Speed & Distance",
+      "FE Calc Components",
+      "FE Work",
+      "FE OECD",
+      "FE Preferred",
+      "FC Speed & Distance",
+      "FC Calc Components",
+      "FC Work",
+      "FC OECD",
+      "FC Preferred"
+    )
+  )
 ```
 
 
 # Functions
+
 ```{r}
-stat_plot_best <- function(metric_table, stat, ylims = c(NA, NA)){
+best_stat_function <- function(stat, value){
+  if (stat %in% c('mae', 'mape', 'rmse', 'ate')) {
+    min(value)
+  } else if(stat %in% c('r2')) {
+    max(value)
+  } else {
+    stop(paste(stat, "is an unknown statistic"))
+  }
+}
+```
+
+```{r}
+# stat_plot_best <- function(
+#     metric_table,
+#     trans_error_stat = "transfer_error",
+#     pred_error_stat = "mae",
+#     models = "all",
+#     ylims = c(NA, NA)
+#   ){
+#   
+#   stat_table <- metric_table |> 
+#     filter(metric == stat)
+#   
+#   if (stat == 'te') {
+#     stat_table <- stat_table |>
+#       rename('te' = value) |>
+#       mutate(value = abs(te))
+#     stat <- 'ate'
+#   }
+#   
+#   stat_table <- stat_table |>
+#     group_by(set, split) |> 
+#     filter(value == best_stat_function(stat, value)) |> 
+#     ungroup() |> 
+#     select(set, split, value) 
+#     # pivot_wider(names_from = split, values_from = value, names_prefix = 'quart') %>%
+#     # mutate(mean = rowMeans(select(., starts_with('quart'))))
+#     
+#   stat_plot <- stat_table |> 
+#     ggplot(aes(x = split, y = value, fill = set)) +
+#     geom_col(position = 'dodge') +
+#     geom_hline(aes(yintercept = mean, color = set),
+#                linetype = 'dashed',
+#                data = stat_table |> group_by(set) |> summarise(mean = mean(value))) +
+#     scale_fill_manual(values = pres_palette) +
+#     scale_color_manual(values = pres_palette) +
+#     theme_pres(base_size) +
+#     labs(y = str_to_upper(stat),
+#          x = 'Test split',
+#          fill = 'Feature set',
+#          color = 'Feature set') +
+#     coord_cartesian(ylim = ylims) +
+#     theme(axis.text.x = element_text(angle = 45, hjust = 1))
+#   # display plot
+#   return(stat_plot)
+# }
+```
+
+```{r}
+stat_plot_model <- function(
+    metric_table,
+    trans_error_stat = NULL,
+    pred_error_stat = NULL,
+    models = NULL,
+    best_model_only = FALSE,
+    ylims = c(NA, NA)
+  ){
   
-  stat_table <- metric_table |> 
-    filter(metric == stat)
+  metric_table <- metric_table |> 
+    filter(metric == pred_error_stat)
   
-  if(stat == 'te'){
-    stat_table <- stat_table |>
-      rename('te' = value) |>
-      mutate(value = abs(te))
-    stat <- 'ate'
+  if (pred_error_stat == 'te') {
+    metric_table <- metric_table |> 
+      mutate(!!sym(trans_error_stat) := abs(!!sym(trans_error_stat)))
+    pred_error_stat <- 'ate'
   }
   
-  stat_table <- stat_table |>
-    group_by(set, split) |> 
-    filter(value == best_stat_function(stat, value)) |> 
-    ungroup() |> 
-    select(set, split, value) 
-    # pivot_wider(names_from = split, values_from = value, names_prefix = 'quart') %>%
-    # mutate(mean = rowMeans(select(., starts_with('quart'))))
-    
-  stat_plot <- stat_table |> 
-    ggplot(aes(x = split, y = value, fill = set)) +
+  if (best_model_only) {
+    metric_table <- metric_table |> 
+      group_by(set, split) |> 
+      filter(
+        !!sym(trans_error_stat) == best_stat_function(
+          pred_error_stat,
+          !!sym(trans_error_stat)
+        )
+      ) |> 
+      ungroup()
+  if (!is.null(models)) {
+    warning("models argument is ignored when best_model_only is TRUE")
+  }
+  models <- "all"
+  }
+  
+  metric_table <- metric_table |> 
+    filter(
+      if (length(models) > 1 || models != "all") model %in% models else TRUE
+    )
+  
+  group_means <- if (best_model_only) {
+    metric_table |>
+      group_by(set)
+  } else {
+    metric_table |> 
+      group_by(model, set)
+  }
+  
+  group_means <- group_means |> 
+    summarise(mean = mean(!!sym(trans_error_stat)), .groups = "drop")
+  
+  stat_plot <- metric_table |> 
+    ggplot(aes(x = split, y = !!sym(trans_error_stat), fill = set)) +
     geom_col(position = 'dodge') +
     geom_hline(aes(yintercept = mean, color = set),
                linetype = 'dashed',
-               data = stat_table |> group_by(set) |> summarise(mean = mean(value))) +
+               data = group_means) +
     scale_fill_manual(values = pres_palette) +
     scale_color_manual(values = pres_palette) +
     theme_pres(base_size) +
-    labs(y = str_to_upper(stat),
+    labs(y = str_to_upper(pred_error_stat),
          x = 'Test split',
          fill = 'Feature set',
          color = 'Feature set') +
     coord_cartesian(ylim = ylims) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  # display plot
-  return(stat_plot)
-}
-```
-
-```{r}
-stat_plot_model <- function(metric_table, stat, plotmodel, ylims = c(NA, NA)){
   
-  stat_table <- metric_table |> 
-    filter(metric == stat)
-    
-  if(stat == 'te'){
-    stat_table <- stat_table |>
-      rename('te' = value) |>
-      mutate(value = abs(te))
-    stat <- 'ate'
+  if (!best_model_only) {
+    stat_plot <- stat_plot + facet_wrap(~model)
   }
-  
-  stat_table <- stat_table |>
-    filter(model == plotmodel) |>  
-    select(model, set, split, value)
-    
-  stat_plot <- stat_table |> 
-    ggplot(aes(x = split, y = value, fill = set)) +
-    geom_col(position = 'dodge') +
-    geom_hline(aes(yintercept = mean, color = set),
-               linetype = 'dashed',
-               data = stat_table |> group_by(set) |> summarise(mean = mean(value))) +
-    scale_fill_manual(values = pres_palette) +
-    scale_color_manual(values = pres_palette) +
-    theme_pres(base_size) +
-    labs(y = str_to_upper(stat),
-         x = 'Test split',
-         fill = 'Feature set',
-         color = 'Feature set',
-         title = plotmodel) +
-    coord_cartesian(ylim = ylims) +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  # display plot
   return(stat_plot)
 }
 ```
 
-# Best model performance by test split
+# Transfer error
+## Best model for each test domain
 
 ```{r}
-stat_plot_best(metric_table, 'mape') |> print()
+stat_plot_model(
+  metric_table,
+  "transfer_error",
+  "mape",
+  # models = "all",
+  best_model_only = TRUE
+) |> 
+  print()
 ```
 
 ```{r}
-stat_plot_best(metric_table, 'mae') |> print()
+stat_plot_model(
+  metric_table,
+  "transfer_error",
+  "mae",
+  best_model_only = TRUE
+) |> 
+  print()
 ```
 
 ```{r}
-stat_plot_best(metric_table, 'r2', ylims = c(0.8, 1)) |> print()
+stat_plot_model(
+  metric_table,
+  "transfer_error",
+  "te",
+  best_model_only = TRUE
+) |> 
+  print()
+```
+
+## Model-wise performance by test domain
+
+### Calculation
+
+```{r}
+stat_plot_model(
+  metric_table, 
+  "transfer_error",
+  "mape",
+  "eng"
+) |> 
+  print()
 ```
 
 ```{r}
-stat_plot_best(metric_table, 'te') |> print()
+stat_plot_model(
+  metric_table, 
+  "transfer_error",
+  "mae",
+  "eng"
+) |> 
+  print()
 ```
 
-# Model Performance by test split
-
-## Calculation
+### Gradient Boost
 
 ```{r}
-stat_plot_model(metric_table, 'mape', 'eng') |> print()
+stat_plot_model(
+  metric_table, 
+  "transfer_error",
+  "mae",
+  "gb"
+) |> 
+  print()
+```
+
+### Ridge
+
+```{r}
+stat_plot_model(
+  metric_table, 
+  "transfer_error",
+  "mape",
+  "ridge"
+) |> 
+  print()
+```
+
+### All models
+```{r}
+stat_plot_model(
+  metric_table, 
+  "transfer_error",
+  "mape",
+  c("eng", "gb", "lasso", "linear", "rf", "ridge")
+) |> 
+  print()
+```
+
+
+```{r}
+stat_plot_model(
+  metric_table, 
+  "transfer_error",
+  "mae",
+  c("eng", "gb", "lasso", "linear", "rf", "ridge")
+) |> 
+  print()
+```
+
+# Normalization Calculations
+
+```{r}
+metric_table_within <- tibble()
+
+for(i in 1:nrow(filenames_df)){
+      row <- filenames_df[i, ]
+      df <- read_csv(
+        file.path(mltrackeddatapath, row$filename_within),
+        show_col_types = FALSE,
+        col_select = -params
+      ) |> 
+        pivot_longer(
+          -c(model, class_name),
+          names_to = 'metric',
+          values_to = "within_error"
+        ) |> 
+        bind_cols(row |> select(set, split, target, transform))
+      metric_table_within <- bind_rows(metric_table_within, df)
+}
+
+metric_table_within <- metric_table_within |> 
+  mutate(
+    set = as_factor(str_c(set, target, sep = '_')),
+    set = fct_recode(set,
+      "FE Speed & Distance" = "speeddist_fe",
+      "FE Calc Components" = "djdrank4_fe",
+      "FE Work" = "work_fe",
+      "FE OECD" = "oecd_fe",
+      "FE Preferred" = "djdrank10_fe",
+      "FC Speed & Distance" = "speeddist_fc",
+      "FC Calc Components" = "djdrank4_fc",
+      "FC Work" = "work_fc",
+      "FC OECD" = "oecd_fc",
+      "FC Preferred" = "djdrank10_fc"
+    ),
+    set = fct_relevel(set,
+      "FE Speed & Distance",
+      "FE Calc Components",
+      "FE Work",
+      "FE OECD",
+      "FE Preferred",
+      "FC Speed & Distance",
+      "FC Calc Components",
+      "FC Work",
+      "FC OECD",
+      "FC Preferred"
+    )
+  )
 ```
 
 ```{r}
-stat_plot_model(metric_table, 'mae', 'eng') |> print()
+metric_table <- metric_table |>
+  left_join(metric_table_within,
+    by = c("model", "class_name", "metric", "set", "split", "target", "transform")
+  ) |> 
+  # filter(model != "cb") |>
+  mutate(transfer_deterioration = transfer_error/within_error) |> 
+  group_by(metric, split) |> 
+  mutate(min_within_error = min(within_error)) |> 
+  mutate(norm_transfer_error = transfer_error/min(within_error))
 ```
 
-## Gradient Boost
 
+### Calc checks
 ```{r}
-stat_plot_model(metric_table, 'mape', 'gb') |> print()
+metric_table |> 
+  filter(metric == 'mape') |> 
+  separate(set, c(NA, "vars"), sep = ' ', extra = "merge") |> 
+  group_by(target, split, vars) |> 
+  filter(within_error == min(within_error)) |> 
+  select(target, model, split, vars, within_error) |> 
+  pivot_wider(names_from = target, values_from = c(within_error, model)) |> 
+  arrange(split)
 ```
 
-## Ridge
+
+Check own normalized transfer error is 1 for eng
 
 ```{r}
-stat_plot_model(metric_table, 'mape', 'ridge') |> print()
+metric_table |> 
+  filter(metric == 'mae') |> 
+  select(model, set, split, target, transform, within_error, norm_transfer_error, transfer_deterioration) |> 
+  filter(model == 'eng')
+```
+
+Which have own normalized trarnsfer error \< 1?
+
+```{r}
+metric_table |> 
+  filter(model != 'eng') |>
+  filter(transfer_deterioration < 1) |>
+  filter(metric != 'r2') |> 
+  filter(metric != 'te')
+```
+
+# Within domain error
+```{r}
+metric_table |> 
+  filter(metric == 'mae') |> 
+  ggplot(aes(x = model, y = within_error, fill = set)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~split) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+# histogram of within domain error
+metric_table |> 
+  filter(metric == 'mae') |> 
+  ggplot(aes(x = within_error, fill = model)) +
+  geom_histogram() +
+  facet_wrap(~split)
+```
+
+All models
+```{r}
+stat_plot_model(
+  metric_table,
+  "within_error",
+  "mae",
+  "all"
+) |> 
+  print()
+```
+
+# Normalized Transfer Error
+## Model-wise performance by test domain
+
+### Gradient Boost
+
+```{r}
+stat_plot_model(
+  metric_table,
+  "norm_transfer_error",
+  "mape",
+  "gb"
+) |> 
+  print()
 ```
 
 ## All models
-
 ```{r}
-stat <- 'mape'
-
-stat_table <- metric_table |> 
-    filter(metric == stat)
-    
-  if(stat == 'te'){
-    stat_table <- stat_table |>
-      rename('te' = value) |>
-      mutate(value = abs(te))
-    stat <- 'ate'
-  }
-  
-  stat_table |> 
-    ggplot(aes(x = split, y = value, fill = set)) +
-    geom_col(position = 'dodge') +
-    geom_hline(aes(yintercept = mean, color = set),
-               linetype = 'dashed',
-               data = stat_table |> group_by(set, model) |> summarise(mean = mean(value), .groups = 'drop')) +
-    scale_fill_manual(values = pres_palette) +
-    scale_color_manual(values = pres_palette) +
-    theme_pres(base_size) +
-    labs(y = str_to_upper(stat),
-         x = 'Test split',
-         fill = 'Feature set',
-         color = 'Feature set') +
-    facet_wrap(~model)
+stat_plot_model(
+  metric_table,
+  "norm_transfer_error",
+  "mape",
+  "all"
+) |> 
+  print()
 ```
 
-# Average performance across feature sets
+# Transfer Deterioration
+## Model-wise performance by test domain
 
+### Gradient Boost
 ```{r}
-stat <- 'mape'
-
-metric_table |> 
-  filter(metric == stat) |> 
-  group_by(model, class_name, set, metric) |> 
-  summarise(value = mean(value), .groups = 'drop') |> 
-  pivot_wider(names_from = set, values_from = value) |>
-  select(-metric, -model) |> 
-  arrange(class_name)
-
-metric_table |> 
-  filter(metric == stat) |> 
-  group_by(model, class_name, set, metric) |> 
-  summarise(value = sd(value), .groups = 'drop') |> 
-  pivot_wider(names_from = set, values_from = value) |>
-  select(-metric, -model) |> 
-  arrange(class_name)
-
-metric_table |> 
-  filter(metric == stat) |> 
-  group_by(model, class_name, set, metric) |> 
-  summarise(value = sd(value)/mean(value), .groups = 'drop') |> 
-  pivot_wider(names_from = set, values_from = value) |>
-  select(-metric, -model) |> 
-  arrange(class_name)
+stat_plot_model(
+  metric_table,
+  "transfer_deterioration",
+  "mape",
+  "gb"
+) |> 
+  print()
 ```
+
+## All models
+```{r}
+stat_plot_model(
+  metric_table,
+  "transfer_deterioration",
+  "mape",
+  c("eng", "gb", "lasso", "linear", "rf", "ridge")
+) |> 
+  print()
+```
+
+
+# END
