@@ -1,0 +1,169 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+ 
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{example}{Example}
+\newtheorem{definition}{Definition}
+
+
+
+\begin{document}
+
+\section{Structural estimation of fuel consumption}
+
+Consider the following parameterization of structural model of fuel consumption. For ship $i$ in hour $j$, let
+\begin{equation}
+\frac{W_{ME,{ij}} }{W_{ME,ref} }= C\tilde t_{ij}^{0.66}\tilde v_{ij}^{3}
+\end{equation}
+with $\tilde t_{ij}:=\frac{t_{ij}}{t_{ref}} $ and $\tilde v_{ij}:=\frac{v_{ij}}{v_{ref}}$
+and
+\begin{equation}\label{eq:sfc}
+SFC_{ME_{ij}} = SFC_{base} \cdot \left(\beta_1 - 1.6 \beta_2 \frac{W_{ME,ij}}{W_{ME,ref} } +  \beta_2\left( \frac{W_{ME,ij}}{W_{ME,ref}} \right)^2  \right).
+\end{equation}
+where the choice of $ - 1.6\beta_2$ is motivated by the assumption that $SFC_{ME_{ij}} $ is minimized at fuel efficient point of $ \frac{W_{ME,ij}}{W_{ME,ref} }=0.8$.\footnote{The first order condition of minimizing $f(x)=\theta_1 + \tilde\theta_2 x + \tilde\theta_3 x^2$ gives $x = - \tilde\theta_2/\tilde\theta_3$. When $x=0.8$, $\tilde\theta_2 = -1.6 \tilde\theta_3$.} Here, the unkonwn parameters are $C$, $\tilde\theta_1$, and $\tilde\theta_3$.
+
+Then, from (1)-(2),
+\begin{align*}
+FC_{ME,ij} &= W_{ME,ij}SFC_{ME_{ij}} =    \theta_1\tilde t_{ij}^{0.66}\tilde v_{ij}^{3} + \theta_2  \left(\tilde t_{ij}^{0.66}\tilde v_{ij}^{3} \right)^2 +   \theta_3 \left( \tilde t_{ij}^{0.66}\tilde v_{ij}^{3} \right)^3 
+\end{align*}
+where $\theta_1 := \beta_1C$, $\theta_2:=-1.6\beta_2C^2$, and $\theta_3 := \beta_2C^3$.
+
+Because we observe aggregate fuel consumption over the period of one year, we sum up over $j$'s to obtain a specification for annual fuel consumption as
+\begin{align}\label{model-1}
+\frac{FC_{ME,i} }{ W_{ref} SFC_{base}}
+&=  \theta_1  \sum_{j} \tilde t_{ij}^{0.66}\tilde v_{ij}^{3}  + \theta_2  \sum_{j} \left(\tilde t_{ij}^{0.66}\tilde v_{ij}^{3}  \right)^2 +   \theta_3 \sum_{j}\left( \tilde t_{ij}^{0.66}\tilde v_{ij}^{3}  \right)^3.
+\end{align}
+
+
+Let $y_i = \frac{FC_{ME,i} }{ W_{ref} SFC_{base} }$,   $\boldsymbol{\theta}=(\theta_0,\theta_1,\theta_2)^\top$, and $\mathbf x_i=(x_{1i},x_{2i},x_{3i})^\top$ with $x_{1i}:= \sum_{j} \tilde t_{ij}^{0.66}\tilde v_{ij}^{3} $, $x_{2i}:= \sum_{j} \left(\tilde t_{ij}^{0.66}\tilde v_{ij}^{3} \right)^2 $, and $x_{3i}:= \sum_{j}\left( \tilde t_{ij}^{0.66}\tilde v_{ij}^{3}  \right)^3$. Then, we may estimate $\boldsymbol{\theta}$ by
+\[
+\hat{\boldsymbol{\theta}} = \min_{\boldsymbol{\theta}\in\Theta} \sum_{i=1}^n (y_i - \mathbf{x}_i^\top\boldsymbol{\theta})^2.
+\]
+
+
+We may also extend the above model by specifying so that $\theta_0$, $\theta_1$, and $\theta_2$ depend on $\mathbf{1}\left\{\frac{W_{ME,ij}}{W_{ME,ref}} >0.8\right\}$ to allow for the asymmetry around the optimal fuel efficiency point.
+Specifically, we may allow $\tilde\theta_1$ and $\tilde\theta_3$ to depend on $\mathbf{1}\left\{\frac{W_{ME,ij}}{W_{ME,ref}} >0.8\right\}$ in Equation (\ref{eq:sfc}) so that $\tilde\theta_1=\tilde\theta_{10} +\tilde\theta_{11} \mathbf{1}\left\{\frac{W_{ME,ij}}{W_{ME,ref}} >0.8\right\}$ and $\tilde\theta_3=\tilde\theta_{30} +\tilde\theta_{31} \mathbf{1}\left\{\frac{W_{ME,ij}}{W_{ME,ref}} >0.8\right\}$. Then, repeating the above argument and aggregating over $j$'s gives
+\begin{align*}
+\frac{FC_{ME,i}}{ W_{ref} SFC_{base}}
+ &=   \theta_1  \cdot  \sum_{j} \frac{W_{ME,ij}}{W_{ME,ref} } \ + \theta_2  \sum_{j} \left(\frac{W_{ME,ij}}{W_{ME,ref} }\right)^2 +   \theta_3 \cdot \sum_{j}\left( \frac{W_{ME,ij}}{W_{ME,ref}} \right)^3 \\
+ &\quad+\theta_4  \cdot  \sum_{j}  \mathbf{1}\left\{\frac{W_{ME,ij}}{W_{ME,ref}} >0.8\right\} \frac{W_{ME,ij}}{W_{ME,ref} } \ + \theta_5  \sum_{j}  \mathbf{1}\left\{\frac{W_{ME,ij}}{W_{ME,ref}} >0.8\right\}\left(\frac{W_{ME,ij}}{W_{ME,ref} }\right)^2 \\
+ &\quad +   \theta_6 \cdot \sum_{j} \mathbf{1}\left\{\frac{W_{ME,ij}}{W_{ME,ref}} >0.8\right\}\left( \frac{W_{ME,ij}}{W_{ME,ref}} \right)^3.
+\end{align*}
+
+We may test the assumption of symmetry by testing $\theta_4=\theta_5=\theta_6=0$.
+
+
+Furthermore, we may specify  $\theta_0$, $\theta_1$, and $\theta_2$  in terms of observed ship characteristics.
+
+\section{Extended structural model}
+
+As an extension, we treat the exponents of $\tilde t_{ij}$ and $\tilde v_{ij}$ as unknown parameters as:
+\begin{equation}
+\frac{W_{ME,{ij}} }{W_{ME,ref} }= C\tilde t_{ij}^{\alpha_1}\tilde v_{ij}^{\alpha_2}.
+\end{equation}
+%with $\tilde t_{ij}:=\frac{t_{ij}}{t_{ref}} $ and $\tilde v_{ij}:=\frac{v_{ij}}{v_{ref}}$
+%C_{ij}  \cdot \left( \frac{t_{ij}}{t_{ref}} \right)^{0.66} \cdot \left( \frac{v_{ij}}{v_{ref}} \right)^{3}
+%\end{equation}
+%with 
+%\[
+%C_{ij}=C\left(\frac{t_{ij}}{t_{ref}} \right)^{\alpha_1}\left( \frac{v_{ij}}{v_{ref}}\right)^{\alpha_2}
+%\]
+%and
+%\begin{equation}\label{eq:sfc}
+%SFC_{ME_{ij}} = SFC_{base} \cdot \left( \beta_1 - 1.6 \beta_2 \frac{W_{ME,ij}}{W_{ME,ref} } +  \beta_2\cdot\left( \frac{W_{ME,ij}}{W_{ME,ref}} \right)^2  \right),
+%\end{equation}
+%where the choice of $ - 1.6\beta_2$ is motivated by the assumption that $SFC_{ME_{ij}} $ is minimized at fuel efficient point of $ \frac{W_{ME,ij}}{W_{ME,ref} }=0.8$.\footnote{The first order condition of minimizing $f(x)=a x^2+b x + c $ gives $x = - b/a$. When $x=0.8$, $b = -1.6a$.} Here, the unkonwn parameters are $C$, $\alpha_1$, $\alpha_2$,  $\beta_1$, and $\beta_2$.
+
+Then, because the annual fuel consumption   is determined as $FC_{ME,i}=\sum_{j} SFC_{ME_{ij}} W_{ME,{ij}} $, we have
+\begin{align}
+\frac{FC_{ME,i}}{ W_{ref} SFC_{base} } &=   \theta_1  \sum_{j}\tilde t_{ij}^{\alpha_1}\tilde v_{ij}^{\alpha_2} + \theta_2  \sum_{j}   \left(\tilde t_{ij}^{\alpha_1}\tilde v_{ij}^{\alpha_2}\right)^2 +   \theta_3 \sum_{j}  \left( \tilde t_{ij}^{\alpha_1}\tilde v_{ij}^{\alpha_2} \right)^3, \label{model-2}
+\end{align}
+where $\theta_1=C\beta_1$, $\theta_2=-1.6 C^2\beta_2$, and $\theta_3= C^3\beta_2$.
+
+
+We also consider a more flexible specification of $\frac{W_{ME,{ij}} }{W_{ME,ref} }$ given by
+\[
+\frac{W_{ME,{ij}} }{W_{ME,ref} }=C\psi_1( \tilde t_{ij};\boldsymbol{\gamma}_{1})\psi_2(v_{ij};\boldsymbol{\gamma}_{2})
+\]
+with 
+\begin{align*}
+\psi_1( \tilde t_{ij};\boldsymbol{\gamma}_1)&=\sum_{k=0}^{K} \gamma_{1k} B_{k}\left(\tilde t_{ij} \right)\quad\text{and}\\
+\psi_2( \tilde v_{ij};\boldsymbol{\gamma}_2)&=\sum_{k=0}^{K} \gamma_{2k} B_{k}\left(\tilde v_{ij} \right).
+\end{align*}
+ In this case, we have 
+ \begin{align}\label{model-3}
+\frac{FC_{ME,i}}{ W_{ref} SFC_{base} } &=  \beta_1  \underbrace{\sum_{j}  \psi_1( \tilde t_{ij};\boldsymbol{\gamma}_{1})\psi_2(v_{ij};\boldsymbol{\gamma}_{2})}_{:=\Psi_{1i}(\boldsymbol\gamma)}\nonumber \\
+&\quad+\beta_2  \underbrace{ \sum_{j}   \left(-1.6\left( \psi_1( \tilde t_{ij};\boldsymbol{\gamma}_{1})\psi_2(v_{ij};\boldsymbol{\gamma}_{2})\right)^2 +    \left(  \psi_1( \tilde t_{ij};\boldsymbol{\gamma}_{1})\psi_2(v_{ij};\boldsymbol{\gamma}_{2})\right)^3 \right)}_{:=\Psi_{2i}(\boldsymbol\gamma)}.
+\end{align}
+
+\section{Framework}
+
+Consider a random sample of $n$ observations $S=\{(X_i,Y_i)\}_{i=1}^n$, where $(X_i,Y_i)\overset{iid}{\sim} F(x,y)$. We assume that the data is generated as 
+\[
+Y_i = m(X_i) +\epsilon_i,\quad \epsilon_i|X_i \overset{iid}{\sim} F_\epsilon
+\]
+form some $m(x)$.
+
+We 
+
+\section{Structural model vs. non-parametric model}
+
+We are interested in evaluating the predictive performance of different models when we use the test set in which the support of covariates does not overlap with that in the training set.  
+
+Let $\{Y_i,X_i\}$ be a sample of size $n$ independently drawn from $F(y,x)$. We are interested in predicting the  mean value of $Y$ when $X=x_0$, where $x_0$ is located outside of the support of $F(y,x)$. Let $f(x)$ be the probability density function $X$.
+
+The predictive ability of estimated models depends on how far away the location of $x_0$ is from the distribution of $X_i$ in the effective sample used in the estimation of predictive models.
+
+
+ Let $\rho:\mathcal{P}\times  \mathcal{X}\rightarrow \mathbb{R}$ be a distance measure between a distribution function and a point. For example, when we use  the Euclidean distance between the mean of the distribution and the point as a measure, $\rho(f(x),x_0)=|| \int x f(x)dx-x_0||$.
+
+
+
+\begin{example}[Local  linear regression]
+Given $x_0$, we construct a predictive model based on local polynomial regression at $x_d$ given a bandwidth $h$ as:
+\[
+\hat\theta(x_d,h) = \arg\min_{\theta} \sum_{i=1}^n w_{h}(|X_i-x_d|) (Y_i-X_i^\top \theta)^2.
+\]
+  In this case, the ``effective'' sample distribution that is used for estimating this local polynomial regression is given by
+\[
+g_{h,x_d}(x) = \frac{f(x) \times w_{h}(|x-x_d|)}{\int f(x) \times w_{h}(|x-x_d|) dx}.
+\]
+
+
+
+
+
+Then, we define the distance between the effective sampling distribution $g_{h,x_d}$ and $x_0$ by $\rho(g_{h,x_d},x_0)$.
+ 
+\end{example}
+
+
+
+\begin{example}[Structural models]
+
+The structural models (\ref{model-1})-(\ref{model-3}) are estimated using the sample distribution $f(x)$. Therefore, the distance between the sample distribution and the evaluation point $x_0$ is $\rho(f(x),x_0)$.
+
+
+
+\end{example}
+
+We expect that the bias is an increasing function of the distance between the effective sampling distribution and the evaluation point $x_0$. On the other hand, the variance is a decreasing function of the effective sample size.
+
+For each predictive model, we will illustrate how the bias and the variance depends on  the distance between the effective sampling distribution  and the evaluation point as well as the effective sample size.
+
+%\subsection{Effective distance and effective sample sizes}
+
+
+
+
+Suppose we want to evaluate the predictive performance at $x_0$.
+
+
+
+
+\end{document} 
