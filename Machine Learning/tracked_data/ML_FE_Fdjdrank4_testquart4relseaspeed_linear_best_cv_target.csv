@@ -1,0 +1,7 @@
+model,class_name,best_cv_mean_score,best_cv_std_score,best_params
+rf,RandomForestRegressor,-0.01184898339697224,0.0018981973617160223,"{'max_depth': 10, 'n_estimators': 200}"
+cb,CatBoostRegressor,-0.012060590171574296,0.0019691878751957074,"{'depth': 6, 'l2_leaf_reg': 7, 'learning_rate': 0.05}"
+gb,GradientBoostingRegressor,-0.012619608965160683,0.0019479456270140752,"{'learning_rate': 0.005, 'max_depth': 6}"
+ridge,Ridge,-0.01370757856130667,0.0017303847997702261,{'alpha': 100}
+lasso,Lasso,-0.013872909637415765,0.002399987547810526,{'alpha': 0.005}
+linear,LinearRegression,-0.014075789004580588,0.0015075706263797891,{}

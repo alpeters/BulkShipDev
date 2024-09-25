@@ -1,0 +1,3 @@
+model,class_name,best_cv_mean_score,best_cv_std_score,best_params
+linear,LinearRegression,-0.00012136843873483826,7.679458296799626e-06,{}
+linearstruct,LinearRegression,-0.00012153155842345323,9.184672552346265e-06,{'fit_intercept': False}

@@ -1,0 +1,8 @@
+model,class_name,name,type,scaling,fast
+gb,GradientBoostingRegressor,Gradient Boosting,tree,False,True
+linear,LinearRegression,Linear Regression,linear,False,True
+lasso,Lasso,Lasso,linear,True,True
+ridge,Ridge,Ridge,linear,True,True
+rf,RandomForestRegressor,Random Forest,tree,False,False
+cb,CatBoostRegressor,Cat Boost,tree,False,False
+linearstruct,LinearRegression,Linear Regression,linear,False,False

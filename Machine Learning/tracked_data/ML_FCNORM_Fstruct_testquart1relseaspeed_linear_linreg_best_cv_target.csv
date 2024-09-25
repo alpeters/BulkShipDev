@@ -1,0 +1,2 @@
+model,class_name,best_cv_mean_score,best_cv_std_score,best_params
+linear,LinearRegression,-0.0001704896897348606,3.124795983627345e-05,{}

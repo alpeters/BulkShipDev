@@ -1,0 +1,18 @@
+parameter,value
+y_transformer_func,<ufunc 'log1p'>
+y_transformer_inverse_func,<ufunc 'expm1'>
+tol_type,abs
+outlier_threshold,inf
+feature_set,speeddist
+no_transform,False
+test_exp,df_ml_raw['Dwt'].apply(lambda x: x > percentile_75(df_ml_raw['Dwt']))
+train_exp,~df_ml_raw['Dwt'].apply(lambda x: x > percentile_75(df_ml_raw['Dwt']))
+cv_folds,5
+cv_scoring,neg_mean_absolute_error
+train_eval_type,repkfold
+eval_types_dict,"{'gridsearch': 5, 'lpo': LeavePOut(p=2), 'kfold': 10, 'repkfold': RepeatedKFold(n_repeats=3, n_splits=10, random_state=2652124)}"
+datapath,Machine Learning/data/
+trackeddatapath,Machine Learning/tracked_data/
+plotpath,Machine Learning/plots/
+fileprefix,ML_FC_Fspeeddist_testquart4dwt_
+model_df_filename,mdl_df
