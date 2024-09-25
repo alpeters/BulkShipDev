@@ -37,17 +37,19 @@ pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a", "#0072B2", "#F0E
 
 ```{r}
 filenames_df <- tribble(
-  ~target, ~transform,        ~set, ~split_feature1,                ~splits1, ~split_feature2,         ~splits2,     ~csv_file,   ~csv_file_within,
-     # 'fc',         "", 'djdrank10',   'relseaspeed', paste0("quart", c(1,4)),       'draught', c('high', 'low'), 'test_target',     'train_target',
-     # 'fe',   'linear', 'djdrank10',   'relseaspeed', paste0("quart", c(1,4)),       'draught', c('high', 'low'),     'test_fc',         'train_fc',
-     'fc',         "", 'djdrank10',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',
-     'fe',   'linear', 'djdrank10',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',
-     'fc',         '',      'oecd',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',
-     'fe',   'linear',      'oecd',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',
-     'fc',         '',  'djdrank4',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',
-     'fc',         '', 'speeddist',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',
-     'fe',   'linear',  'djdrank4',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',
-     'fe',   'linear', 'speeddist',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',
+  ~target, ~transform,   ~models,        ~set, ~split_feature1,                ~splits1, ~split_feature2,         ~splits2,     ~csv_file,   ~csv_file_within,
+     # 'fc',           "",        "", 'djdrank10',   'relseaspeed', paste0("quart", c(1,4)),       'draught', c('high', 'low'), 'test_target',     'train_target',
+     # 'fe',     'linear',       "", 'djdrank10',   'relseaspeed', paste0("quart", c(1,4)),       'draught', c('high', 'low'),     'test_fc',         'train_fc',
+     'fc',           "",       "", 'djdrank10',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',
+     # 'fe',     'linear',       "", 'djdrank10',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',
+     # 'fc',           '',       "",    'oecd',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',
+     # 'fe',     'linear',       "",      'oecd',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',
+     # 'fc',           '',       "",  'djdrank4',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',
+     # 'fc',           '',       "", 'speeddist',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',
+     # 'fe',     'linear',       "",  'djdrank4',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',
+     'fe',     'linear',       "", 'speeddist',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',
+     'fc',           '',       "",      'work',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',
+     'fcnorm', 'linear', "struct",   'struct',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',
 )
 
 filenames_df <- filenames_df |> 
@@ -62,7 +64,8 @@ filenames_df <- filenames_df |>
       str_c("F", set),
       str_c(
         coalesce(str_c(testsplit1, testsplit2), testsplit1),
-        ifelse(transform == "", "", str_c("_", transform))
+        ifelse(transform == "", "", str_c("_", transform)),
+        ifelse(models == "", "", str_c("_", models))
       ),
       sep = '_'
     ),
@@ -118,7 +121,8 @@ metric_table <- metric_table |>
       "FC Calc Components" = "djdrank4_fc",
       "FC Work" = "work_fc",
       "FC OECD" = "oecd_fc",
-      "FC Preferred" = "djdrank10_fc"
+      "FC Preferred" = "djdrank10_fc",
+      "FC Norm Structural" = "struct_fcnorm"
     ),
     set = fct_relevel(set,
       "FE Speed & Distance",
@@ -130,11 +134,11 @@ metric_table <- metric_table |>
       "FC Calc Components",
       "FC Work",
       "FC OECD",
-      "FC Preferred"
+      "FC Preferred",
+      "FC Norm Structural"
     )
   )
 ```
-
 
 # Functions
 
@@ -320,7 +324,7 @@ stat_plot_model(
   metric_table, 
   "transfer_error",
   "mape",
-  c("eng", "gb", "lasso", "linear", "rf", "ridge")
+  c("eng", "gb", "lasso", "linear", "rf", "ridge", "linearstruct")
 ) |> 
   print()
 ```
@@ -370,7 +374,8 @@ metric_table_within <- metric_table_within |>
       "FC Calc Components" = "djdrank4_fc",
       "FC Work" = "work_fc",
       "FC OECD" = "oecd_fc",
-      "FC Preferred" = "djdrank10_fc"
+      "FC Preferred" = "djdrank10_fc",
+      "FC Norm Structural" = "struct_fcnorm"
     ),
     set = fct_relevel(set,
       "FE Speed & Distance",
@@ -382,7 +387,8 @@ metric_table_within <- metric_table_within |>
       "FC Calc Components",
       "FC Work",
       "FC OECD",
-      "FC Preferred"
+      "FC Preferred",
+      "FC Norm Structural"
     )
   )
 ```
@@ -390,7 +396,7 @@ metric_table_within <- metric_table_within |>
 ### Calcs
 ```{r}
 metric_table <- metric_table |>
-  filter(model != "cb") |>
+  # filter(model != "cb") |>
   # filter(!(metric %in% c("r2", "te"))) |> 
   left_join(metric_table_within,
     by = c("model", "class_name", "metric", "set", "split", "target", "transform")
@@ -465,6 +471,18 @@ stat_plot_model(
 ```
 
 # Normalized Transfer Error
+## Best model for each test domain
+```{r}
+stat_plot_model(
+  metric_table,
+  "norm_transfer_error",
+  "mae",
+  best_model_only = TRUE
+) |> 
+  print()
+```
+
+
 ## Model-wise performance by test domain
 
 ### Gradient Boost
@@ -501,6 +519,18 @@ stat_plot_model(
 ```
 
 # Transfer Deterioration
+## Best model for each test domain
+```{r}
+stat_plot_model(
+  metric_table |> filter(model != "eng"),
+  "transfer_deterioration",
+  "mape",
+  best_model_only = TRUE
+) |> 
+  print()
+  # ggplotly()
+```
+
 ## Model-wise performance by test domain
 ### Ridge
 ```{r}
@@ -531,10 +561,22 @@ stat_plot_model(
   metric_table,
   "transfer_deterioration",
   "mape",
-  c("eng", "gb", "lasso", "linear", "rf", "ridge")
+  # "all"
+  c("eng", "gb", "lasso", "linear", "rf", "ridge", "linearstruct")
+) |> 
+  # print()
+  ggplotly()
+```
+
+```{r}
+stat_plot_model(
+  metric_table,
+  "transfer_deterioration",
+  "mae",
+  # "all"
+  c("eng", "gb", "lasso", "linear", "rf", "ridge", "linearstruct")
 ) |> 
   print()
 ```
-
 
 # END
