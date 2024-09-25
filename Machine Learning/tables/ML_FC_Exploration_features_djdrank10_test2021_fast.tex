@@ -1,0 +1,43 @@
+
+\begin{tabular}[t]{>{\raggedright\arraybackslash}p{16em}>{\raggedright\arraybackslash}p{30em}}
+\toprule
+Variable & Description\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{2}{l}{\textbf{Ship Characteristics}}\\
+\hspace{1em}Age & Age at observation (years)\\
+\hspace{1em}Beam Moulded & Maximum width (meters)\\
+\hspace{1em}Deadweight Tonnage & Capacity (tonnes)\\
+\hspace{1em}Draft & Maximum draft (meters)\\
+\hspace{1em}Gross Tonnage & Nonlinear measure of internal volume\\
+\hspace{1em}Length Between Perpendiculars & Length between the forward and aft perpendiculars (meters)\\
+\hspace{1em}Length Overall & Total length (meters)\\
+\hspace{1em}Light Displacement Tonnage & Weight excluding most contents (tonnes)\\
+\hspace{1em}Main Bunker Capacity & Fuel capacity (cubic meters)\\
+\hspace{1em}Main Engine Power & Power rating of main engine (kilowatts)\\
+\hspace{1em}Net Tonnage & Dimensionless index based on the total volume of cargo spaces\\
+\hspace{1em}Size Category & e.g., Handymax, Panamax, etc.\\
+\hspace{1em}Speed & Representative speed from \ac{WFR} (service or average observed) (knots)\\
+\hspace{1em}Tonnage Per Centimeter & Load change required to change draft by one centimeter (tonnes/cm)\\
+\addlinespace[0.3em]
+\multicolumn{2}{l}{\textbf{Ship Activity}}\\
+\hspace{1em}At-Port Fraction & Fraction of hourly observations with operational phase ‘at-port’\\
+\hspace{1em}Distance Travelled & Distance calculated from AIS data (nautical miles)\\
+\hspace{1em}Number Of Trips & Number of trips detected from AIS data\\
+\addlinespace[0.3em]
+\multicolumn{2}{l}{\textbf{Calculated}}\\
+\hspace{1em}Admiralty Draft Term & Aggregation of draft term of (\ref{eqn:admiralty}), calculated as $\sum (t/t_{\textit{ref}})^{0.66}$\\
+\hspace{1em}Admiralty Rel Power & Aggregation of relative power term of (\ref{eqn:admiralty}), calculated as\\
+\hspace{1em}Admiralty Rel Power Cubed & Aggregation of relative power term of (\ref{eqn:admiralty}) cubed, calculated as\\
+\hspace{1em}Admiralty Rel Power Squared & Aggregation of relative power term of (\ref{eqn:admiralty}) squared, calculated as\\
+\hspace{1em}Admiralty Speed Term & Aggregation of speed term of (\ref{eqn:admiralty}), calculated as $\sum (v/v_{\textit{ref}})^{3}$\\
+\hspace{1em}Calculated Fuel Consumption & Theoretical fuel consumption, calculated as per (\ref{eqn:annual_fc})\\
+\hspace{1em}Main Engine Reference Specific Fuel Consumption & Base value of fuel consumption rating of main engine as per IMO, calculated as\\
+\hspace{1em}Relative Draft & Aggregation of relative draft, calculated as $\sum (t/t_{\textit{ref}})$\\
+\hspace{1em}Relative Speed & Aggregation of relative speed, calculated as $\sum (v/v_{\textit{ref}})$\\
+\addlinespace[0.3em]
+\multicolumn{2}{l}{\textbf{Data Quality}}\\
+\hspace{1em}Infeasible Distance & Sum of infeasible distances between consecutive locations after interpolation (nautical miles)\\
+\hspace{1em}Interpolated Fraction At-Sea & Fraction of hourly observations with operational phase ‘at-sea’ that are interpolated\\
+\bottomrule
+\end{tabular}

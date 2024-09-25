@@ -228,6 +228,8 @@ port_frac
 longest_jump
 total_jump_distance
 missing_frac_sea
+speed_sea_mean
+speed_sea_var
 age
 residual
 log_report_fc

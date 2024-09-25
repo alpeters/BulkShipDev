@@ -242,3 +242,6 @@
 "report_fe","reported annual fuel efficiency","numnonneg",,,"MRV","raw",,,"million tonnes/nautical mile","Mt/nm"
 "log_report_fe","Log reported fuel efficiency",,,,"MRV","raw",,"Log (log1p) reported fuel efficiency",,
 "log_cal_fe","Log annual calculated fuel efficiency",,"calc",,"AIS","derived",,"Log (log1p) calculated fuel efficiency",,
+"t_m_v_n_rel_sum","Structural linear term","numnonneg","calc","variant","AIS+WFR","derived","$\sum (t/t_{\textit{ref}})^{0.66}*v/v_{\textit{ref}})^{3}$","Aggregation of relative draft and speed",,
+"t_m_v_n_rel_squared_sum","Structural squared term","numnonneg","calc","variant","AIS+WFR","derived","$\sum ((t/t_{\textit{ref}})^{0.66}*v/v_{\textit{ref}})^{3})^2$","Aggregation of relative draft and speed squared",,
+"t_m_v_n_rel_cubed_sum","Structural cubed term","numnonneg","calc","variant","AIS+WFR","derived","$\sum ((t/t_{\textit{ref}})^{0.66}*v/v_{\textit{ref}})^{3})^3$","Aggregation of relative draft and speed cubed",,
