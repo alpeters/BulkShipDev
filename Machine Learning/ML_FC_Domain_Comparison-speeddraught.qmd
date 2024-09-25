@@ -35,27 +35,32 @@ pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a")
 ```
 
 ```{r}
-split_feature <- 'relseaspeed' #'dwt' #
-sets <- c('djdrank4', 'speeddist', 'djdrank10', 'oecd')
+split_feature <- c('relseaspeed', 'draught') #'dwt' #
+sets <- c('djdrank4', 'speeddist')  #, 'djdrank10', 'oecd')
 # sets <- c('djdrank4', 'speeddist', 'work', 'djdrank10') #, 'oecd')
 metric_table <- tibble()
 
 for(set in sets){
   # read csv file for each quartile test set
-  for(quart in 1:4){
-    df <- read_csv(file.path(mltrackeddatapath,
-                             paste0("ML_FC_F",
-                                    set,
-                                    "_testquart",
-                                    quart,
-                                    split_feature,
-                                    "_test_fc.csv")),
-                   show_col_types = FALSE) |> 
-      select(-params) |> 
-      pivot_longer(-c(model, class_name), names_to = 'metric') |> 
-      mutate(set = set,
-             quartile = quart)
-    metric_table <- bind_rows(metric_table, df)
+  for(quart in c(1,4)){
+    for(half in c('low', 'high')){
+      df <- read_csv(file.path(mltrackeddatapath,
+                               paste0("ML_FC_F",
+                                      set,
+                                      "_testquart",
+                                      quart,
+                                      split_feature[[1]],
+                                      "test",
+                                      half,
+                                      split_feature[[2]],
+                                      "_test_target.csv")),
+                     show_col_types = FALSE) |> 
+        select(-params) |> 
+        pivot_longer(-c(model, class_name), names_to = 'metric') |> 
+        mutate(set = set,
+               quartile = paste0(quart, half))
+      metric_table <- bind_rows(metric_table, df)
+    }
   }
   
 }
@@ -64,7 +69,11 @@ metric_table <- metric_table |>
   mutate(set = factor(set,
                       levels = c('speeddist', 'djdrank4', 'work', 'oecd', 'djdrank10'),
                       labels = c('Speed & Distance', 'Calc Components', 'Work', 'OECD', 'Preferred'),
-                      ordered = TRUE))
+                      ordered = TRUE),
+         quartile = factor(quartile,
+                           levels = c('1low', '1high', '4low', '4high'),
+                           labels = c('slow,empty', 'slow,full', 'fast,empty', 'fast,full'),
+                           ordered = TRUE))
 ```
 
 ```{r}
@@ -108,10 +117,11 @@ stat_plot_best <- function(metric_table, stat, ylims = c(NA, NA)){
     scale_color_manual(values = pres_palette) +
     theme_pres(base_size) +
     labs(y = str_to_upper(stat),
-         x = 'Test quartile',
+         x = 'Test set',
          fill = 'Feature set',
          color = 'Feature set') +
-    coord_cartesian(ylim = ylims)
+    coord_cartesian(ylim = ylims) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
   # display plot
   return(stat_plot)
 }
@@ -144,17 +154,18 @@ stat_plot_model <- function(metric_table, stat, plotmodel, ylims = c(NA, NA)){
     scale_color_manual(values = pres_palette) +
     theme_pres(base_size) +
     labs(y = str_to_upper(stat),
-         x = 'Test quartile',
+         x = 'Test set',
          fill = 'Feature set',
          color = 'Feature set',
          title = plotmodel) +
-    coord_cartesian(ylim = ylims)
+    coord_cartesian(ylim = ylims) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
   # display plot
   return(stat_plot)
 }
 ```
 
-# Best model performance by test quartile
+# Best model performance by Test set
 
 ```{r}
 stat_plot_best(metric_table, 'mape') |> print()
@@ -172,7 +183,7 @@ stat_plot_best(metric_table, 'r2', ylims = c(0.8, 1)) |> print()
 stat_plot_best(metric_table, 'te') |> print()
 ```
 
-# Model Performance by test quartile
+# Model Performance by test set
 
 ## Calculation
 
@@ -221,10 +232,11 @@ stat_table <- metric_table |>
     scale_color_manual(values = pres_palette) +
     theme_pres(base_size) +
     labs(y = str_to_upper(stat),
-         x = 'Test quartile',
+         x = 'Test set',
          fill = 'Feature set',
          color = 'Feature set') +
-    facet_wrap(~model)
+    facet_wrap(~model) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 # Average performance across feature sets

@@ -10,27 +10,27 @@ import papermill as pm
 import time
 
 # # paths for local
-# notebookpath = 'Machine Learning/ML'
-# notebookoutpath = 'Machine Learning/data/ML'
+notebookpath = 'Machine Learning/ML'
+notebookoutpath = 'Machine Learning/data/ML'
 
 # paths for CC
-notebookpath = 'ML'
-notebookoutpath = 'data/ML'
+# notebookpath = 'ML'
+# notebookoutpath = 'data/ML'
 
 
 #%%
 random_seed = 2652124
-target = 'fe'
+target = 'fcnorm'
 no_transform = True
-fast_only = True
+models = 'struct'
 # feature_sets = ['speeddist'] #['djdrank4']
-feature_sets = ['speeddist'] #, 'djdrank4', 'djdrank10', 'oecd']
+feature_sets = ['struct'] #, 'djdrank4', 'djdrank10', 'oecd']
 # feature_sets = ['djdrank4', 'speeddist'] #, 'work', 'djdrank10', 'oecd', 'djdrank7']
-# split_feature = "relseaspeed" # "dwt" #
-# # test_sets = [["testquart" + str(quart) + split_feature] for quart in list(range(1,5))]
+split_feature = "relseaspeed" # "dwt" #
+test_sets = [["trainquart" + str(quart) + split_feature] for quart in list(range(1,5))]
 # test_sets = [["testquart" + str(quart) + split_feature] for quart in list(range(1,2))]
 
-test_sets = [["testquart4relseaspeed", "testhighdraught"]]
+# test_sets = [["testquart4relseaspeed", "testhighdraught"]]
 # test_sets = [["testquart4relseaspeed", "testhighdraught"],
 #              ["testquart1relseaspeed", "testhighdraught"],
 #              ["testquart4relseaspeed", "testlowdraught"],
@@ -43,8 +43,8 @@ pm.inspect_notebook(notebookpath + '.ipynb')
 for feature_set in feature_sets:
     for test_set_criteria in test_sets:
         out_suffix = target + '_' + feature_set + '_' + ''.join(test_set_criteria)
-        if fast_only:
-            out_suffix += '_fast'
+        if models != 'all':
+            out_suffix += '_' + models
         print(f'Running {out_suffix}...')
         try:
             pm.execute_notebook(
@@ -55,7 +55,7 @@ for feature_set in feature_sets:
                     target=target,
                     no_transform=no_transform,
                     feature_set=feature_set,
-                    fast_only=fast_only,
+                    models=models,
                     test_set_criteria=test_set_criteria)
             )
             print(f'{out_suffix} completed')

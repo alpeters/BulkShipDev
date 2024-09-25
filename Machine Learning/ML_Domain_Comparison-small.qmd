@@ -6,7 +6,7 @@ editor: visual
 
 ```{r}
 library(tidyverse)
-library(kableExtra)
+# library(kableExtra)
 library(readr)
 ```
 
@@ -17,7 +17,7 @@ imagepath = "plots"
 tablepath = "tables"
 mltrackeddatapath = "tracked_data"
 trackeddatapath = "../src/tracked_data"
-fileprefix = "ML_FC_Domain_Comparison_"
+fileprefix = "ML_FE_Domain_Comparison_"
 
 # update_geom_defaults("text", list(size = 20))
 base_size <- 18
@@ -34,11 +34,17 @@ theme_pres <- function(base_size){
 pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a")
 ```
 
+# FC
+
 ```{r}
 split_feature <- 'relseaspeed' #'dwt' #
-sets <- c('djdrank4', 'speeddist', 'djdrank10', 'oecd')
+sets <- c('djdrank4', 'speeddist')
+# sets <- c('djdrank10', 'oecd')
 # sets <- c('djdrank4', 'speeddist', 'work', 'djdrank10') #, 'oecd')
-metric_table <- tibble()
+```
+
+```{r}
+metric_table_fc <- tibble()
 
 for(set in sets){
   # read csv file for each quartile test set
@@ -55,15 +61,53 @@ for(set in sets){
       pivot_longer(-c(model, class_name), names_to = 'metric') |> 
       mutate(set = set,
              quartile = quart)
-    metric_table <- bind_rows(metric_table, df)
+    metric_table_fc <- bind_rows(metric_table_fc, df)
   }
   
 }
 
-metric_table <- metric_table |> 
+metric_table_fc <- metric_table_fc |> 
+  mutate(target = 'fc')
+```
+
+# FE
+
+```{r}
+metric_table_fe <- tibble()
+
+for(set in sets){
+  # read csv file for each quartile test set
+  for(quart in 1:4){
+    df <- read_csv(file.path(mltrackeddatapath,
+                             paste0("ML_FE_F",
+                                    set,
+                                    "_testquart",
+                                    quart,
+                                    split_feature,
+                                    "_linear",
+                                    "_test_fc.csv")),
+                   show_col_types = FALSE) |> 
+      select(-params) |> 
+      pivot_longer(-c(model, class_name), names_to = 'metric') |> 
+      mutate(set = set,
+             quartile = quart)
+    metric_table_fe <- bind_rows(metric_table_fe, df)
+  }
+  
+}
+
+metric_table_fe <- metric_table_fe |> 
+  mutate(target = 'fe')
+```
+
+```{r}
+metric_table <- bind_rows(metric_table_fc, metric_table_fe) |> 
+  mutate(set = paste0(set, '_', target)) |>
   mutate(set = factor(set,
-                      levels = c('speeddist', 'djdrank4', 'work', 'oecd', 'djdrank10'),
-                      labels = c('Speed & Distance', 'Calc Components', 'Work', 'OECD', 'Preferred'),
+                      levels = c('speeddist_fe', 'djdrank4_fe', 'work_fe', 'oecd_fe', 'djdrank10_fe',
+                                 'speeddist_fc', 'djdrank4_fc', 'work_fc', 'oecd_fc', 'djdrank10_fc'),
+                      labels = c('FE Speed & Distance', 'FE Calc Components', 'FE Work', 'FE OECD', 'FE Preferred',
+                                 'FC Speed & Distance', 'FC Calc Components', 'FC Work', 'FC OECD', 'FC Preferred'),
                       ordered = TRUE))
 ```
 

@@ -13,8 +13,10 @@ notebookoutpath = 'Machine Learning/data/ML_FC'
 
 #%%
 fast_only = False
-feature_sets = ['djdrank4', 'speeddist', 'work', 'djdrank10', 'oecd']
-test_sets = ["testquart" + str(quart) + "relseaspeed" for quart in list(range(1,5))]
+feature_sets = ['djdrank10', 'oecd']
+# feature_sets = ['djdrank4', 'speeddist'] #, 'work', 'djdrank10', 'oecd', 'djdrank7']
+split_feature = "dwt" #"relseaspeed" # 
+test_sets = ["testquart" + str(quart) + split_feature for quart in list(range(1,5))]
 
 #%%
 pm.inspect_notebook(notebookpath + '.ipynb')

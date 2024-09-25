@@ -6,7 +6,7 @@ editor: visual
 
 ```{r}
 library(tidyverse)
-library(kableExtra)
+# library(kableExtra)
 library(readr)
 ```
 
@@ -35,7 +35,7 @@ pres_palette <- c("#482677FF", "#1D7C5A", "#A64902", "#e7298a")
 ```
 
 ```{r}
-split_feature <- 'relseaspeed' #'dwt' #
+split_feature <- 'dwt' #'relseaspeed' #
 sets <- c('djdrank4', 'speeddist', 'djdrank10', 'oecd')
 # sets <- c('djdrank4', 'speeddist', 'work', 'djdrank10') #, 'oecd')
 metric_table <- tibble()

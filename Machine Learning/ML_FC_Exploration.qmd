@@ -6,7 +6,7 @@ editor: visual
 
 ```{r}
 library(tidyverse)
-# library(kableExtra)
+library(kableExtra)
 library(readr)
 ```
 
@@ -199,10 +199,11 @@ features_set_desc_table
 
 ```{r}
 features_groups <- read_csv(file.path(mltrackeddatapath, 'ML_FC_variants.csv'), show_col_types = FALSE) |> 
-  select(variable, djbrank, disjoint_b_name) |> 
-  drop_na(disjoint_b_name) |> 
-  mutate(disjoint_b_name = str_to_title(disjoint_b_name)) |> 
-  arrange(djbrank)
+  # select(variable, djbrank, disjoint_b_name) |> 
+  select(variable, djdrank, djdname) |> 
+  drop_na(djdname) |> 
+  mutate(djdname = str_to_title(djdname)) |> 
+  arrange(djdrank)
 
 features_set_desc <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_features.csv') %>%
   file.path(mltrackeddatapath, .) |> 
@@ -210,10 +211,10 @@ features_set_desc <- paste0(str_remove(fileprefix, '_Exploration'), 'F', set, '_
   left_join(features_all_desc, by = 'variable') |> 
   select(-group) |> 
   left_join(features_groups, by = 'variable') |> 
-  mutate(group = factor(djbrank, 
+  mutate(group = factor(djdrank, 
                         ordered = TRUE, 
-                        levels = unique(features_groups$djbrank),
-                        labels = unique(features_groups$disjoint_b_name)),
+                        levels = unique(features_groups$djdrank),
+                        labels = unique(features_groups$djdname)),
          .after = name) |> 
   arrange(group, name)
 ```
@@ -245,7 +246,7 @@ features_set_desc_table <- features_set_desc |>
   mutate(unit = ifelse(is.na(unit),
                             unit,
                             paste0('(', unit, ')'))) |> 
-  mutate(across(-c(group,djbrank), \(x) replace_na(x, ''))) |> 
+  mutate(across(-c(group,djdrank), \(x) replace_na(x, ''))) |> 
   mutate(table.desc = ifelse(calc_type == 'derived',
                              paste0(description, ', calculated as ', definition),
                              paste(description, unit))) |> 

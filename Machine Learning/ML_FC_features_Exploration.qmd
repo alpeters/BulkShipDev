@@ -6,7 +6,7 @@ editor: visual
 
 ```{r}
 library(tidyverse)
-# library(kableExtra)
+library(kableExtra)
 library(readr)
 ```
 
