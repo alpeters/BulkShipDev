@@ -8,7 +8,7 @@ outlier_threshold,inf
 feature_set,struct
 no_transform,True
 test_exp,df_ml_raw['speed_sea_rel'].apply(lambda x: x <= percentile_25(df_ml_raw['speed_sea_rel']))
-train_exp,~(df_ml_raw['speed_sea_rel'].apply(lambda x: x <= percentile_25(df_ml_raw['speed_sea_rel'])))
+train_exp,~ & ( & d & f & _ & m & l & _ & r & a & w & [ & ' & s & p & e & e & d & _ & s & e & a & _ & r & e & l & ' & ] & . & a & p & p & l & y & ( & l & a & m & b & d & a &   & x & : &   & x &   & < & = &   & p & e & r & c & e & n & t & i & l & e & _ & 2 & 5 & ( & d & f & _ & m & l & _ & r & a & w & [ & ' & s & p & e & e & d & _ & s & e & a & _ & r & e & l & ' & ] & ) & ) & )
 cv_folds,5
 cv_scoring,neg_mean_absolute_error
 train_eval_type,repkfold

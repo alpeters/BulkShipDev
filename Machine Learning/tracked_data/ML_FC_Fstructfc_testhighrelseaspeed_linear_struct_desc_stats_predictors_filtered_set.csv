@@ -1,0 +1,3 @@
+dataset,t_m_v_n_rel_sum_W_SFC_count,t_m_v_n_rel_sum_W_SFC_mean,t_m_v_n_rel_sum_W_SFC_std,t_m_v_n_rel_squared_sum_W_SFC_count,t_m_v_n_rel_squared_sum_W_SFC_mean,t_m_v_n_rel_squared_sum_W_SFC_std,t_m_v_n_rel_cubed_sum_W_SFC_count,t_m_v_n_rel_cubed_sum_W_SFC_mean,t_m_v_n_rel_cubed_sum_W_SFC_std
+Test,1071,1112268736.7332053,837217429.6648253,1071,11532790829771.502,10556256657103.55,1071,1.6444384105326688e+17,2.5425260347304605e+17
+Training,215,741486145.6807848,670280449.9825304,215,6568091740284.054,8295095562339.969,215,1.237727049175059e+17,2.67975130533193e+17

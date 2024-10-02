@@ -20,14 +20,20 @@ notebookoutpath = 'Machine Learning/data/ML'
 
 #%%
 random_seed = 2652124
-target = 'fcnorm'
+target = 'fc'
 no_transform = True
-models = 'struct'
+models = 'struct' #'struct'
+feature_sets = ['structfc']
+# feature_sets = ['struct']
 # feature_sets = ['speeddist'] #['djdrank4']
-feature_sets = ['struct'] #, 'djdrank4', 'djdrank10', 'oecd']
+# feature_sets =  ['djdrank10', 'oecd', 'work', 'speeddist', 'djdrank4']
 # feature_sets = ['djdrank4', 'speeddist'] #, 'work', 'djdrank10', 'oecd', 'djdrank7']
 split_feature = "relseaspeed" # "dwt" #
-test_sets = [["trainquart" + str(quart) + split_feature] for quart in list(range(1,5))]
+
+test_sets = [["dec1relseaspeed"], ["dec10relseaspeed"], ["highrelseaspeed"], ["lowrelseaspeed"]]
+train_sets = [["highrelseaspeed"], ["lowrelseaspeed"], ["dec1relseaspeed"], ["dec10relseaspeed"]]
+
+# test_sets = [["trainquart" + str(quart) + split_feature] for quart in list(range(1,5))]
 # test_sets = [["testquart" + str(quart) + split_feature] for quart in list(range(1,2))]
 
 # test_sets = [["testquart4relseaspeed", "testhighdraught"]]
@@ -41,7 +47,8 @@ pm.inspect_notebook(notebookpath + '.ipynb')
 
 #%%
 for feature_set in feature_sets:
-    for test_set_criteria in test_sets:
+    # for test_set_criteria in test_sets:    
+    for test_set_criteria, train_set_criteria in zip(test_sets, train_sets):
         out_suffix = target + '_' + feature_set + '_' + ''.join(test_set_criteria)
         if models != 'all':
             out_suffix += '_' + models
@@ -56,7 +63,8 @@ for feature_set in feature_sets:
                     no_transform=no_transform,
                     feature_set=feature_set,
                     models=models,
-                    test_set_criteria=test_set_criteria)
+                    test_set_criteria=test_set_criteria,
+                    train_set_criteria =train_set_criteria)
             )
             print(f'{out_suffix} completed')
         except:
