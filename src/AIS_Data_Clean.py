@@ -53,7 +53,8 @@ def join_wfr(df, wfr_df, imo_counts):
     # Keep only imo's that are in the wfr (inner join)
     df = df.join(wfr_df, how='inner', on=['imo'])
     # Bound speed
-    df['speed_wfr'] = df['speed_wfr'].fillna(14.2) # number chosen as average of wfr speed ratings
+    # df['speed_wfr'] = df['speed_wfr'].fillna(14.2) # number chosen as average of wfr speed ratings
+    df['speed_wfr'] = df['speed_wfr'].fillna(wfr_df['speed_wfr'].mean()) # fill with mean if missing
     df['speed_bound'] = df['speed_wfr'] * 1.5 # follow IMO procedure of bounding by 1.5 times nominal speed (p.54)
     df['speed'] = df[['speed', 'speed_bound']].min(axis=1)
     df.drop(columns=['speed_bound'], inplace=True)
