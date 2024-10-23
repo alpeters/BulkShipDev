@@ -1,9 +1,0 @@
-,gb,lasso,linear,ridge,mean,sd
-v_over_v_ref_without_n_sum,1,1,1,1,1.0,0.0
-ME_W_ref_first,3,2,2,2,2.25,0.4330127018922193
-cal_fc,2,5,5,5,4.25,1.299038105676658
-rel_power_ship_squared_sum,7,5,3,3,4.5,1.6583123951777
-rel_power_ship_sum,5,5,4,4,4.5,0.5
-t_over_t_ref_without_m_sum,4,3,7,7,5.25,1.7853571071357126
-rel_power_ship_cubed_sum,6,8,6,6,6.5,0.8660254037844386
-ME_SFC_base_first,8,7,8,8,7.75,0.4330127018922193

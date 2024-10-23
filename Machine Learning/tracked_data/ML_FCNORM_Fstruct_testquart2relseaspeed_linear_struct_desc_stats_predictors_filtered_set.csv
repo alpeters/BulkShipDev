@@ -1,3 +1,0 @@
-dataset,t_m_v_n_rel_sum_count,t_m_v_n_rel_sum_mean,t_m_v_n_rel_sum_std,t_m_v_n_rel_squared_sum_count,t_m_v_n_rel_squared_sum_mean,t_m_v_n_rel_squared_sum_std,t_m_v_n_rel_cubed_sum_count,t_m_v_n_rel_cubed_sum_mean,t_m_v_n_rel_cubed_sum_std
-Test,535,609.4501378009512,422.56284590427333,535,5438373.773932865,4376569.827372063,535,73429289999.69185,107108606024.03229
-Training,1607,629.1366028021205,472.76635449358423,1607,5999922.612043749,5225695.953156551,1607,84612123743.64072,130196840044.09393

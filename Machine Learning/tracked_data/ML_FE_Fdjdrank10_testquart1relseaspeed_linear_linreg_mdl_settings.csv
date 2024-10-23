@@ -1,2 +1,0 @@
-model,class_name,name,type,scaling,fast
-linear,LinearRegression,Linear Regression,linear,False,True

@@ -1,5 +1,0 @@
-model,class_name,r2,mse,mae,mape,params
-gb,GradientBoostingRegressor,0.9625658829563785,31290.00840509508,115.26448195802863,0.09601839905649139,"{'learning_rate': 0.1, 'loss': 'squared_error', 'max_depth': 3, 'max_features': 'sqrt', 'min_samples_leaf': 20, 'min_samples_split': 20, 'n_estimators': 2000, 'warm_start': True}"
-lasso,Lasso,0.7318668141739876,224124.14932624737,271.3335146003055,0.22184609123730903,{'alpha': 0.01}
-ridge,Ridge,0.7318306512198491,224154.37680931124,269.35421806358596,0.22031552081644856,{'alpha': 0.01}
-linear,LinearRegression,0.731822553066414,224161.14580265366,269.35593250271813,0.22031616291488765,{}

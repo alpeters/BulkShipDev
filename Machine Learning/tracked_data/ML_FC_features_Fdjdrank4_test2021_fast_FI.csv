@@ -1,9 +1,0 @@
-,gb,lasso,linear,ridge,mean,sd
-rel_power_ship_squared_sum,3,1,1,1,1.5,0.8660254037844386
-rel_power_ship_sum,1,2,2,2,1.75,0.4330127018922193
-Draught..m.,4,4,4,4,4.0,0.0
-cal_fc,2,3,6,6,4.25,1.7853571071357126
-rel_power_ship_cubed_sum,5,6,3,3,4.25,1.299038105676658
-ME_W_ref_first,6,8,5,5,6.0,1.224744871391589
-Speed..knots.,7,5,7,7,6.5,0.8660254037844386
-ME_SFC_base_first,8,7,8,8,7.75,0.4330127018922193
