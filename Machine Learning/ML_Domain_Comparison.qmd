@@ -40,7 +40,11 @@ filenames_df <- tribble(
   ~target, ~transform,   ~models,        ~set, ~split_feature1,                ~splits1, ~split_feature2,         ~splits2,     ~csv_file,   ~csv_file_within,     ~train_split,
      # 'fc',           "",        "", 'djdrank10',   'relseaspeed', paste0("quart", c(1,4)),       'draught', c('high', 'low'), 'test_target',     'train_target',           NA,
      # 'fe',     'linear',       "", 'djdrank10',   'relseaspeed', paste0("quart", c(1,4)),       'draught', c('high', 'low'),     'test_fc',         'train_fc',           NA,
-     # 'fc',           "",       "", 'djdrank10',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',           NA,
+     # 'fc',           "",       "", 'djdrank10',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',           "",
+      'fc',           "",       "", 'djdrank10',   'relseaspeed',              "quart1",              NA,               NA,     'test_fc',            'best_train_fc',        "quart1",
+      'fc',           "",       "", 'djdrank10',   'relseaspeed',              "quart2",              NA,               NA,     'test_fc',            'best_train_fc',        "quart2",
+      'fc',           "",       "", 'djdrank10',   'relseaspeed',              "quart3",              NA,               NA,     'test_fc',            'best_train_fc',        "quart3",
+      'fc',           "",       "", 'djdrank10',   'relseaspeed',              "quart4",              NA,               NA,     'test_fc',            'best_train_fc',        "quart4",
      # 'fe',     'linear',       "", 'djdrank10',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',           NA,
      # 'fc',           '',       "",      'oecd',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',           NA,
      # 'fe',     'linear',       "",      'oecd',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',           NA,
@@ -50,10 +54,20 @@ filenames_df <- tribble(
      # 'fe',     'linear',       "", 'speeddist',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',           NA,
      # 'fc',           '',       "",      'work',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',     'train_target',           NA,
      # 'fcnorm', 'linear', "struct",   'struct',   'relseaspeed',    paste0("quart", 1:4),              NA,               NA,     'test_fc',         'train_fc',              NA,
-     'fcnorm', 'linear', "struct",   "struct",   "relseaspeed",                     "dec1",            NA,               NA,      'test_fc',         'train_fc',          "high",
-     'fcnorm', 'linear', "struct",   "struct",   "relseaspeed",                    "dec10",            NA,               NA,      'test_fc',         'train_fc',           "low",
-     'fc',     'linear', "struct",   "structfc", "relseaspeed",                     "dec1",            NA,               NA,  'test_target',     'train_target',          "high",
-     'fc',     'linear', "struct",   "structfc", "relseaspeed",                    "dec10",            NA,               NA,  'test_target',     'train_target',           "low"
+     # 'fcnorm', 'linear', "struct",   "struct",   "relseaspeed",                     "dec1",            NA,               NA,      'test_fc',         'train_fc',          "high",
+     # 'fcnorm', 'linear', "struct",   "struct",   "relseaspeed",                    "dec10",            NA,               NA,      'test_fc',         'train_fc',           "low",
+     # 'fc',     'linear', "struct",   "structfc", "relseaspeed",                     "dec1",            NA,               NA,  'test_target',     'train_target',          "high",
+     # 'fc',     'linear', "struct",   "structfc", "relseaspeed",                    "dec10",            NA,               NA,  'test_target',     'train_target',           "low",
+     # 'fc',           '',       "",   "djdrank10", "relseaspeed",                    "dec1",            NA,               NA,   'test_target',   'train_target',           "high",
+     # 'fc',           '',       "",   "djdrank10", "relseaspeed",                   "dec10",            NA,               NA,   'test_target',   'train_target',           "low",
+     # 'fc',           '',       "",        "oecd", "relseaspeed",                    "dec1",            NA,               NA,   'test_target',   'train_target',           "high",
+     # 'fc',           '',       "",        "oecd", "relseaspeed",                   "dec10",            NA,               NA,   'test_target',   'train_target',            "low",
+     # 'fc',           '',       "",        "work", "relseaspeed",                    "dec1",            NA,               NA,   'test_target',   'train_target',           "high",
+     # 'fc',           '',       "",        "work", "relseaspeed",                   "dec10",            NA,               NA,   'test_target',   'train_target',            "low",
+     # 'fe',     'linear',       "",   "djdrank10", "relseaspeed",                    "dec1",            NA,               NA,       'test_fc',       'train_fc',           "high",
+     # 'fe',     'linear',       "",   "djdrank10", "relseaspeed",                   "dec10",            NA,               NA,       'test_fc',       'train_fc',            "low",
+     # 'fe',     'linear',       "",        "oecd", "relseaspeed",                    "dec1",            NA,               NA,       'test_fc',       'train_fc',           "high",
+     # 'fe',     'linear',       "",        "oecd", "relseaspeed",                   "dec10",            NA,               NA,       'test_fc',       'train_fc',            "low"
 )
 
 filenames_df <- filenames_df |> 
@@ -437,6 +451,8 @@ metric_table <- metric_table |>
 ### Calc checks
 
 ```{r}
+# This was for comparing FC to FE
+
 metric_table |> 
   filter(metric == 'mape') |> 
   separate(set, c(NA, "vars"), sep = ' ', extra = "merge") |> 
