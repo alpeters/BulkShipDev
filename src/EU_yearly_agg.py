@@ -315,6 +315,7 @@ yearly_stats = (
         'rel_power_ship_squared': ['sum'],
         'rel_power_ship_cubed': ['sum'],
         'FC': ['sum'],
+        'FC_ME': ['sum'],
         'speed': ['mean'],
         'draught': ['mean']
         })

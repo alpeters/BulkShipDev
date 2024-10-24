@@ -9,10 +9,9 @@ import pyreadr
 import numpy as np
 import pandas as pd
 import pyreadr
-import seaborn as sns
 
-datapath = 'src/data'
-trackeddatapath = 'src/tracked_data'
+datapath = 'data'
+trackeddatapath = 'tracked_data'
 callvariant = 'speed' 
 EUvariant = '_EEZ' 
 filename = 'portcalls_' + callvariant + '_EU'
@@ -61,6 +60,8 @@ final_df['age'] = final_df['year'] - final_df['Built.Year']
 final_df['cal_fc'] = final_df['cal_fc'] / 1E6 # scale to same units at report_fc
 final_df['residual'] = np.log1p(final_df['report_fc'].values) - np.log1p(final_df['cal_fc'].values)
 # Note: We define residual as reported minus calculated
+final_df['report_fcme'] = final_df['report_fc'] - final_df['cal_fc'] + final_df['FC_ME_sum']
+# construct an estimate of the reported main engine fuel consumption by subtracting calculated FC from aux and boiler
 final_df['log_report_fc'] = np.log1p(final_df['report_fc'].values)
 final_df['log_cal_fc'] = np.log1p(final_df['cal_fc'].values)
 
@@ -87,11 +88,11 @@ final_df.groupby('set').value_counts(['within_tol_abs', 'within_tol_rel'])
 #%%
 ### Absolute
 print('Absolute')
-final_df.groupby('set').value_counts(['within_tol_abs'])
+print(final_df.groupby('set').value_counts(['within_tol_abs']))
 #%%
 ### Relative
 print('Relative')
-final_df.groupby('set').value_counts(['within_tol_rel'])
+print(final_df.groupby('set').value_counts(['within_tol_rel']))
 
 #%% Additional criteria on fraction of distance attributed to jumps
 final_df['jump_distance_frac'] = final_df['total_jump_distance'] / final_df['distance_sum']
@@ -138,7 +139,7 @@ active_bulkers_df = bulkers_wfr_df[
     ]
 
 #%% How many considered bulkers in WFR?
-obs_counts = merged_df.value_counts(['year']).sort_index().to_frame()
+obs_counts = merged_df.value_counts(['year']).sort_index().to_frame(name='count')
 obs_counts['fraction_active'] = obs_counts['count']/active_bulkers_df.shape[0]
 obs_counts
 
@@ -187,8 +188,9 @@ train_rel_df = final_df[final_df['within_tol_rel'] & (final_df['set'] == 'train'
 #%% Are outliers incorrectly matched ships?
 train_abs_df[['outlier', 'MRV.ship.type', 'Type']].value_counts()
 
-
+#%%
 #### JUMP DISTANCE #####
+import seaborn as sns
 import matplotlib.pyplot as plt
 # %%
 sns.histplot(data=train_abs_df.loc[train_abs_df['total_jump_distance'] > 10], x='total_jump_distance', hue='outlier', bins=100)
