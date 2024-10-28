@@ -60,7 +60,8 @@ final_df['age'] = final_df['year'] - final_df['Built.Year']
 final_df['cal_fc'] = final_df['cal_fc'] / 1E6 # scale to same units at report_fc
 final_df['residual'] = np.log1p(final_df['report_fc'].values) - np.log1p(final_df['cal_fc'].values)
 # Note: We define residual as reported minus calculated
-final_df['report_fcme'] = final_df['report_fc'] - final_df['cal_fc'] + final_df['FC_ME_sum']
+final_df['cal_fc_auxbo'] = final_df['cal_fc'] - final_df['FC_ME_sum']
+final_df['report_fcme'] = final_df['report_fc'] - final_df['cal_fc_auxbo']
 # construct an estimate of the reported main engine fuel consumption by subtracting calculated FC from aux and boiler
 final_df['log_report_fc'] = np.log1p(final_df['report_fc'].values)
 final_df['log_cal_fc'] = np.log1p(final_df['cal_fc'].values)
