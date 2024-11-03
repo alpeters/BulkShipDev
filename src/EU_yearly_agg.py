@@ -423,11 +423,15 @@ def calc_sum_stats(datapath, callvariant, EUvariant, filename):
             'W_rel_linspline': ['sum'],
             'W_rel_quadspline': ['sum']
         })
+        .compute()
     )
+    spline_terms.columns = ['_'.join(col).strip() for col in spline_terms.columns.values]
 
     yearly_stats_flat = yearly_stats_flat.join(missing_frac_sea, on = ['imo', 'year'])
     yearly_stats_flat = yearly_stats_flat.join(speed_sea, on = ['imo', 'year'])
     yearly_stats_flat = yearly_stats_flat.join(spline_terms, on = ['imo', 'year'])
+    # set to zero if there were no observations of W_rel greater than the minimum constraint
+    yearly_stats_flat[['W_rel_linspline_sum', 'W_rel_quadspline_sum']] = yearly_stats_flat[['W_rel_linspline_sum', 'W_rel_quadspline_sum']].fillna(0)
     yearly_stats_flat = yearly_stats_flat.rename(columns={
         'port_frac_':'port_frac',
         'longest_jump_':'longest_jump',
@@ -436,8 +440,8 @@ def calc_sum_stats(datapath, callvariant, EUvariant, filename):
 
 #%%
 if __name__ == '__main__':
-    assign_port(datapath, callvariant, EUvariant, filename)
-    assign_trip(datapath, callvariant, EUvariant, filename)
-    subset_EU(datapath, callvariant, EUvariant, filename)
-    calc_FC(datapath, callvariant, EUvariant, filename)
+    # assign_port(datapath, callvariant, EUvariant, filename)
+    # assign_trip(datapath, callvariant, EUvariant, filename)
+    # subset_EU(datapath, callvariant, EUvariant, filename)
+    # calc_FC(datapath, callvariant, EUvariant, filename)
     calc_sum_stats(datapath, callvariant, EUvariant, filename) 
