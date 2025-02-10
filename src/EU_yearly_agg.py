@@ -122,11 +122,20 @@ def subset_EU(datapath, callvariant, EUvariant, filename):
 
     # Create dataframe of just EU trips
     # ais_bulkers_EU = 
-    ais_bulkers.map_partitions(subset_EU_trips, meta = ais_bulkers).to_parquet(
-        os.path.join(datapath, 'AIS', 'ais_bulkers_trips_EU'),
-        append = False,
-        overwrite = True,
-        engine = 'fastparquet')
+    (
+        ais_bulkers
+        .map_partitions(
+            subset_EU_trips,
+            EU_trips,
+            align_dataframes = False,
+            meta = ais_bulkers
+        ).to_parquet(
+            os.path.join(datapath, 'AIS', 'ais_bulkers_trips_EU'),
+            append = False,
+            overwrite = True,
+            engine = 'fastparquet'
+        )
+    )
 
 
 
@@ -442,6 +451,6 @@ def calc_sum_stats(datapath, callvariant, EUvariant, filename):
 if __name__ == '__main__':
     # assign_port(datapath, callvariant, EUvariant, filename)
     # assign_trip(datapath, callvariant, EUvariant, filename)
-    # subset_EU(datapath, callvariant, EUvariant, filename)
+    subset_EU(datapath, callvariant, EUvariant, filename)
     # calc_FC(datapath, callvariant, EUvariant, filename)
-    calc_sum_stats(datapath, callvariant, EUvariant, filename) 
+    # calc_sum_stats(datapath, callvariant, EUvariant, filename) 
