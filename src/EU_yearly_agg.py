@@ -162,16 +162,17 @@ def calculate_hourly_power(df, table):
     df['ME_W'] = df['ME_W_ref'] * df['W_component'] * (df['draught']**0.66) * (df['speed']**3)
     # Assign auxiliary engine and boiler power based on IMO rules and lookup table
     dwt_bins = [0, 9999, 34999, 59999, 99999, 199999, np.inf]
-    df['ME_W_bin'] = pd.cut(df['ME_W'], bins=[0, 150, 500, np.inf], labels=np.arange(1.0,4.0))
+    df['ME_W_bin'] = pd.cut(df['ME_W_ref'], bins=[0, 150, 500, np.inf], labels=np.arange(1.0,4.0))
     df['Dwt_bin'] = pd.cut(df['Dwt'], bins=dwt_bins, labels=np.arange(1.0, 7.0))
     # df['ME_W_column_name'] = df['column_name'].astype('category').cat.codes
     df.reset_index(inplace=True)
-    df = df.merge(table, on = ['ME_W_bin', 'Dwt_bin', 'phase'], how='left')
+    df = df.merge(table, on = ['ME_W_ref_bin', 'Dwt_bin', 'phase'], how='left')
     df.set_index('imo', inplace=True)
     # print(df.index.name)
     # print(df.columns)
-    df['AE_W'] = df.apply(lambda row: row['ME_W'] * 0.05 if np.isnan(row['AE_W']) else row['AE_W'], axis=1)
-    df = df.drop(columns=['ME_W_bin', 'Dwt_bin'])
+    # df['AE_W'] = df.apply(lambda row: row['ME_W'] * 0.05 if np.isnan(row['AE_W']) else row['AE_W'], axis=1)
+    df['AE_W'] = df['AE_W'].mask(df['AE_W'].isna(), df['ME_W_ref'] * 0.05)
+    df = df.drop(columns=['ME_W_ref_bin', 'Dwt_bin'])
     
     return df
 
@@ -205,7 +206,7 @@ def calc_FC(datapath, callvariant, EUvariant, filename):
 
     # Load lookup table for aux and boiler power
     W_aux_table = pd.read_csv(os.path.join(datapath, 'AE_Boiler_Power_table.csv'),
-                            dtype = {'ME_W_bin': 'float',
+                            dtype = {'ME_W_ref_bin': 'float',
                                     'Dwt_bin': 'float',
                                     'phase': 'str',
                                     'AE_W': 'float',
