@@ -8,7 +8,6 @@ from dask.distributed import Client, LocalCluster
 datapath = 'data'
 callvariant = 'speed' #'heading'
 EUvariant = '_EEZ' #''
-filename = 'portcalls_' + callvariant + '_EU'
 
 
 adj_pcts = np.array([-20, -15, -10, -5, 5, 10, 15, 20])
@@ -227,7 +226,10 @@ def calc_sum_stats(datapath, callvariant, EUvariant, adj_pct, which_speed):
         'port_frac_':'port_frac',
         'longest_jump_':'longest_jump',
         'total_jump_distance_':'total_jump_distance',})
-    yearly_stats_flat.to_csv(os.path.join(datapath, 'AIS_' + callvariant + EUvariant + '_EU_yearly_stats_adj' + str(adj_pct) + '_' + which_speed + '.csv'))
+    yearly_stats_flat.to_csv(os.path.join(
+        datapath,
+        'AIS_' + callvariant + EUvariant + '_EU_yearly_stats_bulkers_adj' + str(adj_pct) + '_' + which_speed + '.csv'
+    ))
 
 #%%
 if __name__ == '__main__':

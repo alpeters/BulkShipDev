@@ -447,7 +447,7 @@ def calc_sum_stats(datapath, callvariant, EUvariant, filename):
         'port_frac_':'port_frac',
         'longest_jump_':'longest_jump',
         'total_jump_distance_':'total_jump_distance',})
-    yearly_stats_flat.to_csv(os.path.join(datapath, 'AIS_' + callvariant + EUvariant + '_EU_yearly_stats.csv'))
+    yearly_stats_flat.to_csv(os.path.join(datapath, 'AIS_' + callvariant + EUvariant + '_EU_yearly_stats_bulkers.csv'))
 
 #%%
 if __name__ == '__main__':
