@@ -204,7 +204,7 @@ def calc_power(datapath, callvariant, EUvariant, filename):
     wfr_bulkers = wfr_bulkers.set_index('imo').compute()
 
     # Load lookup table for aux and boiler power
-    W_aux_table = pd.read_csv(os.path.join(datapath, 'AE_Boiler_Power_table.csv'),
+    W_aux_table = pd.read_csv(os.path.join(datapath, 'bulkers_AE_Boiler_Power_table.csv'),
                             dtype = {'ME_W_ref_bin': 'float',
                                     'Dwt_bin': 'float',
                                     'phase': 'str',

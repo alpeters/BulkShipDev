@@ -1,6 +1,6 @@
 """
 Match MRV & WFR data with AIS ship-level aggregated yearly fuel consumption
-Input(s): bulkers_WFR.csv, MRV.rda, AIS_..._EU_yearly_stats.csv
+Input(s): bulkers_WFR.csv, MRV.rda, AIS_..._EU_yearly_stats_bulkers.csv
 Output(s): df_ml.csv
 """
 #%%
@@ -61,7 +61,7 @@ for adj_pct in adj_pcts:
     for which_speed in which_speeds:
         ais_eu_df = pd.read_csv(os.path.join(
             datapath,
-            'AIS_' + callvariant + EUvariant + '_EU_yearly_stats_adj' + str(adj_pct) + '_' + which_speed + '.csv'
+            'AIS_' + callvariant + EUvariant + '_EU_yearly_stats_bulkers_adj' + str(adj_pct) + '_' + which_speed + '.csv'
         ))
 
         # Filter the matched ship-years using a filter join

@@ -1,6 +1,6 @@
 """
 Match MRV & WFR data with AIS ship-level aggregated yearly fuel consumption
-Input(s): bulkers_WFR.csv, MRV.rda, AIS_..._EU_yearly_stats.csv
+Input(s): bulkers_WFR.csv, MRV.rda, AIS_..._EU_yearly_stats_bulkers.csv
 Output(s): df_ml.csv
 """
 #%%
@@ -19,7 +19,7 @@ filename = 'portcalls_' + callvariant + '_EU'
 #%%
 bulkers_wfr_df = pyreadr.read_r(os.path.join(datapath, 'bulkers_WFR.Rda'))['bulkers_df']
 mrv_df = pyreadr.read_r(os.path.join(datapath, 'MRV.Rda'))['MRV_df']
-ais_eu_df = pd.read_csv(os.path.join(datapath, 'AIS_' + callvariant + EUvariant + '_EU_yearly_stats.csv'))
+ais_eu_df = pd.read_csv(os.path.join(datapath, 'AIS_' + callvariant + EUvariant + '_EU_yearly_stats_bulkers.csv'))
 
 #%% Select and rename MRV data to ensure not used for prediction models
 mrv_df = mrv_df.loc[:, ['imo.number', 'reporting.period', 'EU.distance', 'total.fc', 'a', 'b', 'c', 'd', 'verifier.country', 'verifier.name', 'ship.type']]
