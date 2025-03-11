@@ -3,7 +3,7 @@ Merge portcall locations (EU or not) to AIS trips to identify trips into and out
 and aggregate yearly fuel consumption
 Power consumption calculations are based on International Maritime Organization's Fourth Greenhouse Gas Study (Faber et al., 2020),
 referenced as 'IMO4' in the code.
-Input(s): portcalls_'callvariant'_EU.csv, ais_bulkers_potportcalls_'callvariant'.parquet, bulkers_WWF_calcs.csv, AE_Boiler_Power_table.csv
+Input(s): portcalls_'callvariant'_EU.csv, ais_bulkers_potportcalls_'callvariant'.parquet, bulkers_WFR_calcs.csv, AE_Boiler_Power_table.csv
 Output(s): ais_bulkers_pottrips.parquet, ais_bulkers_trips.parquet, ais_bulkers_trips_EU.parquet, ais_bulkers_trips_EU_power.parquet, AIS_..._EU_yearly_stats.csv
 Runtime: 4m48 + 8m59 + 1m43 + 8m? + 1m15
 """
@@ -226,18 +226,20 @@ def calc_power(datapath, callvariant, EUvariant, filename):
     meta_dict['AE_W'] = 'float'
     meta_dict['Boiler_W'] = 'float'
 
-    (
-        ais_bulkers_EU
-        .map_partitions(process_partitions,
-                        wfr_bulkers,
-                        W_aux_table,
-                        meta=meta_dict,
-                        align_dataframes=False)
-        .to_parquet(os.path.join(datapath, 'AIS', 'ais_bulkers_trips_EU_power'),
-                    append = False,
-                    overwrite = True,
-                    engine = 'fastparquet')
-    )
+    with LocalCluster(n_workers=3, threads_per_worker=1, memory_limit='128GB') as cluster:
+        with Client(cluster) as client:
+            (
+                ais_bulkers_EU
+                .map_partitions(process_partitions,
+                                wfr_bulkers,
+                                W_aux_table,
+                                meta=meta_dict,
+                                align_dataframes=False)
+                .to_parquet(os.path.join(datapath, 'AIS', 'ais_bulkers_trips_EU_power'),
+                            append = False,
+                            overwrite = True,
+                            engine = 'fastparquet')
+            )
 
 
 
@@ -452,5 +454,5 @@ if __name__ == '__main__':
     # assign_port(datapath, callvariant, EUvariant, filename)
     # assign_trip(datapath, callvariant, EUvariant, filename)
     # subset_EU(datapath, callvariant, EUvariant, filename)
-    calc_power(datapath, callvariant, EUvariant, filename)
-    # calc_sum_stats(datapath, callvariant, EUvariant, filename) 
+    # calc_power(datapath, callvariant, EUvariant, filename)
+    calc_sum_stats(datapath, callvariant, EUvariant, filename) 
