@@ -87,7 +87,7 @@ for adj_pct in adj_pcts:
         final_df['report_fcme'] = final_df['report_fc'] - final_df['cal_fc_auxbo']
         # construct an estimate of the reported main engine fuel consumption by subtracting calculated FC from aux and boiler
         final_df['log_report_fc'] = np.log1p(final_df['report_fc'].values)
-        final_df['log_report_fcme'] = np.log1p(final_df['report_fcme'].values)
+        final_df['log_report_fcme'] = pd.NA #np.log1p(final_df['report_fcme'].values)
         final_df['log_cal_fc'] = np.log1p(final_df['cal_fc'].values)
         final_df['log_cal_fcme'] = np.log1p(final_df['cal_fcme'].values)
 
