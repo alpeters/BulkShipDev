@@ -141,8 +141,6 @@ def subset_EU(datapath, callvariant, EUvariant, filename):
 
 
 def join_wfr(df, wfr):
-    # Calculate travel work
-    df['work'] = df['speed']**2 * df['distance']
     joined_df = df.merge(wfr, on = 'imo', how='inner')
     joined_df = joined_df.dropna(subset=['speed', 'draught'])
     # TODO: document how many get dropped here
@@ -158,11 +156,12 @@ def calculate_hourly_power(df, table):
     Args:
         df (DataFrame): Dask DataFrame with columns 'ME_W_ref', 'W_component', 'draught', 'speed', 'phase', 'Dwt'
     """
+    df = df.assign(work=df['speed']**2 * df['distance'])
     # calculate hourly main engine power (IMO4 Eq 8)
     df['ME_W'] = df['ME_W_ref'] * df['W_component'] * (df['draught']**0.66) * (df['speed']**3)
     # Assign auxiliary engine and boiler power based on IMO rules and lookup table
     dwt_bins = [0, 9999, 34999, 59999, 99999, 199999, np.inf]
-    df['ME_W_bin'] = pd.cut(df['ME_W_ref'], bins=[0, 150, 500, np.inf], labels=np.arange(1.0,4.0))
+    df['ME_W_ref_bin'] = pd.cut(df['ME_W_ref'], bins=[0, 150, 500, np.inf], labels=np.arange(1.0,4.0))
     df['Dwt_bin'] = pd.cut(df['Dwt'], bins=dwt_bins, labels=np.arange(1.0, 7.0))
     # df['ME_W_column_name'] = df['column_name'].astype('category').cat.codes
     df.reset_index(inplace=True)
@@ -186,7 +185,7 @@ def process_partitions(part, wfr, table):
     part = calculate_hourly_power(part, table)
     return part
 
-def calc_FC(datapath, callvariant, EUvariant, filename):
+def calc_power(datapath, callvariant, EUvariant, filename):
     #%% Load ais_bulkers_trips_EU
     ais_bulkers_EU = dd.read_parquet(os.path.join(datapath, 'AIS', 'ais_bulkers_trips_EU'))
     # ais_bulkers_EU = ais_bulkers_EU.partitions[0:5]
@@ -213,7 +212,6 @@ def calc_FC(datapath, callvariant, EUvariant, filename):
                                     'Boiler_W': 'float'})
 
     meta_dict = ais_bulkers_EU.dtypes.to_dict()
-    meta_dict['work'] = 'float'
     meta_dict['Dwt'] = 'float'
     meta_dict['Draught..m.'] = 'float'
     meta_dict['Service.Speed..knots.'] = 'float'
@@ -223,6 +221,7 @@ def calc_FC(datapath, callvariant, EUvariant, filename):
     meta_dict['AE_SFC_base'] = 'float'
     meta_dict['Boiler_SFC_base'] = 'float'
     # meta_dict['imo'] = 'int'
+    meta_dict['work'] = 'float'
     meta_dict['ME_W'] = 'float'
     meta_dict['AE_W'] = 'float'
     meta_dict['Boiler_W'] = 'float'
@@ -452,6 +451,6 @@ def calc_sum_stats(datapath, callvariant, EUvariant, filename):
 if __name__ == '__main__':
     # assign_port(datapath, callvariant, EUvariant, filename)
     # assign_trip(datapath, callvariant, EUvariant, filename)
-    subset_EU(datapath, callvariant, EUvariant, filename)
-    # calc_FC(datapath, callvariant, EUvariant, filename)
+    # subset_EU(datapath, callvariant, EUvariant, filename)
+    calc_power(datapath, callvariant, EUvariant, filename)
     # calc_sum_stats(datapath, callvariant, EUvariant, filename) 
