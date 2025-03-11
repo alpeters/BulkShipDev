@@ -15,8 +15,8 @@ import pyreadr # for reading RData files
 import seaborn as sns # plots for publication
 import matplotlib.pyplot as plt # for plotting
 
-datapath = 'src/data'
-plotpath = 'src/plots'
+datapath = 'data'
+plotpath = 'plots'
 plotprefix = 'WFR_Calculations_Fixed_Power_'
 
 # Functions definitions
