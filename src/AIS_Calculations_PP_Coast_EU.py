@@ -16,11 +16,12 @@ from shapely.strtree import STRtree
 from dask.distributed import Client, LocalCluster
 import dask_geopandas as dgpd
 
-
 # Parameters
 N_WORKERS = 6
 THREADS_EACH = 1
-DATAPATH = "./data"
+LOCAL_DATAPATH = os.path.join(".", "data")
+DATAPATH = os.path.join("..", "..", "SharedData")
+BULK_DATAPATH = os.path.join(DATAPATH, "Bulk")
 VARIANT = "speed"
 BUFFER_DIST_M = 5000
 PROJECTED_CRS = "EPSG:6933"
@@ -28,13 +29,13 @@ COAST_MIN_AREA = 10
 
 # File paths
 filename_base = f"potportcalls_{VARIANT}"
-portcall_path = os.path.join(DATAPATH, filename_base, f"{filename_base}.shp")
+portcall_path = os.path.join(BULK_DATAPATH, filename_base, f"{filename_base}.shp")
 
 eez_name = "EEZ_exclusion_EU"
 eez_path = os.path.join(DATAPATH, eez_name, f"{eez_name}.shp")
 
 coast_path = os.path.join(DATAPATH, "gshhg-shp-2.3.7", "GSHHS_shp", "f", "GSHHS_f_L1.shp")
-output_csv = os.path.join(DATAPATH, f"{filename_base}_EU.csv")
+output_csv = os.path.join(BULK_DATAPATH, f"{filename_base}_EU.csv")
 
 # Functions
 def log(msg: str) -> None:
@@ -123,12 +124,12 @@ if __name__ == "__main__":
     # print(f"{len(coast_gdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
     
     # parallelized
-    # coast_dgdf = dgpd.read_file(coast_path, npartitions=1).to_crs(PROJECTED_CRS)
-    # coast_dgdf = coast_dgdf[coast_dgdf["area"] > COAST_MIN_AREA]
-    # print(f"{len(coast_dgdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
+    coast_dgdf = dgpd.read_file(coast_path, npartitions=1).to_crs(PROJECTED_CRS)
+    coast_dgdf = coast_dgdf[coast_dgdf["area"] > COAST_MIN_AREA]
+    print(f"{len(coast_dgdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
 
     # Spatial join to keep stops near land
-    # potportcalls_eu_gdf = potportcalls_eu_gdf.iloc[1_400_000:]  # For testing
+    potportcalls_eu_gdf = potportcalls_eu_gdf.iloc[:1400]  # For testing
     log("Identifying stops near coastline as port calls …")
     
     # distance join, unparallelized
@@ -150,27 +151,27 @@ if __name__ == "__main__":
     
     # # distance join, parallelized with Dask
     # # -----------
-    # potportcalls_eu_dgdf = (
-    #     dgpd.from_geopandas(
-    #         potportcalls_eu_gdf,
-    #         npartitions=N_WORKERS * THREADS_EACH
-    #         # npartitions=2
-    #     )
-    #     .spatial_shuffle()
-    # )
+    potportcalls_eu_dgdf = (
+        dgpd.from_geopandas(
+            potportcalls_eu_gdf,
+            npartitions=N_WORKERS * THREADS_EACH
+            # npartitions=2
+        )
+        .spatial_shuffle()
+    )
 
-    # with LocalCluster(
-    #     n_workers=N_WORKERS,
-    #     threads_per_worker=THREADS_EACH
-    # ) as cluster, Client(cluster) as client:
-    #     coast_dgdf_scattered = client.scatter(coast_dgdf, broadcast=True)
-    #     potportcalls_eu_dgdf = potportcalls_eu_dgdf.persist()
-    #     portcalls_eu_gdf = potportcalls_eu_dgdf.map_partitions(
-    #         distance_filter,
-    #         coast_dgdf_scattered,
-    #         BUFFER_DIST_M,
-    #         meta=potportcalls_eu_dgdf._meta
-    #     ).drop(columns="geometry").compute()
+    with LocalCluster(
+        n_workers=N_WORKERS,
+        threads_per_worker=THREADS_EACH
+    ) as cluster, Client(cluster) as client:
+        coast_dgdf_scattered = client.scatter(coast_dgdf, broadcast=True)
+        potportcalls_eu_dgdf = potportcalls_eu_dgdf.persist()
+        portcalls_eu_gdf = potportcalls_eu_dgdf.map_partitions(
+            distance_filter,
+            coast_dgdf_scattered,
+            BUFFER_DIST_M,
+            meta=potportcalls_eu_dgdf._meta
+        ).drop(columns="geometry").compute()
 
     # # sjoin
     # # -----------
