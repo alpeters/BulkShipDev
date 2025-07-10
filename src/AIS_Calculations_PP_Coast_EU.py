@@ -37,6 +37,17 @@ eez_path = os.path.join(DATAPATH, eez_name, f"{eez_name}.shp")
 coast_path = os.path.join(DATAPATH, "gshhg-shp-2.3.7", "GSHHS_shp", "f", "GSHHS_f_L1.shp")
 output_csv = os.path.join(BULK_DATAPATH, f"{filename_base}_EU.csv")
 
+# Cluster settings
+if "SLURM_JOB_ID" in os.environ:
+    slurm_nprocesses = int(os.environ.get("SLURM_CPUS_PER_TASK"))
+    # take the minimum of the SLURM tasks and the default N_WORKERS
+    n_workers = min(N_WORKERS, slurm_nprocesses)
+    # give the rest to threads
+    threads_each = slurm_nprocesses // n_workers
+else:
+    n_workers = N_WORKERS
+    threads_each = THREADS_EACH
+    
 # Functions
 def log(msg: str) -> None:
     """Simple timestamped logger."""
@@ -161,8 +172,8 @@ if __name__ == "__main__":
     )
 
     with LocalCluster(
-        n_workers=N_WORKERS,
-        threads_per_worker=THREADS_EACH
+        n_workers=n_workers,
+        threads_per_worker=threads_each
     ) as cluster, Client(cluster) as client:
         coast_dgdf_scattered = client.scatter(coast_dgdf, broadcast=True)
         potportcalls_eu_dgdf = potportcalls_eu_dgdf.persist()
