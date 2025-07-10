@@ -119,7 +119,9 @@ if __name__ == "__main__":
     ).drop(columns=["index_right"])
 
     # Keep only the first match per point
-    potportcalls_eu_gdf = potportcalls_eu_gdf.loc[~potportcalls_eu_gdf.index.duplicated(keep="first")]
+    potportcalls_eu_gdf = potportcalls_eu_gdf.loc[
+        ~potportcalls_eu_gdf.index.duplicated(keep="first")
+    ]
 
     # Reproject to a global CRS for minimal distortion (verified no problem with antimeridional splitting)
     potportcalls_eu_gdf = potportcalls_eu_gdf.to_crs(PROJECTED_CRS)
@@ -140,7 +142,7 @@ if __name__ == "__main__":
     print(f"{len(coast_dgdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
 
     # Spatial join to keep stops near land
-    potportcalls_eu_gdf = potportcalls_eu_gdf.iloc[:1400]  # For testing
+    # potportcalls_eu_gdf = potportcalls_eu_gdf.iloc[:7000]  # For testing
     log("Identifying stops near coastline as port calls …")
     
     # distance join, unparallelized
