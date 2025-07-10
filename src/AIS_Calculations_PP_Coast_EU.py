@@ -1,113 +1,230 @@
+#!/usr/bin/env python3
 """
-Select actual portcalls as the subset of potential portcalls within a certain distance of the coast.
-Assign EEZ nationality (country with EU status and with waterways excluded) to these portcalls.
-Input(s): EEZ_exclusion_EU.shp, potportcalls_'callvariant'.shp
-Output(s): potportcalls_'callvariant'_EU.csv (, portcalls_'callvariant'_EU_buffer.gpkg)
-Runtime: 7m30
+Obtain port calls by filtering potential port calls to those that are within the EU EEZ and near the coastline.
 
 Steps:
-1. Load portcalls.shp
-2. load EEZ_EU.shp
-3. join attributes to portcalls
-4. Buffer portcalls
-5. load coastline map
-6. join attributes (intersection)
+
+Runtime: 2h with 6 cores
 """
 
-#%%
-import sys, os
-from qgis.core import *
+import os
+from datetime import datetime
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+from shapely.strtree import STRtree
+from dask.distributed import Client, LocalCluster
+import dask_geopandas as dgpd
 
-datapath = './src/data'
-variant = 'speed' #'heading'
 
-#%%
-## Join EU attribute using QGIS
-#%%
-# Supply path to qgis install location
-QgsApplication.setPrefixPath("/usr/bin/qgis", True)
-# Create a reference to the QgsApplication.  Setting the
-# second argument to False disables the GUI.
-qgs = QgsApplication([], False)
-# Load providers
-qgs.initQgis()
+# Parameters
+N_WORKERS = 6
+THREADS_EACH = 1
+DATAPATH = "./data"
+VARIANT = "speed"
+BUFFER_DIST_M = 5000
+PROJECTED_CRS = "EPSG:6933"
+COAST_MIN_AREA = 10
 
-# Include Processing module
-sys.path.append('/usr/share/qgis/python/plugins') # Folder where Processing is located
-from processing.core.Processing import Processing
-Processing.initialize()
-from processing.tools import *
+# File paths
+filename_base = f"potportcalls_{VARIANT}"
+portcall_path = os.path.join(DATAPATH, filename_base, f"{filename_base}.shp")
 
-#%%
-filename = 'potportcalls_' + variant
-potportcalls = QgsVectorLayer(
-    os.path.join(datapath, filename, filename + '.shp'),
-    filename)
-if not potportcalls.isValid():
-    print("Layer failed to load!")
+eez_name = "EEZ_exclusion_EU"
+eez_path = os.path.join(DATAPATH, eez_name, f"{eez_name}.shp")
 
-#%%
-EEZ_filename = 'EEZ_exclusion_EU'
-EEZ = QgsVectorLayer(
-    os.path.join(datapath, EEZ_filename, EEZ_filename + '.shp'),
-    EEZ_filename)
-if not EEZ.isValid():
-    print("Layer failed to load!")
+coast_path = os.path.join(DATAPATH, "gshhg-shp-2.3.7", "GSHHS_shp", "f", "GSHHS_f_L1.shp")
+output_csv = os.path.join(DATAPATH, f"{filename_base}_EU.csv")
 
-#%% Join EU status (and country) to portcalls
-join = general.run("native:joinattributesbylocation",
-    {
-        'INPUT': potportcalls,
-        'PREDICATE':[5],
-        'JOIN': EEZ,
-        'JOIN_FIELDS': ['ISO_3digit', 'EU'],
-        'METHOD': 1,
-        'DISCARD_NONMATCHING': False,
-        'PREFIX': '',
-        'OUTPUT' : 'memory:{}'
-        # 'OUTPUT': os.path.join(datapath, filename + '_EU.gpkg')
-    })
-potportcalls_EU = join['OUTPUT']
-# 5m
+# Functions
+def log(msg: str) -> None:
+    """Simple timestamped logger."""
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{ts}] {msg}")
 
-#%% Filter out nulls (waterways and beyond EEZ) before buffering
-potportcalls_EU.setSubsetString('"ISO_3digit" != \'null\'')
+def spatial_join_chunk(chunk):
+    return gpd.sjoin(
+        chunk,
+        coast[["geometry", "id"]],
+        how="inner",
+        predicate="intersects",
+    ).drop(columns=["index_right"])
 
-#%% Buffer around potential portcalls
-buffer = general.run("native:buffer",
-    {
-        'INPUT': potportcalls_EU,
-        'DISTANCE': 0.05,
-        'SEGMENTS': 5,
-        'END_CAP_STYLE': 0,
-        'JOIN_STYLE': 0,
-        'MITER_LIMIT': 2,
-        'DISSOLVE': False,
-        # 'OUTPUT' : 'memory:{}'
-        'OUTPUT': os.path.join(datapath, filename + '_EU_buffer.gpkg')
-    })
-# potportcalls_buffer = buffer['OUTPUT']
-# 38s
+def distance_filter(points: gpd.GeoDataFrame,
+                    polygons,
+                    buffer_dist):
+    """
+    Keep only rows in *chunk* whose geometry lies within *buffer_dist* of
+    any geometry in *coast_geoms*.
+    """
+    tree = STRtree(polygons["geometry"].values)
+    pairs = tree.query(
+        points.geometry.values,
+        predicate="dwithin",
+        distance=buffer_dist
+    )
+    hit_rows = np.unique(pairs[0])
+    return points.iloc[hit_rows]
 
-#%% Use filtered mapfile to speed up processing
-coast_filepath = "gshhg-shp-2.3.7/GSHHS_shp/f/GSHHS_f_L1.shp"
-coast_filepath_filtered = os.path.join(datapath, coast_filepath) + '|subset="area" > 10'
+def compute_min_distance(points: gpd.GeoDataFrame, polygons) -> gpd.GeoDataFrame:
+    """
+    Compute the nearest polygon distance for each point using query_nearest,
+    returning the original points with a 'min_distance' column.
+    """
+    # Build the spatial index for the polygons
+    tree = STRtree(polygons["geometry"].values)
+    
+    # For each point, get the nearest polygon and its distance
+    distances = {}
+    for idx, pt in points.geometry.items():
+        # query_nearest returns a tuple of (nearest_index, distance)
+        result = tree.query_nearest(pt, return_distance=True)
+        nearest_index, distance = result
+        distances[idx] = distance
+    
+    out = points.copy()
+    out["min_distance"] = pd.Series(distances)
+    return out
 
-#%% Join coastline to detect stops near land as portcalls, drop unmatched
-join = general.run("native:joinattributesbylocation",
-    {
-        'INPUT': os.path.join(datapath, filename + '_EU_buffer.gpkg'),
-        'PREDICATE':[0], #intersect, 4 is overlap
-        'JOIN': coast_filepath_filtered,
-        'JOIN_FIELDS': ['id'],
-        'METHOD': 1, #first matching feature, 2 is largest overlap
-        'DISCARD_NONMATCHING': True,
-        'PREFIX': '',
-        'OUTPUT': os.path.join(datapath, 'potportcalls_' + variant + '_EU.csv')
-    })
-# 1m44s
+# Main processing pipeline
+if __name__ == "__main__":
+    log("Starting potential port call filtering …")
+    potportcalls_gdf = (
+        gpd.read_file(portcall_path)
+        .set_crs("EPSG:4326")  # EEZ is in 4326
+    )
 
-#%% Remove the provider and layer registries from memory
-qgs.exitQgis()
+    eez_gdf = gpd.read_file(eez_path)[["geometry", "ISO_3digit", "EU"]]
 
-#%%
+    # Join EU status to port calls
+    ## Do this join in 4326 do avoid antimeridional splitting issues in reprojecting EEZ map
+    log("Assigning EEZ nationality using spatial join (within) …")
+    potportcalls_eu_gdf = gpd.sjoin(
+        potportcalls_gdf,
+        eez_gdf,
+        how="left",
+        predicate="within"
+    ).drop(columns=["index_right"])
+
+    # Keep only the first match per point
+    potportcalls_eu_gdf = potportcalls_eu_gdf.loc[~potportcalls_eu_gdf.index.duplicated(keep="first")]
+
+    # Reproject to a global CRS for minimal distortion (verified no problem with antimeridional splitting)
+    potportcalls_eu_gdf = potportcalls_eu_gdf.to_crs(PROJECTED_CRS)
+
+    # Drop points outside EEZ
+    len_prefilter = len(potportcalls_eu_gdf)
+    potportcalls_eu_gdf = potportcalls_eu_gdf[potportcalls_eu_gdf["ISO_3digit"].notna()].copy()
+    log(f"Filtered {len_prefilter - len(potportcalls_eu_gdf)} points outside EEZ.")
+
+    # non-parallelized
+    # coast_gdf = gpd.read_file(coast_path).to_crs(PROJECTED_CRS)
+    # coast_gdf = coast_gdf[coast_gdf["area"] > COAST_MIN_AREA]
+    # print(f"{len(coast_gdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
+    
+    # parallelized
+    # coast_dgdf = dgpd.read_file(coast_path, npartitions=1).to_crs(PROJECTED_CRS)
+    # coast_dgdf = coast_dgdf[coast_dgdf["area"] > COAST_MIN_AREA]
+    # print(f"{len(coast_dgdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
+
+    # Spatial join to keep stops near land
+    # potportcalls_eu_gdf = potportcalls_eu_gdf.iloc[1_400_000:]  # For testing
+    log("Identifying stops near coastline as port calls …")
+    
+    # distance join, unparallelized
+    # -----------
+    # -----------
+    # # for troubleshooting
+    # potportcalls_eu_gdf = potportcalls_eu_gdf.query("imo == -9860269")
+    # potportcalls_eu_gdf.to_csv('./data/potportcalls_eu_prefilter.csv', index=False)
+    # compute_min_distance(
+    #     potportcalls_eu_gdf,
+    #     coast_gdf
+    # ).to_csv('./data/min_distances.csv', index=False)
+    # ----------
+    # portcalls_eu_gdf = distance_filter(
+    #     potportcalls_eu_gdf,
+    #     coast_gdf,
+    #     BUFFER_DIST_M
+    # )
+    
+    # # distance join, parallelized with Dask
+    # # -----------
+    # potportcalls_eu_dgdf = (
+    #     dgpd.from_geopandas(
+    #         potportcalls_eu_gdf,
+    #         npartitions=N_WORKERS * THREADS_EACH
+    #         # npartitions=2
+    #     )
+    #     .spatial_shuffle()
+    # )
+
+    # with LocalCluster(
+    #     n_workers=N_WORKERS,
+    #     threads_per_worker=THREADS_EACH
+    # ) as cluster, Client(cluster) as client:
+    #     coast_dgdf_scattered = client.scatter(coast_dgdf, broadcast=True)
+    #     potportcalls_eu_dgdf = potportcalls_eu_dgdf.persist()
+    #     portcalls_eu_gdf = potportcalls_eu_dgdf.map_partitions(
+    #         distance_filter,
+    #         coast_dgdf_scattered,
+    #         BUFFER_DIST_M,
+    #         meta=potportcalls_eu_dgdf._meta
+    #     ).drop(columns="geometry").compute()
+
+    # # sjoin
+    # # -----------
+    # # Buffer potential port calls
+    # # log(f"Buffering {len(portcalls_eu)} points by {BUFFER_DIST_M} meters …")
+    # # portcalls_eu["geometry"] = portcalls_eu.geometry.buffer(
+    # #     BUFFER_DIST_M,
+    # #     resolution=5,
+    # #     cap_style=1,
+    # #     join_style=1,
+    # #     mitre_limit=2,
+    # # )
+    # # # Reproject back to WGS84 for further processing/output
+    # # portcalls_eu = portcalls_eu.to_crs("EPSG:4326")
+    # # log("Saving buffered layer to GeoPackage …")
+    # # portcalls_eu.to_file(buffer_gpkg, driver="GPKG")
+    
+    # ## manual parallelization
+    # ## -----------
+
+    # # indices = np.array_split(np.arange(len(portcalls_eu)), 1000)
+    # # portcalls_eu_chunks = [portcalls_eu.iloc[idx] for idx in indices]
+    
+    # # with ProcessPoolExecutor() as executor:
+    # #     portcalls_land_chunks = list(executor.map(spatial_join_chunk, portcalls_eu_chunks))
+
+    # # portcalls_land = gpd.GeoDataFrame(
+    # #     pd.concat(
+    # #         portcalls_land_chunks, ignore_index=True
+    # #     )
+    # # )
+
+    # # portcalls_land_chunks = []
+    # # for chunk in portcalls_eu_chunks:
+    # #     log(f"Processing chunk of size {len(chunk)} …")
+    # #     chunk_land = gpd.sjoin(
+    # #         chunk,
+    # #         coast[["geometry", "id"]],
+    # #         how="inner",
+    # #         predicate="intersects",
+    # #     ).drop(columns=["index_right"])
+
+    # #     portcalls_land_chunks.append(chunk_land)
+    # # portcalls_land = gpd.GeoDataFrame(pd.concat(portcalls_land_chunks, ignore_index=True))
+
+    # ## non-parallelized
+    # ## -----------
+    # # portcalls_land = gpd.sjoin(
+    # #     portcalls_eu,
+    # #     coast[["geometry", "id"]],
+    # #     how="inner",
+    # #     predicate="intersects",
+    # # ).drop(columns=["index_right"])
+
+    log(f"Retained {len(portcalls_eu_gdf)} potential port calls near the coast.")
+    portcalls_eu_gdf.to_csv(output_csv, index=False)
+    log(f"Finished! Output saved to {output_csv}.")
