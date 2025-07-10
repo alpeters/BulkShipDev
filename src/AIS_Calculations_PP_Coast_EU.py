@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 """
-Obtain port calls by filtering potential port calls to those that are within the EU EEZ and near the coastline.
+Obtain port calls by filtering potential port calls to those that are within EEZ and near the coastline.
 
 Steps:
+1. Keep only stops inside economic exclusion zones and use to assign country, EU status.
+2. Keep only stops within a certain distance off the coastline.
+
+Input(s): potportcalls_{VARIANT}.shp, EEZ_exclusion_EU, GSHHS_f_L1.shp
+Output(s): potportcalls_{VARIANT}_EU.csv
 
 Runtime: 2h with 6 cores
+
+TODO: Remove testing and previous version code (spatial_join_chunk, compute_min_distance, etc.)
 """
 
 import os
@@ -54,13 +61,13 @@ def log(msg: str) -> None:
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{ts}] {msg}")
 
-def spatial_join_chunk(chunk):
-    return gpd.sjoin(
-        chunk,
-        coast[["geometry", "id"]],
-        how="inner",
-        predicate="intersects",
-    ).drop(columns=["index_right"])
+# def spatial_join_chunk(chunk):
+#     return gpd.sjoin(
+#         chunk,
+#         coast[["geometry", "id"]],
+#         how="inner",
+#         predicate="intersects",
+#     ).drop(columns=["index_right"])
 
 def distance_filter(points: gpd.GeoDataFrame,
                     polygons,
@@ -78,25 +85,25 @@ def distance_filter(points: gpd.GeoDataFrame,
     hit_rows = np.unique(pairs[0])
     return points.iloc[hit_rows]
 
-def compute_min_distance(points: gpd.GeoDataFrame, polygons) -> gpd.GeoDataFrame:
-    """
-    Compute the nearest polygon distance for each point using query_nearest,
-    returning the original points with a 'min_distance' column.
-    """
-    # Build the spatial index for the polygons
-    tree = STRtree(polygons["geometry"].values)
+# def compute_min_distance(points: gpd.GeoDataFrame, polygons) -> gpd.GeoDataFrame:
+#     """
+#     Compute the nearest polygon distance for each point using query_nearest,
+#     returning the original points with a 'min_distance' column.
+#     """
+#     # Build the spatial index for the polygons
+#     tree = STRtree(polygons["geometry"].values)
     
-    # For each point, get the nearest polygon and its distance
-    distances = {}
-    for idx, pt in points.geometry.items():
-        # query_nearest returns a tuple of (nearest_index, distance)
-        result = tree.query_nearest(pt, return_distance=True)
-        nearest_index, distance = result
-        distances[idx] = distance
+#     # For each point, get the nearest polygon and its distance
+#     distances = {}
+#     for idx, pt in points.geometry.items():
+#         # query_nearest returns a tuple of (nearest_index, distance)
+#         result = tree.query_nearest(pt, return_distance=True)
+#         nearest_index, distance = result
+#         distances[idx] = distance
     
-    out = points.copy()
-    out["min_distance"] = pd.Series(distances)
-    return out
+#     out = points.copy()
+#     out["min_distance"] = pd.Series(distances)
+#     return out
 
 # Main processing pipeline
 if __name__ == "__main__":
@@ -137,8 +144,11 @@ if __name__ == "__main__":
     # print(f"{len(coast_gdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
     
     # parallelized
-    coast_dgdf = dgpd.read_file(coast_path, npartitions=1).to_crs(PROJECTED_CRS)
-    coast_dgdf = coast_dgdf[coast_dgdf["area"] > COAST_MIN_AREA]
+    coast_dgdf = (
+    dgpd.read_file(coast_path, npartitions=1)
+        .to_crs(PROJECTED_CRS)
+        .query("area > @COAST_MIN_AREA")
+    ).persist()
     print(f"{len(coast_dgdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
 
     # Spatial join to keep stops near land
