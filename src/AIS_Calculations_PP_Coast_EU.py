@@ -144,11 +144,8 @@ if __name__ == "__main__":
     # print(f"{len(coast_gdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
     
     # parallelized
-    coast_dgdf = (
-    dgpd.read_file(coast_path, npartitions=1)
-        .to_crs(PROJECTED_CRS)
-        .query("area > @COAST_MIN_AREA")
-    ).persist()
+    coast_dgdf = dgpd.read_file(coast_path, npartitions=1).to_crs(PROJECTED_CRS)
+    coast_dgdf = coast_dgdf[coast_dgdf["area"] > COAST_MIN_AREA].persist()
     print(f"{len(coast_dgdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
 
     # Spatial join to keep stops near land
