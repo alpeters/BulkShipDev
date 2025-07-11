@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --account=def-kasahara-ab
-#SBATCH --mem=17G
+#SBATCH --mem=40G
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=6
-#SBATCH --time=1:00:0    
+#SBATCH --cpus-per-task=12
+#SBATCH --time=3:00:0    
 
 module load StdEnv/2023 proj arrow/19.0.1 python/3.12
 
