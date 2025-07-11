@@ -140,7 +140,7 @@ if __name__ == "__main__":
 
     # non-parallelized
     coast_gdf = gpd.read_file(coast_path).to_crs(PROJECTED_CRS)
-    coast_gdf = coast_gdf[coast_gdf["area"] > COAST_MIN_AREA].persist()
+    coast_gdf = coast_gdf[coast_gdf["area"] > COAST_MIN_AREA]
     print(f"{len(coast_gdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
     
     # parallelized
@@ -149,7 +149,7 @@ if __name__ == "__main__":
     # print(f"{len(coast_dgdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
 
     # Spatial join to keep stops near land
-    # potportcalls_eu_gdf = potportcalls_eu_gdf.iloc[:7000]  # For testing
+    # potportcalls_eu_gdf = potportcalls_eu_gdf.iloc[:14000]  # For testing
     log("Identifying stops near coastline as port calls …")
     
     # distance join, unparallelized
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     potportcalls_eu_dgdf = (
         dgpd.from_geopandas(
             potportcalls_eu_gdf,
-            npartitions=N_WORKERS * THREADS_EACH
+            npartitions=n_workers * threads_each
             # npartitions=2
         )
         .spatial_shuffle()
