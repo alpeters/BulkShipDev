@@ -139,14 +139,14 @@ if __name__ == "__main__":
     log(f"Filtered {len_prefilter - len(potportcalls_eu_gdf)} points outside EEZ.")
 
     # non-parallelized
-    # coast_gdf = gpd.read_file(coast_path).to_crs(PROJECTED_CRS)
-    # coast_gdf = coast_gdf[coast_gdf["area"] > COAST_MIN_AREA]
-    # print(f"{len(coast_gdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
+    coast_gdf = gpd.read_file(coast_path).to_crs(PROJECTED_CRS)
+    coast_gdf = coast_gdf[coast_gdf["area"] > COAST_MIN_AREA].persist()
+    print(f"{len(coast_gdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
     
     # parallelized
-    coast_dgdf = dgpd.read_file(coast_path, npartitions=1).to_crs(PROJECTED_CRS)
-    coast_dgdf = coast_dgdf[coast_dgdf["area"] > COAST_MIN_AREA].persist()
-    print(f"{len(coast_dgdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
+    # coast_dgdf = dgpd.read_file(coast_path, npartitions=1).to_crs(PROJECTED_CRS)
+    # coast_dgdf = coast_dgdf[coast_dgdf["area"] > COAST_MIN_AREA].persist()
+    # print(f"{len(coast_dgdf)} coastline polygons after filtering by area > {COAST_MIN_AREA}.")
 
     # Spatial join to keep stops near land
     # potportcalls_eu_gdf = potportcalls_eu_gdf.iloc[:7000]  # For testing
@@ -184,11 +184,11 @@ if __name__ == "__main__":
         n_workers=n_workers,
         threads_per_worker=threads_each
     ) as cluster, Client(cluster) as client:
-        coast_dgdf_scattered = client.scatter(coast_dgdf, broadcast=True)
+        coast_gdf_scattered = client.scatter(coast_gdf, broadcast=True)
         potportcalls_eu_dgdf = potportcalls_eu_dgdf.persist()
         portcalls_eu_gdf = potportcalls_eu_dgdf.map_partitions(
             distance_filter,
-            coast_dgdf_scattered,
+            coast_gdf_scattered,
             BUFFER_DIST_M,
             meta=potportcalls_eu_dgdf._meta
         ).drop(columns="geometry").compute()
