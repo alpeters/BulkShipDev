@@ -11,24 +11,15 @@ options(dplyr.summarise.inform = FALSE)
 library(rio)
 ```
 
-Function for quick summary tables
-```{r include = FALSE}
-kable_titles <- function(df, format = "simple"){
-  kable(df,
-        format = format,
-        col.names = colnames(df) %>% str_replace_all("\\.", " ") %>% str_to_sentence())
-}
-
-# initial_tidy <- function(df){
-#   colnames(df) <- colnames(df) %>% 
-#     str_to_sentence()
-#   df <- df %>% 
-#     mutate(across(everything(), ))
-# }
+# File paths
+```{r}
+datapath <- file.path("..", "..", "SharedData")
+mrv_path <- file.path(datapath, "MRV")
 ```
 
-# Import
+# Functions
 ```{r}
+#' Read MRV data file
 read_MRV <- function(file) {
   col_types = rep("guess", 61)
   col_types = replace(col_types, c(21,48,61), "text")
@@ -37,86 +28,104 @@ read_MRV <- function(file) {
                na = c("NA", "N/A", "Division by zero!", "Not Applicable"),
                col_types = col_types,
                setclass = "tibble")
-  colnames(df) <- colnames(df) %>% 
+  colnames(df) <- colnames(df) |> 
     str_to_sentence()
   return(df)
 }
 ```
 
+# Import
 ```{r}
-# MRV_df <- read_MRV("data/MRV/2018-v249-13052021-EU MRV Publication of information.xlsx")
-MRV_df <- read_MRV("src/data/MRV/2018-v265-30042022-EU MRV Publication of information.xlsx")
+# MRV_df <- read_MRV(file.path(mrv_path, "2018-v249-13052021-EU MRV Publication of information.xlsx"))
+MRV_df <- read_MRV(file.path(
+  mrv_path,
+   "2018-v265-30042022-EU MRV Publication of information.xlsx"
+))
 
-# temp_df <- read_MRV("data/MRV/2019-v163-20052021-EU MRV Publication of information.xlsx")
-temp_df <- read_MRV("src/data/MRV/2019-v204-19052022-EU MRV Publication of information.xlsx")
+# temp_df <- read_MRV(file.path(mrv_path, "2019-v163-20052021-EU MRV Publication of information.xlsx"))
+temp_df <- read_MRV(file.path(
+  mrv_path,
+   "2019-v204-19052022-EU MRV Publication of information.xlsx"
+))
 
-MRV_df <- MRV_df %>% 
+MRV_df <- MRV_df |> 
   bind_rows(temp_df)
 
-# temp_df <- read_MRV("data/MRV/2020-v63-05102021-EU MRV Publication of information.xlsx")
-temp_df <- read_MRV("src/data/MRV/2020-v150-19052022-EU MRV Publication of information.xlsx")
+# temp_df <- read_MRV(file.path(mrv_path, "2020-v63-05102021-EU MRV Publication of information.xlsx"))
+temp_df <- read_MRV(file.path(
+  mrv_path,
+  "2020-v150-19052022-EU MRV Publication of information.xlsx"
+))
 
-temp_df <- temp_df %>% 
-  rename("Annual total time spent at sea [hours]" = "Annual time spent at sea [hours]",
-         "Total time spent at sea [hours]" = "Time spent at sea [hours]")
+temp_df <- temp_df |> 
+  rename(
+    "Annual total time spent at sea [hours]" = "Annual time spent at sea [hours]",
+    "Total time spent at sea [hours]" = "Time spent at sea [hours]"
+  )
 
-MRV_df <- MRV_df %>% 
+MRV_df <- MRV_df |> 
   bind_rows(temp_df)
 
-temp_df <- read_MRV("src/data/MRV/2021-v41-25082022-EU MRV Publication of information.xlsx")
+temp_df <- read_MRV(file.path(
+  mrv_path,
+  "2021-v41-25082022-EU MRV Publication of information.xlsx"
+))
 
-temp_df <- temp_df %>% 
-  rename("Annual total time spent at sea [hours]" = "Annual time spent at sea [hours]",
-         "Total time spent at sea [hours]" = "Time spent at sea [hours]")
+temp_df <- temp_df |> 
+  rename(
+    "Annual total time spent at sea [hours]" = "Annual time spent at sea [hours]",
+    "Total time spent at sea [hours]" = "Time spent at sea [hours]"
+  )
 
-MRV_df <- MRV_df %>% 
+MRV_df <- MRV_df |> 
   bind_rows(temp_df)
 ```
 
 Clean column names
 ```{r}
-colname_descriptions <- tibble(description = colnames(MRV_df)) %>% 
-  mutate(description = description %>% 
-                    str_replace_all("\\.{3}48", "Direct emissions"),
-        colname = description %>%
-                    str_replace_all("\\s", "\\.") %>% 
-                    str_to_lower() %>% 
-                    str_remove_all("\\.\\[.*\\]") %>% 
-                    str_replace_all("fuel\\.consumptions", "fc") %>% 
-                    str_replace_all("fuel\\.consumption", "fc") %>% 
-                    str_replace_all("co.\\.emissions", "co2") %>% 
-                    str_replace_all("ports\\.under\\.a\\.ms\\.jurisdiction", "ms.ports") %>% 
-                    str_replace_all("transport\\.work", "work") %>% 
-                    str_remove_all("\\(") %>% 
-                    str_remove_all("\\)") %>% 
-                    str_remove_all("assigned\\.to\\.") %>% 
-                    str_remove_all("annual\\.average\\.") %>% 
-                    str_replace_all("total\\.time\\.spent", "time") %>% 
-                    str_replace_all("additional\\.information\\..*", "additional.info") %>% 
-                    str_replace_all("average\\.density\\.of\\.the\\.cargo\\.transported", "cargo.density") %>% 
-                    str_remove_all("from\\.all\\.voyages\\.") %>% 
-                    str_remove_all("departed\\.") %>% 
-                    str_remove_all("which\\.") %>% 
-                    str_remove_all("occurred\\.within\\.")
-        )
+colname_descriptions <- tibble(description = colnames(MRV_df)) |> 
+  mutate(
+    description = description |> 
+      str_replace_all("\\.{3}48", "Direct emissions"),
+    colname = description |>
+      str_replace_all("\\s", "\\.") |> 
+      str_to_lower() |> 
+      str_remove_all("\\.\\[.*\\]") |> 
+      str_replace_all("fuel\\.consumptions", "fc") |> 
+      str_replace_all("fuel\\.consumption", "fc") |> 
+      str_replace_all("co.\\.emissions", "co2") |> 
+      str_replace_all("ports\\.under\\.a\\.ms\\.jurisdiction", "ms.ports") |> 
+      str_replace_all("transport\\.work", "work") |> 
+      str_remove_all("\\(") |> 
+      str_remove_all("\\)") |> 
+      str_remove_all("assigned\\.to\\.") |> 
+      str_remove_all("annual\\.average\\.") |> 
+      str_replace_all("total\\.time\\.spent", "time") |> 
+      str_replace_all("additional\\.information\\..*", "additional.info") |> 
+      str_replace_all("average\\.density\\.of\\.the\\.cargo\\.transported", "cargo.density") |> 
+      str_remove_all("from\\.all\\.voyages\\.") |> 
+      str_remove_all("departed\\.") |> 
+      str_remove_all("which\\.") |> 
+      str_remove_all("occurred\\.within\\.")
+    )
 ```
 
 ```{r}
 colnames(MRV_df) <- colname_descriptions$colname
-MRV_df <- MRV_df %>% 
+MRV_df <- MRV_df |> 
   rename(ship.name = name)
 ```
 
 Difference between 'annual.time.at.sea' and 'time.at.sea' ?
 ```{r}
-time.col.diff <- MRV_df %>%
-  mutate(time.diff = annual.time.at.sea - time.at.sea) %>% 
-  filter(time.diff != 0) %>% 
+time.col.diff <- MRV_df |>
+  mutate(time.diff = annual.time.at.sea - time.at.sea) |> 
+  filter(time.diff != 0) |> 
   nrow()
 
 if(time.col.diff == 0){
-  MRV_df <- MRV_df %>% 
-    select(-time.at.sea) %>% 
+  MRV_df <- MRV_df |> 
+    select(-time.at.sea) |> 
     rename(time.at.sea = annual.time.at.sea)
 } else {
   warning("Difference between time at sea columns!")
@@ -125,85 +134,98 @@ if(time.col.diff == 0){
 
 Factor variables
 ```{r}
-MRV_df <- MRV_df %>%
-  mutate(across(c(port.of.registry,
-                  home.port),
-                str_to_title)) %>%
-  mutate(across(c(reporting.period,
-                  ship.type,
-                  port.of.registry,
-                  home.port,
-                  ice.class),
-                as_factor))
+MRV_df <- MRV_df |>
+  mutate(across(c(
+    port.of.registry,
+    home.port),
+    str_to_title
+  )) |>
+  mutate(across(
+    c(
+      reporting.period,
+      ship.type,
+      port.of.registry,
+      home.port,
+      ice.class
+    ),
+    as_factor)
+  )
 ```
 
 Numeric variables
 ```{r}
-MRV_df %>% 
-  mutate(across(contains("fc"), as.numeric)) %>% 
-  mutate(across(contains("co2"), as.numeric)) %>%
-  mutate(across(contains("time"), as.numeric)) %>%
+MRV_df |> 
+  mutate(across(contains("fc"), as.numeric)) |> 
+  mutate(across(contains("co2"), as.numeric)) |>
+  mutate(across(contains("time"), as.numeric)) |>
   mutate(cargo.density = as.numeric(cargo.density))
 ```
 
 Technical efficiency
 ```{r}
-MRV_df <-MRV_df %>% 
-  mutate(technical.efficiency = technical.efficiency %>% 
-                                str_remove_all("Not\\sApplicable|\\(|\\)") %>% 
-                                str_trim(),
-         technical.efficiency = if_else(str_starts(technical.efficiency, "[:digit:]"), 
-                                        paste("NA", technical.efficiency),
-                                        technical.efficiency)) %>% 
-  separate(technical.efficiency,
-           c("efficiency.metric", "efficiency.value", "efficiency.unit"),
-           sep = " ",
-           extra = "merge",
-           fill = "right",
-           remove = FALSE) %>%
-  mutate(efficiency.metric = na_if(efficiency.metric, "NA"),
-         efficiency.value = as.numeric(efficiency.value),
-         across(c(efficiency.metric, efficiency.unit), as_factor),
-         EIV = if_else(efficiency.metric == "EIV", efficiency.value, NA_real_),
-         EEDI = if_else(efficiency.metric == "EEDI", efficiency.value, NA_real_)) %>% 
-  select(-technical.efficiency) %>% 
+MRV_df <-MRV_df |> 
+  mutate(
+    technical.efficiency = technical.efficiency |> 
+      str_remove_all("Not\\sApplicable|\\(|\\)") |> 
+      str_trim(),
+    technical.efficiency = if_else(
+      str_starts(technical.efficiency, "[:digit:]"), 
+      paste("NA", technical.efficiency),
+      technical.efficiency)
+    ) |> 
+  separate(
+    technical.efficiency,
+    c("efficiency.metric", "efficiency.value", "efficiency.unit"),
+    sep = " ",
+    extra = "merge",
+    fill = "right",
+    remove = FALSE
+  ) |>
+  mutate(
+    efficiency.metric = na_if(efficiency.metric, "NA"),
+    efficiency.value = as.numeric(efficiency.value),
+    across(c(efficiency.metric, efficiency.unit), as_factor),
+    EIV = if_else(efficiency.metric == "EIV", efficiency.value, NA_real_),
+    EEDI = if_else(efficiency.metric == "EEDI", efficiency.value, NA_real_)
+  ) |> 
+  select(-technical.efficiency) |> 
   rename(technical.efficiency = efficiency.value)
 ```
 
 Distance traveled, speed, emission factor, transport work
 ```{r}
-MRV_df <- MRV_df %>% 
-  mutate(EU.distance = total.fc / fc.per.distance * 1E3) %>%  # [nm] = [kg]/[kg/nm] = [t]/[kg/nm] * 1E3
-  mutate(speed = EU.distance / time.at.sea) %>% # [kt] = [nm]/[h]
-  mutate(emission.factor = total.co2 / total.fc) %>%  # [.] = [t]/[t]
-  mutate(work.mass = total.fc / fc.per.work.mass) %>% # [mt.nm] = 1E6 * [t.nm] = [t^2.nm]/[g] = [t]/[g/t.nm]
+MRV_df <- MRV_df |> 
+  mutate(EU.distance = total.fc / fc.per.distance * 1E3) |>  # [nm] = [kg]/[kg/nm] = [t]/[kg/nm] * 1E3
+  mutate(speed = EU.distance / time.at.sea) |> # [kt] = [nm]/[h]
+  mutate(emission.factor = total.co2 / total.fc) |>  # [.] = [t]/[t]
+  mutate(work.mass = total.fc / fc.per.work.mass) |> # [mt.nm] = 1E6 * [t.nm] = [t^2.nm]/[g] = [t]/[g/t.nm]
   mutate(load = work.mass / EU.distance * 1E3) # [kt] = [mt.nm]/[nm] * 1E3
 ```
 
 ```{r}
-save(MRV_df, file = "src/data/MRV.Rda")
+save(MRV_df, file = file.path(datapath, "MRV.Rda"))
 ```
 
 ## Inspect
 ```{r eval = FALSE}
-MRV_df %>% 
-  filter(ship.type == "Bulk carrier") %>% 
+MRV_df |> 
+  filter(ship.type == "Bulk carrier") |> 
   View()
 ```
 
 Completeness
 ```{r}
-MRV_df %>% 
+MRV_df |> 
   summary()
 ```
 
 ## Summary
 ```{r, results = FALSE}
-MRV_df %>% 
-  select(-starts_with("verifier")) %>%
-  group_by(reporting.period, ship.type) %>% 
-  mutate(across(everything(), ~{!is.na(.x)})) %>%
-  summarise(across(everything(), sum)) %>% 
+MRV_df |> 
+  select(-starts_with("verifier")) |>
+  group_by(reporting.period, ship.type) |> 
+  mutate(across(everything(), ~{!is.na(.x)})) |>
+  summarise(across(everything(), sum)) |> 
   # arrange(ship.type)
   filter(ship.type == "Bulk carrier")
 ```
